@@ -143,7 +143,9 @@ function AdvertenciasPage() {
               className="bg-background border border-border rounded-md px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-primary/50 transition-colors shadow-sm"
             >
               <option className="bg-background text-foreground" value="Todas">Todas as Punições</option>
-              {Object.keys(punishmentConfig).map(type => (
+              {Object.keys(punishmentConfig)
+                .filter(type => type !== "Sem Punição")
+                .map(type => (
                 <option className="bg-background text-foreground" key={type} value={type}>{type}</option>
               ))}
             </select>
