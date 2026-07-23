@@ -1,12 +1,13 @@
 import { Member, Schedule, Case, Warning } from './types';
 
 export const mockMembers: Member[] = [
-  { id: "1", nick: "Admin", role: "Presidência", status: "Ativo", entryDate: "2025-01-01", notes: "Líder" },
-  { id: "2", nick: "Alpha", role: "Diretor", status: "Ativo", entryDate: "2025-02-01", notes: "" },
-  { id: "3", nick: "Bravo", role: "Diretor", status: "Ativo", entryDate: "2025-02-15", notes: "" },
-  { id: "4", nick: "Charlie", role: "Fiscalizador", status: "Ativo", entryDate: "2025-03-10", notes: "" },
-  { id: "5", nick: "Delta", role: "Fiscalizador", status: "Ativo", entryDate: "2025-03-20", notes: "" },
-  { id: "6", nick: "Echo", role: "Fiscalizador", status: "Ativo", entryDate: "2025-04-05", notes: "" },
+  { id: "1", nick: "Admin", role: "Presidência", status: "Ativo", entryDate: "2024-01-01", notes: "Líder" },
+  { id: "2", nick: "ViceAdmin", role: "Vice-Presidência", status: "Ativo", entryDate: "2024-03-01", promotionDate: "2025-01-15", notes: "Braço direito" },
+  { id: "3", nick: "Alpha", role: "Diretor", status: "Ativo", entryDate: "2025-02-01", promotionDate: "2025-10-10", notes: "" },
+  { id: "4", nick: "Bravo", role: "Diretor", status: "Inativo", entryDate: "2025-02-15", notes: "" },
+  { id: "5", nick: "Charlie", role: "Fiscalizador", status: "Ativo", entryDate: "2025-03-10", notes: "" },
+  { id: "6", nick: "Delta", role: "Fiscalizador", status: "Ativo", entryDate: "2025-03-20", notes: "" },
+  { id: "7", nick: "Echo", role: "Fiscalizador", status: "Ativo", entryDate: "2025-04-05", notes: "" },
 ];
 
 export const mockSchedules: Schedule[] = [

@@ -8,6 +8,7 @@ export interface Member {
   role: Role;
   status: "Ativo" | "Inativo";
   entryDate: string;
+  promotionDate?: string;
   notes: string;
   avatarUrl?: string;
 }
