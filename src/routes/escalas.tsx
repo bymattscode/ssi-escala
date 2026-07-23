@@ -45,15 +45,12 @@ function EscalaTable({ schedules }: { schedules: typeof mockSchedules }) {
             <th className="px-6 py-4 font-medium">Dia Ref.</th>
             <th className="px-6 py-4 font-medium">Prazo</th>
             <th className="px-6 py-4 font-medium">Status</th>
-            <th className="px-6 py-4 font-medium">Responsável</th>
-            <th className="px-6 py-4 font-medium">Observações</th>
             <th className="px-6 py-4 font-medium text-right">Ações</th>
           </tr>
         </thead>
         <tbody>
           {schedules.map((schedule) => {
             const member = getMemberDetails(schedule.memberId);
-            const resp = schedule.responsibleId ? getMemberDetails(schedule.responsibleId) : null;
             return (
               <tr key={schedule.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                 <td className="px-6 py-4 font-medium text-foreground flex items-center gap-3">
@@ -62,19 +59,15 @@ function EscalaTable({ schedules }: { schedules: typeof mockSchedules }) {
                   </div>
                   {member?.nick || "Desconhecido"}
                 </td>
-                <td className="px-6 py-4 text-muted-foreground">{member?.role || "-"}</td>
+                <td className="px-6 py-4 text-muted-foreground">{schedule.type}</td>
                 <td className="px-6 py-4 text-foreground font-medium">{schedule.referenceDay}</td>
                 <td className="px-6 py-4 text-muted-foreground">{schedule.deadline}</td>
                 <td className="px-6 py-4">
                   <StatusBadge status={schedule.status} />
                 </td>
-                <td className="px-6 py-4 text-muted-foreground">{resp?.nick || "-"}</td>
-                <td className="px-6 py-4 text-muted-foreground truncate max-w-[150px]" title={schedule.observations}>
-                  {schedule.observations || "-"}
-                </td>
                 <td className="px-6 py-4 text-right">
                   <button className="text-primary hover:text-primary/80 font-medium transition-colors">
-                    Editar
+                    Registrar função
                   </button>
                 </td>
               </tr>
@@ -82,7 +75,7 @@ function EscalaTable({ schedules }: { schedules: typeof mockSchedules }) {
           })}
           {schedules.length === 0 && (
             <tr>
-              <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">
+              <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                 Nenhuma escala encontrada para este período.
               </td>
             </tr>
