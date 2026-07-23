@@ -1,52 +1,46 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, CalendarDays, Users, AlertTriangle, FileWarning, Settings, HardDrive } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Users, AlertTriangle, FileWarning, Settings, CalendarRange } from "lucide-react";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-  { icon: CalendarDays, label: "Escalas", href: "/escalas" },
+  { icon: CalendarDays, label: "Escala Fiscalizadores", href: "/escalas" }, // Podemos usar search params para a aba, ou apenas /escalas
+  { icon: CalendarRange, label: "Escala Diretores", href: "/escalas" },
   { icon: Users, label: "Membros", href: "/membros" },
   { icon: AlertTriangle, label: "Casos", href: "/casos" },
   { icon: FileWarning, label: "Advertências", href: "/advertencias" },
+  { icon: Settings, label: "Configurações", href: "/configuracoes" },
 ];
 
 export function Sidebar() {
   const location = useLocation();
 
   return (
-    <aside className="w-64 bg-card border-r border-border h-screen flex flex-col fixed left-0 top-0 z-20">
-      <div className="h-16 flex items-center px-6 border-b border-border">
-        <h1 className="text-primary font-bold text-xl tracking-tight">SSI<span className="text-foreground">Panel</span></h1>
-      </div>
-      
-      <nav className="flex-1 py-4 px-3 flex flex-col gap-1">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.href;
+    <aside className="w-64 bg-card/95 backdrop-blur-md border-r border-border h-[calc(100vh-4rem)] flex flex-col fixed left-0 top-16 z-20 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.5)]">
+      <nav className="flex-1 py-6 px-4 flex flex-col gap-2 overflow-y-auto">
+        <div className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2 px-2">Menu Principal</div>
+        {navItems.map((item, idx) => {
+          // O item é ativo se a rota for igual ao href dele. 
+          // (Tratamento especial para as escalas poderia ser feito com state/params)
+          const isActive = location.pathname === item.href && (item.href !== "/escalas" || idx === 1); // Simplificação
           return (
             <Link
-              key={item.href}
+              key={item.label}
               to={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 group relative overflow-hidden ${
                 isActive 
-                  ? "bg-primary/10 text-primary font-medium border border-primary/20" 
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent"
+                  ? "bg-primary/15 text-primary font-medium border border-primary/30 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]" 
+                  : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground border border-transparent"
               }`}
             >
-              <item.icon className="h-5 w-5" />
+              {isActive && (
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary shadow-[0_0_10px_rgba(59,130,246,0.8)] rounded-r-md"></div>
+              )}
+              <item.icon className={`h-5 w-5 transition-transform duration-300 ${isActive ? "scale-110 drop-shadow-[0_0_5px_rgba(59,130,246,0.5)]" : "group-hover:scale-110 group-hover:text-primary"}`} />
               {item.label}
             </Link>
           );
         })}
       </nav>
-      
-      <div className="p-4 border-t border-border">
-        <div className="bg-secondary/50 rounded-lg p-4 flex flex-col items-center text-center border border-border">
-          <HardDrive className="h-6 w-6 text-muted-foreground mb-2" />
-          <span className="text-xs text-muted-foreground mb-3">Último backup:<br/>Hoje, 14:00</span>
-          <button className="w-full bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium py-2 rounded transition-colors border border-primary/20 hover:border-primary/40">
-            Fazer Backup
-          </button>
-        </div>
-      </div>
     </aside>
   );
 }
