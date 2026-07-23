@@ -3,7 +3,7 @@ import { LayoutDashboard, CalendarDays, Users, AlertTriangle, FileWarning, Setti
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-  { icon: CalendarDays, label: "Escalas", href: "/escalas" },
+  { icon: CalendarDays, label: "Escala Semanal", href: "/escalas" },
   { icon: Users, label: "Listagem de Membros", href: "/membros" },
   { icon: AlertTriangle, label: "Gestão de Casos", href: "/casos" },
   { icon: FileWarning, label: "Registro de Punições", href: "/advertencias" },
