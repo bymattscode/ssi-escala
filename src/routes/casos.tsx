@@ -76,7 +76,7 @@ function CasosPage() {
         </div>
         <button 
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] w-full sm:w-auto"
+          className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all w-full sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           Abrir Novo Caso
@@ -217,7 +217,7 @@ function CasosPage() {
             <button onClick={() => setIsCreateOpen(false)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors">
               Cancelar
             </button>
-            <button onClick={() => setIsCreateOpen(false)} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-[0_0_10px_rgba(59,130,246,0.3)]">
+            <button onClick={() => setIsCreateOpen(false)} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all ">
               Enviar Caso
             </button>
           </div>
@@ -272,7 +272,7 @@ function CasosPage() {
             <button onClick={() => setResolveCase(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors">
               Cancelar
             </button>
-            <button onClick={() => setResolveCase(null)} className="px-4 py-2 rounded-md font-medium bg-green-500 text-white hover:bg-green-600 transition-all shadow-[0_0_10px_rgba(34,197,94,0.3)]">
+            <button onClick={() => setResolveCase(null)} className="px-4 py-2 rounded-md font-medium bg-green-500 text-white hover:bg-green-600 transition-all ">
               Concluir Análise
             </button>
           </div>

@@ -34,7 +34,7 @@ function MemberCard({ member }: { member: Member }) {
       </div>
 
       <div className="flex items-start gap-4">
-        <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg shadow-[0_0_10px_rgba(59,130,246,0.15)] overflow-hidden shrink-0">
+        <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg overflow-hidden shrink-0">
           {member.avatarUrl ? (
             <img src={member.avatarUrl} alt={member.nick} className="h-full w-full object-cover" />
           ) : (
@@ -78,7 +78,7 @@ function RoleSection({ title, icon: Icon, members }: { title: string, icon: any,
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2 border-b border-border pb-2">
-        <div className="h-8 w-8 bg-primary/10 border border-primary/20 rounded-md flex items-center justify-center text-primary shadow-[0_0_8px_rgba(59,130,246,0.2)]">
+        <div className="h-8 w-8 bg-primary/10 border border-primary/20 rounded-md flex items-center justify-center text-primary ">
           <Icon className="h-4 w-4" />
         </div>
         <h2 className="text-xl font-bold text-foreground tracking-tight">{title}</h2>
@@ -113,7 +113,7 @@ function MembrosPage() {
           <h1 className="text-3xl font-bold text-foreground tracking-tight">Membros do SSI</h1>
           <p className="text-muted-foreground mt-1">Gestão hierárquica e controle da equipe de segurança.</p>
         </div>
-        <button className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] w-full sm:w-auto">
+        <button className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all w-full sm:w-auto">
           <UserPlus className="h-4 w-4" />
           Cadastrar Membro
         </button>

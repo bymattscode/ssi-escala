@@ -49,7 +49,7 @@ function ConfiguracoesPage() {
           className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium transition-all w-full sm:w-auto ${
             isSyncing 
               ? "bg-primary/20 text-primary border border-primary/50 cursor-not-allowed" 
-              : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]"
+              : "bg-primary text-primary-foreground hover:bg-primary/90 "
           }`}
         >
           <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />

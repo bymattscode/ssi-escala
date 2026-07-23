@@ -112,7 +112,7 @@ function EscalasPage() {
             <RotateCcw className="h-4 w-4" />
             Regerar Escala
           </button>
-          <button className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]">
+          <button className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all ">
             <CalendarDays className="h-4 w-4" />
             Gerar Automática
           </button>
@@ -162,10 +162,10 @@ function EscalasPage() {
         <Tabs defaultValue="fiscalizadores" className="w-full">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 pt-4 pb-3 border-b border-border gap-4 bg-secondary/10">
             <TabsList className="bg-secondary/50 border border-border rounded-lg p-1">
-              <TabsTrigger value="fiscalizadores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(59,130,246,0.2)] rounded-md px-4">
+              <TabsTrigger value="fiscalizadores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-4">
                 Escala dos Fiscalizadores
               </TabsTrigger>
-              <TabsTrigger value="diretores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px_rgba(59,130,246,0.2)] rounded-md px-4">
+              <TabsTrigger value="diretores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-4">
                 Escala dos Diretores
               </TabsTrigger>
             </TabsList>
