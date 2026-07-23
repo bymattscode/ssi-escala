@@ -5,7 +5,7 @@ const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: CalendarDays, label: "Escalas", href: "/escalas" },
   { icon: Users, label: "Listagem de Membros", href: "/membros" },
-  { icon: AlertTriangle, label: "Casos", href: "/casos" },
+  { icon: AlertTriangle, label: "Gestão de Casos", href: "/casos" },
   { icon: FileWarning, label: "Registro de Punições", href: "/advertencias" },
   { icon: Settings, label: "Configurações", href: "/configuracoes" },
 ];
