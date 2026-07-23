@@ -6,7 +6,7 @@ const navItems = [
   { icon: CalendarDays, label: "Escalas", href: "/escalas" },
   { icon: Users, label: "Listagem de Membros", href: "/membros" },
   { icon: AlertTriangle, label: "Casos", href: "/casos" },
-  { icon: FileWarning, label: "Advertências", href: "/advertencias" },
+  { icon: FileWarning, label: "Registro de Punições", href: "/advertencias" },
   { icon: Settings, label: "Configurações", href: "/configuracoes" },
 ];
 
