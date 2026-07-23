@@ -173,7 +173,7 @@ function MembrosPage() {
   const handleReactivate = async (m: Member) => {
     if (!isAdmin) return;
     await updateMemberStatus(m.id, "Ativo");
-    await addAuditLog("1", role, "Alteração de Status", "Membros", `O membro ${m.nick} retornou para Ativo.`, m.id);
+    await addAuditLog("1", role, "Retorno de Licença", "Membros", `O membro ${m.nick} retornou da licença.`, m.id);
     toast.success("Membro reativado com sucesso!");
     fetchMembers();
   };
