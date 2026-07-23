@@ -151,6 +151,11 @@ function MembrosPage() {
   const [editEntryDate, setEditEntryDate] = useState("");
   const [editPromotionDate, setEditPromotionDate] = useState("");
 
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [newMemberNick, setNewMemberNick] = useState("");
+  const [newMemberRole, setNewMemberRole] = useState<Role>("Fiscalizador");
+  const [newMemberEntryDate, setNewMemberEntryDate] = useState(new Date().toISOString().split("T")[0]);
+
   const [deactivateMember, setDeactivateMember] = useState<Member | null>(null);
   const [deactivateType, setDeactivateType] = useState<"Inativo" | "Licença">("Inativo");
   const [leaveStart, setLeaveStart] = useState("");
@@ -233,19 +238,29 @@ function MembrosPage() {
     fetchMembers();
   };
 
-  const handleAddMockMember = async () => {
-    const nick = prompt("Nick do membro:");
-    if (!nick) return;
+  const handleOpenAddMember = () => {
+    setNewMemberNick("");
+    setNewMemberRole("Fiscalizador");
+    setNewMemberEntryDate(new Date().toISOString().split("T")[0]);
+    setIsAddingMember(true);
+  };
+
+  const submitAddMember = async () => {
+    if (!newMemberNick.trim()) {
+      toast.error("Preencha o nick do membro.");
+      return;
+    }
     const newMember: Member = {
       id: `m${Date.now()}`,
-      nick,
-      role: "Fiscalizador",
+      nick: newMemberNick.trim(),
+      role: newMemberRole,
       status: "Ativo",
-      entryDate: new Date().toISOString().split("T")[0]
+      entryDate: newMemberEntryDate || new Date().toISOString().split("T")[0]
     };
     await addMember(newMember);
-    await addAuditLog("1", role, "Criação de Membro", "Membros", `O membro ${nick} foi adicionado.`, newMember.id);
+    await addAuditLog("1", role, "Criação de Membro", "Membros", `O membro ${newMember.nick} foi adicionado como ${newMemberRole}.`, newMember.id);
     toast.success("Membro adicionado!");
+    setIsAddingMember(false);
     fetchMembers();
   };
 
@@ -267,7 +282,7 @@ function MembrosPage() {
           <p className="text-muted-foreground mt-1">Gestão hierárquica e controle da equipe de segurança.</p>
         </div>
         {isAdmin && (
-          <button onClick={handleAddMockMember} className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all w-full sm:w-auto">
+          <button onClick={handleOpenAddMember} className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all w-full sm:w-auto">
             <UserPlus className="h-4 w-4" />
             Cadastrar Membro
           </button>
@@ -303,6 +318,51 @@ function MembrosPage() {
           </div>
         )}
       </div>
+
+      <Modal isOpen={isAddingMember} onClose={() => setIsAddingMember(false)} title="Cadastrar Novo Membro">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">Nick</label>
+            <input 
+              type="text"
+              value={newMemberNick}
+              onChange={e => setNewMemberNick(e.target.value)}
+              placeholder="Ex: joaozinho123"
+              className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">Cargo Inicial</label>
+            <select 
+              value={newMemberRole} 
+              onChange={e => setNewMemberRole(e.target.value as Role)}
+              className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+            >
+              <option value="Fiscalizador">Fiscalizador</option>
+              <option value="Diretor">Diretor</option>
+              <option value="Vice-Presidente">Vice-Presidente</option>
+              <option value="Presidente">Presidente</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">Data de Entrada</label>
+            <input 
+              type="date"
+              value={newMemberEntryDate}
+              onChange={e => setNewMemberEntryDate(e.target.value)}
+              className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+            />
+          </div>
+          <div className="flex justify-end gap-3 mt-4">
+            <button onClick={() => setIsAddingMember(false)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors text-sm">
+              Cancelar
+            </button>
+            <button onClick={submitAddMember} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all text-sm">
+              Cadastrar
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal isOpen={!!editMember} onClose={() => setEditMember(null)} title="Editar Dados do Membro">
         {editMember && (
