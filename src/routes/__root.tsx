@@ -116,6 +116,8 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+import { Toaster } from "sonner";
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -130,6 +132,7 @@ function RootComponent() {
           </main>
         </div>
       </div>
+      <Toaster theme="dark" position="top-right" />
     </QueryClientProvider>
   );
 }
