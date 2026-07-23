@@ -142,9 +142,9 @@ function AdvertenciasPage() {
               onChange={(e) => setTypeFilter(e.target.value)}
               className="bg-background border border-border rounded-md px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-primary/50 transition-colors shadow-sm"
             >
-              <option value="Todas">Todas as Punições</option>
+              <option className="bg-background text-foreground" value="Todas">Todas as Punições</option>
               {Object.keys(punishmentConfig).map(type => (
-                <option key={type} value={type}>{type}</option>
+                <option className="bg-background text-foreground" key={type} value={type}>{type}</option>
               ))}
             </select>
           </div>
@@ -229,11 +229,11 @@ function AdvertenciasPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Tipo de Punição</label>
               <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
-                <option>Observação</option>
-                <option>Medalhas Negativas</option>
-                <option>Advertência Interna</option>
-                <option>Rebaixamento</option>
-                <option>Expulsão</option>
+                <option className="bg-background text-foreground">Observação</option>
+                <option className="bg-background text-foreground">Medalhas Negativas</option>
+                <option className="bg-background text-foreground">Advertência Interna</option>
+                <option className="bg-background text-foreground">Rebaixamento</option>
+                <option className="bg-background text-foreground">Expulsão</option>
               </select>
             </div>
           </div>

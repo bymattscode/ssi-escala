@@ -202,9 +202,9 @@ function CasosPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Orientação Cabível</label>
               <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
-                <option>Análise profunda</option>
-                <option>Advertir verbalmente</option>
-                <option>Punir</option>
+                <option className="bg-background text-foreground">Análise profunda</option>
+                <option className="bg-background text-foreground">Advertir verbalmente</option>
+                <option className="bg-background text-foreground">Punir</option>
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -246,19 +246,19 @@ function CasosPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Punição Aplicada</label>
               <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
-                <option>Sem Punição</option>
-                <option>Advertência Interna</option>
-                <option>Medalhas Negativas</option>
-                <option>Rebaixamento</option>
-                <option>Expulsão</option>
+                <option className="bg-background text-foreground">Sem Punição</option>
+                <option className="bg-background text-foreground">Advertência Interna</option>
+                <option className="bg-background text-foreground">Medalhas Negativas</option>
+                <option className="bg-background text-foreground">Rebaixamento</option>
+                <option className="bg-background text-foreground">Expulsão</option>
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Decisão do Caso</label>
               <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
-                <option>Resolver (Aplicar)</option>
-                <option>Em Análise (Aguardar)</option>
-                <option>Cancelar Caso (Inválido)</option>
+                <option className="bg-background text-foreground">Resolver (Aplicar)</option>
+                <option className="bg-background text-foreground">Em Análise (Aguardar)</option>
+                <option className="bg-background text-foreground">Cancelar Caso (Inválido)</option>
               </select>
             </div>
           </div>

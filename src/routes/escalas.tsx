@@ -177,10 +177,10 @@ function EscalasPage() {
                   onChange={(e) => setSelectedWeek(e.target.value)}
                   className="bg-transparent border-none outline-none text-sm text-foreground w-full appearance-none"
                 >
-                  <option value="2026-W28">Semana: Dom 12/07 a Sáb 18/07</option>
-                  <option value="2026-W29">Semana: Dom 19/07 a Sáb 25/07</option>
-                  <option value="2026-W30">Semana: Dom 26/07 a Sáb 01/08 (Atual)</option>
-                  <option value="2026-W31">Semana: Dom 02/08 a Sáb 08/08</option>
+                  <option className="bg-background text-foreground" value="2026-W28">Semana: Dom 12/07 a Sáb 18/07</option>
+                  <option className="bg-background text-foreground" value="2026-W29">Semana: Dom 19/07 a Sáb 25/07</option>
+                  <option className="bg-background text-foreground" value="2026-W30">Semana: Dom 26/07 a Sáb 01/08 (Atual)</option>
+                  <option className="bg-background text-foreground" value="2026-W31">Semana: Dom 02/08 a Sáb 08/08</option>
                 </select>
               </div>
               <div className="flex items-center bg-background border border-border rounded-md px-3 py-1.5 focus-within:border-primary/50 transition-colors flex-1 sm:w-64 shadow-sm">
