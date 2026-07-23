@@ -74,12 +74,14 @@ function MemberCard({ member, isAdmin, onEdit, onDeactivate, onReactivate }: { m
             member.nick.charAt(0)
           )}
         </div>
-        <div className="flex flex-col flex-1">
+        <div className="flex flex-col flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-foreground text-lg leading-none">{member.nick}</h3>
-            <StatusBadge status={member.status} />
+            <h3 className="font-bold text-foreground text-lg leading-none truncate">{member.nick}</h3>
+            <div className="shrink-0">
+              <StatusBadge status={member.status} />
+            </div>
           </div>
-          <p className="text-sm text-primary/80 font-medium mt-1.5">{member.role}</p>
+          <p className="text-sm text-primary/80 font-medium mt-1.5 truncate">{member.role}</p>
         </div>
       </div>
 
