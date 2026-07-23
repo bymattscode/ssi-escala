@@ -27,17 +27,23 @@ export interface Schedule {
 
 export interface Case {
   id: string;
-  date: string;
-  creatorId: string; // Fiscalizador
+  status: CaseStatus;
+
+  // Campos de Abertura (Fiscalizador)
+  creatorId: string;
   offenderNick: string;
   description: string;
+  creationDate: string;
   proofAttachment?: string;
   orientation: string;
-  status: CaseStatus;
-  resolverId?: string; // Diretor
-  resolutionDate?: string;
-  punishmentApplied?: string;
+
+  // Campos de Resolução (Diretor)
+  orderNumber?: string;
+  crimeCommitted?: string;
   resolutionAttachment?: string;
+  punishmentApplied?: string;
+  resolutionDate?: string;
+  resolverId?: string;
   cancellationReason?: string;
 }
 

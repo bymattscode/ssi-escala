@@ -1,24 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { mockCases, mockMembers } from "@/lib/mockData";
-import { Plus, Search, Filter, AlertCircle, CheckCircle2, ChevronRight, Ban } from "lucide-react";
+import { Case, CaseStatus } from "@/lib/types";
+import { Search, Plus, Filter, AlertCircle, CheckCircle2, Clock, XCircle, MoreVertical, FileText, Gavel, X } from "lucide-react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/casos")({
   component: CasosPage,
 });
 
-function getMemberNick(memberId: string) {
-  return mockMembers.find((m) => m.id === memberId)?.nick || "Desconhecido";
+function getMemberDetails(memberId: string) {
+  return mockMembers.find((m) => m.id === memberId) || null;
 }
 
-function CaseStatusBadge({ status }: { status: string }) {
-  const styles: Record<string, { bg: string, icon: any }> = {
-    Aberto: { bg: "bg-red-500/10 text-red-500 border-red-500/20", icon: AlertCircle },
-    "Em Análise": { bg: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", icon: AlertCircle },
-    Resolvido: { bg: "bg-green-500/10 text-green-500 border-green-500/20", icon: CheckCircle2 },
-    Cancelado: { bg: "bg-secondary text-muted-foreground border-border", icon: Ban },
+function StatusBadge({ status }: { status: CaseStatus }) {
+  const styles: Record<CaseStatus, { bg: string, icon: any }> = {
+    "Aberto": { bg: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: AlertCircle },
+    "Em Análise": { bg: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", icon: Clock },
+    "Resolvido": { bg: "bg-green-500/10 text-green-500 border-green-500/20", icon: CheckCircle2 },
+    "Cancelado": { bg: "bg-red-500/10 text-red-500 border-red-500/20", icon: XCircle },
   };
   
-  const Icon = styles[status]?.icon || AlertCircle;
+  const Icon = styles[status]?.icon || Clock;
   
   return (
     <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1.5 w-fit ${styles[status]?.bg}`}>
@@ -28,70 +30,322 @@ function CaseStatusBadge({ status }: { status: string }) {
   );
 }
 
-function CasosPage() {
+// Simple Modal wrapper
+function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) {
+  if (!isOpen) return null;
+  
   return (
-    <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Casos</h1>
-          <p className="text-muted-foreground mt-1">Gestão de infrações e resoluções.</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-card border border-border shadow-2xl rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-secondary/30">
+          <h2 className="text-lg font-bold text-foreground">{title}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X className="h-5 w-5" />
+          </button>
         </div>
-        <button className="flex items-center gap-2 bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-destructive-foreground px-4 py-2 rounded-md font-medium transition-all shadow-sm">
+        <div className="p-6 overflow-y-auto flex-1">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CasosPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("Todos");
+  
+  // Modals state
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [resolveCase, setResolveCase] = useState<Case | null>(null);
+  const [viewCase, setViewCase] = useState<Case | null>(null);
+
+  const filteredCases = mockCases.filter(c => {
+    const matchesSearch = c.offenderNick.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          c.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "Todos" || c.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Gestão de Casos</h1>
+          <p className="text-muted-foreground mt-1">Abertura e resolução de infrações da equipe.</p>
+        </div>
+        <button 
+          onClick={() => setIsCreateOpen(true)}
+          className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] w-full sm:w-auto"
+        >
           <Plus className="h-4 w-4" />
           Abrir Novo Caso
         </button>
       </div>
 
-      <div className="bg-card border border-border rounded-xl shadow-sm flex flex-col overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/20">
-          <div className="flex items-center bg-background border border-border rounded-md px-3 py-1.5 focus-within:border-primary/50 transition-colors w-80">
-            <Search className="h-4 w-4 text-muted-foreground mr-2" />
-            <input 
-              type="text" 
-              placeholder="Buscar caso, infrator..." 
-              className="bg-transparent border-none outline-none text-sm text-foreground w-full placeholder:text-muted-foreground"
-            />
+      <div className="bg-card border border-border rounded-xl shadow-sm flex flex-col overflow-hidden mt-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-border gap-4 bg-secondary/10">
+          
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {["Todos", "Aberto", "Em Análise", "Resolvido", "Cancelado"].map(status => (
+              <button 
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  statusFilter === status 
+                    ? "bg-primary text-primary-foreground shadow-md" 
+                    : "bg-secondary/50 text-muted-foreground hover:bg-secondary border border-transparent hover:border-border"
+                }`}
+              >
+                {status}
+              </button>
+            ))}
           </div>
           
-          <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground border border-border bg-background px-3 py-1.5 rounded-md transition-colors">
-            <Filter className="h-4 w-4" />
-            Filtros
-          </button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="flex items-center bg-background border border-border rounded-md px-3 py-1.5 focus-within:border-primary/50 transition-colors flex-1 sm:w-64 shadow-sm">
+              <Search className="h-4 w-4 text-muted-foreground mr-2" />
+              <input 
+                type="text" 
+                placeholder="Buscar por ID ou Infrator..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-transparent border-none outline-none text-sm text-foreground w-full placeholder:text-muted-foreground"
+              />
+            </div>
+            <button className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground border border-border bg-background hover:bg-secondary/50 px-3 py-1.5 rounded-md transition-colors">
+              <Filter className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-muted-foreground uppercase bg-secondary/30 border-b border-border">
               <tr>
-                <th className="px-6 py-4 font-medium">Data</th>
+                <th className="px-6 py-4 font-medium">ID</th>
+                <th className="px-6 py-4 font-medium">Data / Hora</th>
                 <th className="px-6 py-4 font-medium">Infrator</th>
-                <th className="px-6 py-4 font-medium">Infração</th>
-                <th className="px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium">Fiscalizador</th>
-                <th className="px-6 py-4 font-medium text-right"></th>
+                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium">Responsável</th>
+                <th className="px-6 py-4 font-medium text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {mockCases.map((c) => (
-                <tr key={c.id} className="border-b border-border hover:bg-secondary/20 transition-colors cursor-pointer group">
-                  <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{c.date}</td>
-                  <td className="px-6 py-4 font-medium text-foreground">{c.offenderNick}</td>
-                  <td className="px-6 py-4 text-muted-foreground truncate max-w-[200px]">{c.description}</td>
-                  <td className="px-6 py-4">
-                    <CaseStatusBadge status={c.status} />
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground">{getMemberNick(c.creatorId)}</td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="p-1.5 text-muted-foreground group-hover:text-primary transition-colors">
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
+              {filteredCases.map((c) => {
+                const creator = getMemberDetails(c.creatorId);
+                const resolver = c.resolverId ? getMemberDetails(c.resolverId) : null;
+                return (
+                  <tr key={c.id} className="border-b border-border hover:bg-secondary/20 transition-colors group">
+                    <td className="px-6 py-4 font-medium text-foreground">#{c.id.toUpperCase()}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{c.creationDate}</td>
+                    <td className="px-6 py-4 font-bold text-foreground">{c.offenderNick}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{creator?.nick || "-"}</td>
+                    <td className="px-6 py-4">
+                      <StatusBadge status={c.status} />
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground">{resolver?.nick || "-"}</td>
+                    <td className="px-6 py-4 text-right flex items-center justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => setViewCase(c)}
+                        className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors" 
+                        title="Ver Histórico"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </button>
+                      {(c.status === "Aberto" || c.status === "Em Análise") && (
+                        <button 
+                          onClick={() => setResolveCase(c)}
+                          className="p-1.5 text-muted-foreground hover:text-green-500 bg-background rounded-md border border-border hover:border-green-500/30 transition-colors" 
+                          title="Resolver Caso (Diretores)"
+                        >
+                          <Gavel className="h-4 w-4" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredCases.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                    Nenhum caso encontrado.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* MODAL CRIAR CASO */}
+      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Abrir Novo Caso (Fiscalizador)">
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">Infrator (Nick)</label>
+              <input type="text" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: Bravo" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">Data/Hora da Infração</label>
+              <input type="datetime-local" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" />
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-foreground">Descrição da Infração</label>
+            <textarea className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors min-h-[100px]" placeholder="Descreva os acontecimentos com clareza..."></textarea>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">Orientação Cabível</label>
+              <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
+                <option>Análise profunda</option>
+                <option>Advertir verbalmente</option>
+                <option>Punir</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">Anexo / Prova (URL)</label>
+              <input type="text" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="https://imgur.com/..." />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
+            <button onClick={() => setIsCreateOpen(false)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors">
+              Cancelar
+            </button>
+            <button onClick={() => setIsCreateOpen(false)} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-[0_0_10px_rgba(59,130,246,0.3)]">
+              Enviar Caso
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL RESOLVER CASO */}
+      <Modal isOpen={!!resolveCase} onClose={() => setResolveCase(null)} title={`Resolver Caso #${resolveCase?.id.toUpperCase()}`}>
+        <div className="flex flex-col gap-4">
+          <div className="bg-secondary/30 p-3 rounded-md border border-border/50 text-sm">
+            <p className="text-muted-foreground">Você está analisando a infração de <strong className="text-foreground">{resolveCase?.offenderNick}</strong>.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">Crime Cometido</label>
+              <input type="text" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: Insubordinação, Ausência..." />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">Número da Ordem (se houver)</label>
+              <input type="text" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: ORD-2026-001" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">Punição Aplicada</label>
+              <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
+                <option>Sem Punição</option>
+                <option>Advertência Interna</option>
+                <option>Medalhas Negativas</option>
+                <option>Rebaixamento</option>
+                <option>Expulsão</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">Decisão do Caso</label>
+              <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
+                <option>Resolver (Aplicar)</option>
+                <option>Em Análise (Aguardar)</option>
+                <option>Cancelar Caso (Inválido)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-foreground">Anexo da Resolução (opcional)</label>
+            <input type="text" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="URL do relatório ou provas..." />
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
+            <button onClick={() => setResolveCase(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors">
+              Cancelar
+            </button>
+            <button onClick={() => setResolveCase(null)} className="px-4 py-2 rounded-md font-medium bg-green-500 text-white hover:bg-green-600 transition-all shadow-[0_0_10px_rgba(34,197,94,0.3)]">
+              Concluir Análise
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL VISUALIZAR CASO */}
+      <Modal isOpen={!!viewCase} onClose={() => setViewCase(null)} title={`Detalhes do Caso #${viewCase?.id.toUpperCase()}`}>
+        {viewCase && (
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between border-b border-border/50 pb-4">
+              <div className="flex flex-col">
+                <h3 className="text-xl font-bold text-foreground">Infrator: {viewCase.offenderNick}</h3>
+                <p className="text-sm text-muted-foreground mt-1">Aberto por {getMemberDetails(viewCase.creatorId)?.nick} em {viewCase.creationDate}</p>
+              </div>
+              <StatusBadge status={viewCase.status} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Descrição da Infração</h4>
+              <p className="text-sm text-muted-foreground bg-secondary/30 p-3 rounded-md border border-border/50">
+                {viewCase.description}
+              </p>
+            </div>
+
+            {viewCase.proofAttachment && (
+              <div className="flex flex-col gap-2">
+                <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Provas Anexadas</h4>
+                <a href={viewCase.proofAttachment} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline bg-primary/10 p-2 rounded-md border border-primary/20 w-fit">
+                  Visualizar Anexo da Infração
+                </a>
+              </div>
+            )}
+
+            {viewCase.status === "Resolvido" && (
+              <div className="flex flex-col gap-4 border-t border-border/50 pt-4 mt-2">
+                <h4 className="text-sm font-bold text-green-500 uppercase tracking-wider flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Resolução (Por {getMemberDetails(viewCase.resolverId!)?.nick})
+                </h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Crime Cometido</span>
+                    <span className="text-sm font-medium text-foreground">{viewCase.crimeCommitted || "-"}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Punição</span>
+                    <span className="text-sm font-medium text-foreground">{viewCase.punishmentApplied || "-"}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Número da Ordem</span>
+                    <span className="text-sm font-medium text-foreground">{viewCase.orderNumber || "-"}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Data da Resolução</span>
+                    <span className="text-sm font-medium text-foreground">{viewCase.resolutionDate || "-"}</span>
+                  </div>
+                </div>
+
+                {viewCase.resolutionAttachment && (
+                  <div className="mt-2">
+                    <a href={viewCase.resolutionAttachment} target="_blank" rel="noreferrer" className="text-sm text-green-500 hover:underline bg-green-500/10 p-2 rounded-md border border-green-500/20 w-fit block">
+                      Visualizar Relatório de Resolução
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
     </div>
   );
 }

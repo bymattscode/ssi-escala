@@ -20,15 +20,21 @@ export const mockSchedules: Schedule[] = [
 
 export const mockCases: Case[] = [
   { 
-    id: "c1", date: "2026-07-20", creatorId: "4", offenderNick: "Echo", 
-    description: "Desrespeito às regras na sala.", orientation: "Advertir verbalmente", 
-    status: "Aberto" 
+    id: "c1", creationDate: "2026-07-20 14:30", creatorId: "5", offenderNick: "Echo", 
+    description: "Desrespeito às regras na sala principal, ofendendo outros usuários.", orientation: "Advertir verbalmente", 
+    status: "Aberto", proofAttachment: "print_chat.png"
   },
   { 
-    id: "c2", date: "2026-07-18", creatorId: "5", offenderNick: "Foxtrot", 
-    description: "Ausência sem justificativa", orientation: "Punir", 
-    status: "Resolvido", resolverId: "2", resolutionDate: "2026-07-19", 
-    punishmentApplied: "Advertência Interna" 
+    id: "c2", creationDate: "2026-07-18 09:15", creatorId: "6", offenderNick: "Foxtrot", 
+    description: "Ausência sem justificativa no posto designado.", orientation: "Punir", 
+    status: "Resolvido", resolverId: "2", resolutionDate: "2026-07-19 10:00", 
+    punishmentApplied: "Advertência Interna", orderNumber: "ORD-2026-001",
+    crimeCommitted: "Insubordinação", resolutionAttachment: "relatorio_final.pdf"
+  },
+  { 
+    id: "c3", creationDate: "2026-07-22 18:45", creatorId: "7", offenderNick: "Golf", 
+    description: "Abuso de poder com membros novatos.", orientation: "Análise profunda", 
+    status: "Em Análise", resolverId: "3"
   }
 ];
 
