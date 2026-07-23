@@ -42,6 +42,21 @@ export const mockWarnings: Warning[] = [
   {
     id: "w1", date: "2026-07-19", offenderNick: "Foxtrot", 
     punishmentType: "Advertência Interna", reason: "Ausência sem justificativa repetida",
-    directorId: "2"
+    directorId: "2", caseId: "c2", notes: "Membro avisado pela terceira vez sobre a falta na escala."
+  },
+  {
+    id: "w2", date: "2026-07-21", offenderNick: "Echo", 
+    punishmentType: "Observação", reason: "Uso incorreto da formatação",
+    directorId: "3", notes: "Orientado a ler o manual novamente."
+  },
+  {
+    id: "w3", date: "2026-07-22", offenderNick: "Delta", 
+    punishmentType: "Medalhas Negativas", reason: "Atraso no relatório semanal",
+    directorId: "2", caseId: "c3"
+  },
+  {
+    id: "w4", date: "2026-07-22", offenderNick: "Golf", 
+    punishmentType: "Expulsão", reason: "Vazamento de informações restritas",
+    directorId: "1", notes: "Banido do sistema."
   }
 ];

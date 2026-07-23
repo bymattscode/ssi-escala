@@ -47,11 +47,15 @@ export interface Case {
   cancellationReason?: string;
 }
 
+export type PunishmentType = "Observação" | "Medalhas Negativas" | "Advertência Interna" | "Rebaixamento" | "Expulsão" | "Sem Punição";
+
 export interface Warning {
   id: string;
   date: string;
   offenderNick: string;
-  punishmentType: "Observação" | "Medalhas Negativas" | "Advertência Interna" | "Rebaixamento" | "Expulsão" | "Sem Punição";
+  punishmentType: PunishmentType;
   reason: string;
   directorId: string;
+  caseId?: string;
+  notes?: string;
 }
