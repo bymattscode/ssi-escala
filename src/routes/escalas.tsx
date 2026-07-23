@@ -177,7 +177,7 @@ function EscalasPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { role, userName } = useAuth();
-  const isAdmin = role === "Presidência" || role === "Vice-Presidência";
+  const isAdmin = role === "Presidente" || role === "Vice-Presidente";
   
   // Modals state
   const [justifyingSchedule, setJustifyingSchedule] = useState<Schedule | null>(null);
@@ -553,7 +553,7 @@ function EscalasPage() {
             </div>
             
             <div className="flex flex-col gap-2 mt-2">
-              <label className="text-sm font-medium text-foreground">Decisão da Presidência</label>
+              <label className="text-sm font-medium text-foreground">Decisão da Presidente</label>
               <select 
                 value={reviewDecision} 
                 onChange={e => setReviewDecision(e.target.value as "Aprovada" | "Recusada")} 

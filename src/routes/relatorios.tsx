@@ -24,7 +24,7 @@ function RelatoriosPage() {
   const [memberFilter, setMemberFilter] = useState("Todos");
   
   const { role } = useAuth();
-  const isAdmin = role === "Presidência" || role === "Vice-Presidência";
+  const isAdmin = role === "Presidente" || role === "Vice-Presidente";
 
   useEffect(() => {
     async function fetchData() {
@@ -101,7 +101,7 @@ function RelatoriosPage() {
       <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
         <ShieldAlert className="h-16 w-16 text-red-500 mb-4" />
         <h2 className="text-2xl font-bold text-foreground">Acesso Negado</h2>
-        <p className="text-muted-foreground mt-2 max-w-md">Esta área é restrita à Presidência e Vice-Presidência para fins de auditoria e relatórios avançados.</p>
+        <p className="text-muted-foreground mt-2 max-w-md">Esta área é restrita à Presidente e Vice-Presidente para fins de auditoria e relatórios avançados.</p>
       </div>
     );
   }
@@ -165,7 +165,7 @@ function RelatoriosPage() {
                 className="bg-background border border-border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-primary/50 max-w-[150px] truncate"
               >
                 <option value="Todos">Todos os Membros</option>
-                {members.filter(m => m.role === "Presidência" || m.role === "Vice-Presidência" || m.role === "Diretor").map(m => (
+                {members.filter(m => m.role === "Presidente" || m.role === "Vice-Presidente" || m.role === "Diretor").map(m => (
                   <option key={m.id} value={m.id}>{m.nick}</option>
                 ))}
               </select>

@@ -143,7 +143,7 @@ function AdvertenciasPage() {
             <FileWarning className="h-8 w-8 text-primary" />
             Registro de Punições
           </h1>
-          <p className="text-muted-foreground mt-1">Gestão exclusiva de Diretores e Presidência sobre advertências.</p>
+          <p className="text-muted-foreground mt-1">Gestão exclusiva de Diretores e Presidente sobre advertências.</p>
         </div>
         {isAdminOrDir && (
            <button 
@@ -214,7 +214,7 @@ function AdvertenciasPage() {
               className="bg-background border border-border rounded-md px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-primary/50 transition-colors shadow-sm"
             >
               <option className="bg-background text-foreground" value="Todos">Qualquer Responsável</option>
-              {members.filter(m => m.role === "Diretor" || m.role === "Presidência").map(m => (
+              {members.filter(m => m.role === "Diretor" || m.role === "Presidente").map(m => (
                 <option className="bg-background text-foreground" key={m.id} value={m.id}>{m.nick}</option>
               ))}
             </select>

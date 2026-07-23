@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Member, Role } from "@/lib/types";
-import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, ShieldCheck, ShieldAlert, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getMembers, updateMemberStatus, addMember, addAuditLog } from "../lib/store";
+import { getMembers, updateMemberStatus, updateMember, addMember, addAuditLog } from "../lib/store";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/membros")({
@@ -19,22 +19,49 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function MemberCard({ member, isAdmin, onToggleStatus }: { member: Member, isAdmin: boolean, onToggleStatus: (id: string, current: string) => void }) {
+// Simple Modal wrapper
+function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-card border border-border shadow-2xl rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-secondary/30">
+          <h2 className="text-lg font-bold text-foreground">{title}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto flex-1">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MemberCard({ member, isAdmin, onEdit, onDeactivate, onReactivate }: { member: Member, isAdmin: boolean, onEdit: (m: Member) => void, onDeactivate: (m: Member) => void, onReactivate: (m: Member) => void }) {
   return (
     <div className={`bg-card/50 border ${member.status === "Ativo" ? "border-border" : "border-border/50 opacity-70"} rounded-xl p-4 flex flex-col hover:border-primary/40 hover:bg-secondary/40 transition-all duration-300 shadow-sm relative group`}>
       <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-         {/* Acesso total: Presidência e Vice (mock visual) */}
+         {/* Acesso total: Presidente e Vice (mock visual) */}
          {isAdmin && (
            <>
              <button className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors" title="Ver Histórico">
                <History className="h-4 w-4" />
              </button>
-             <button className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors" title="Editar">
+             <button onClick={() => onEdit(member)} className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors" title="Editar Cargo">
                <Edit className="h-4 w-4" />
              </button>
-             <button onClick={() => onToggleStatus(member.id, member.status)} className={`p-1.5 bg-background rounded-md border border-border transition-colors ${member.status === 'Ativo' ? 'text-muted-foreground hover:text-destructive hover:border-destructive/30' : 'text-muted-foreground hover:text-green-500 hover:border-green-500/30'}`} title={member.status === 'Ativo' ? "Inativar" : "Ativar"}>
-               {member.status === "Ativo" ? <PowerOff className="h-4 w-4" /> : <Power className="h-4 w-4" />}
-             </button>
+             {member.status === "Ativo" ? (
+               <button onClick={() => onDeactivate(member)} className="p-1.5 bg-background rounded-md border border-border transition-colors text-muted-foreground hover:text-destructive hover:border-destructive/30" title="Inativar ou Licença">
+                 <PowerOff className="h-4 w-4" />
+               </button>
+             ) : (
+               <button onClick={() => onReactivate(member)} className="p-1.5 bg-background rounded-md border border-border transition-colors text-muted-foreground hover:text-green-500 hover:border-green-500/30" title="Reativar">
+                 <Power className="h-4 w-4" />
+               </button>
+             )}
            </>
          )}
       </div>
@@ -67,10 +94,12 @@ function MemberCard({ member, isAdmin, onToggleStatus }: { member: Member, isAdm
             <span className="text-sm text-foreground">{member.promotionDate}</span>
           </div>
         )}
-        {member.notes && (
-          <div className="flex flex-col col-span-2 mt-1">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Observações</span>
-            <span className="text-sm text-muted-foreground truncate" title={member.notes}>{member.notes}</span>
+        {member.status === "Licença" && member.leaveStartDate && member.leaveEndDate && (
+          <div className="flex flex-col col-span-2 mt-1 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">
+            <span className="text-[10px] uppercase tracking-wider text-yellow-600 font-bold">Em Licença</span>
+            <span className="text-sm text-yellow-600 truncate">
+              {member.leaveStartDate} até {member.leaveEndDate}
+            </span>
           </div>
         )}
       </div>
@@ -78,7 +107,7 @@ function MemberCard({ member, isAdmin, onToggleStatus }: { member: Member, isAdm
   );
 }
 
-function RoleSection({ title, icon: Icon, members, isAdmin, onToggleStatus }: { title: string, icon: any, members: Member[], isAdmin: boolean, onToggleStatus: (id: string, current: string) => void }) {
+function RoleSection({ title, icon: Icon, members, isAdmin, onEdit, onDeactivate, onReactivate }: { title: string, icon: any, members: Member[], isAdmin: boolean, onEdit: (m: Member) => void, onDeactivate: (m: Member) => void, onReactivate: (m: Member) => void }) {
   if (members.length === 0) return null;
   
   return (
@@ -93,7 +122,7 @@ function RoleSection({ title, icon: Icon, members, isAdmin, onToggleStatus }: { 
         </span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {members.map(m => <MemberCard key={m.id} member={m} isAdmin={isAdmin} onToggleStatus={onToggleStatus} />)}
+        {members.map(m => <MemberCard key={m.id} member={m} isAdmin={isAdmin} onEdit={onEdit} onDeactivate={onDeactivate} onReactivate={onReactivate} />)}
       </div>
     </div>
   );
@@ -104,7 +133,7 @@ function MembrosPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const { role } = useAuth();
   
-  const isAdmin = role === "Presidência" || role === "Vice-Presidência";
+  const isAdmin = role === "Presidente" || role === "Vice-Presidente";
 
   const fetchMembers = async () => {
     const data = await getMembers();
@@ -114,6 +143,76 @@ function MembrosPage() {
   useEffect(() => {
     fetchMembers();
   }, []);
+
+  const [editMember, setEditMember] = useState<Member | null>(null);
+  const [editRole, setEditRole] = useState<Role>("Fiscalizador");
+
+  const [deactivateMember, setDeactivateMember] = useState<Member | null>(null);
+  const [deactivateType, setDeactivateType] = useState<"Inativo" | "Licença">("Inativo");
+  const [leaveStart, setLeaveStart] = useState("");
+  const [leaveEnd, setLeaveEnd] = useState("");
+
+  const handleEdit = (m: Member) => {
+    setEditMember(m);
+    setEditRole(m.role);
+  };
+
+  const handleDeactivate = (m: Member) => {
+    setDeactivateMember(m);
+    setDeactivateType("Inativo");
+    setLeaveStart("");
+    setLeaveEnd("");
+  };
+
+  const handleReactivate = async (m: Member) => {
+    if (!isAdmin) return;
+    await updateMemberStatus(m.id, "Ativo");
+    await addAuditLog("1", role, "Alteração de Status", "Membros", `O membro ${m.nick} retornou para Ativo.`, m.id);
+    toast.success("Membro reativado com sucesso!");
+    fetchMembers();
+  };
+
+  const submitEditRole = async () => {
+    if (!editMember) return;
+    if (editRole === "Vice-Presidente") {
+      const vps = members.filter(m => m.role === "Vice-Presidente" && m.id !== editMember.id);
+      if (vps.length >= 3) {
+        toast.error("O limite máximo de Vice-Presidentes é 3.");
+        return;
+      }
+    }
+    
+    await updateMember(editMember.id, { role: editRole });
+    await addAuditLog("1", role, "Edição de Cargo", "Membros", `O cargo de ${editMember.nick} foi alterado para ${editRole}.`, editMember.id);
+    toast.success("Cargo atualizado com sucesso!");
+    setEditMember(null);
+    fetchMembers();
+  };
+
+  const submitDeactivate = async () => {
+    if (!deactivateMember) return;
+    
+    if (deactivateType === "Licença" && (!leaveStart || !leaveEnd)) {
+      toast.error("Preencha a data de início e fim da licença.");
+      return;
+    }
+    
+    if (deactivateType === "Licença") {
+      await updateMember(deactivateMember.id, { 
+        status: "Licença",
+        leaveStartDate: leaveStart,
+        leaveEndDate: leaveEnd
+      });
+      await addAuditLog("1", role, "Membro em Licença", "Membros", `O membro ${deactivateMember.nick} entrou em licença de ${leaveStart} até ${leaveEnd}.`, deactivateMember.id);
+      toast.success("Membro colocado em licença!");
+    } else {
+      await updateMemberStatus(deactivateMember.id, "Inativo");
+      await addAuditLog("1", role, "Inativação de Membro", "Membros", `O membro ${deactivateMember.nick} foi inativado.`, deactivateMember.id);
+      toast.success("Membro inativado!");
+    }
+    setDeactivateMember(null);
+    fetchMembers();
+  };
 
   const handleToggleStatus = async (id: string, current: string) => {
     if (!isAdmin) return;
@@ -132,8 +231,7 @@ function MembrosPage() {
       nick,
       role: "Fiscalizador",
       status: "Ativo",
-      entryDate: new Date().toISOString().split("T")[0],
-      notes: "Criado via mock interface"
+      entryDate: new Date().toISOString().split("T")[0]
     };
     await addMember(newMember);
     await addAuditLog("1", role, "Criação de Membro", "Membros", `O membro ${nick} foi adicionado.`, newMember.id);
@@ -146,8 +244,8 @@ function MembrosPage() {
     m.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const presidencia = filteredMembers.filter(m => m.role === "Presidência");
-  const vice = filteredMembers.filter(m => m.role === "Vice-Presidência");
+  const presidencia = filteredMembers.filter(m => m.role === "Presidente");
+  const vice = filteredMembers.filter(m => m.role === "Vice-Presidente");
   const diretores = filteredMembers.filter(m => m.role === "Diretor");
   const fiscalizadores = filteredMembers.filter(m => m.role === "Fiscalizador");
 
@@ -185,17 +283,94 @@ function MembrosPage() {
       </div>
 
       <div className="flex flex-col gap-10">
-        <RoleSection title="Presidência" icon={Crown} members={presidencia} isAdmin={isAdmin} onToggleStatus={handleToggleStatus} />
-        <RoleSection title="Vice-Presidência" icon={Star} members={vice} isAdmin={isAdmin} onToggleStatus={handleToggleStatus} />
-        <RoleSection title="Diretores" icon={ShieldCheck} members={diretores} isAdmin={isAdmin} onToggleStatus={handleToggleStatus} />
-        <RoleSection title="Fiscalizadores" icon={ShieldAlert} members={fiscalizadores} isAdmin={isAdmin} onToggleStatus={handleToggleStatus} />
-        
+        <RoleSection title="Presidente" icon={Crown} members={presidencia} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} />
+        <RoleSection title="Vice-Presidente" icon={Star} members={vice} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} />
+        <RoleSection title="Diretores" icon={ShieldCheck} members={diretores} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} />
+        <RoleSection title="Fiscalizadores" icon={ShieldAlert} members={fiscalizadores} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} />
         {filteredMembers.length === 0 && (
           <div className="py-12 text-center text-muted-foreground bg-card border border-border border-dashed rounded-xl">
             Nenhum membro encontrado com os filtros atuais.
           </div>
         )}
       </div>
+
+      <Modal isOpen={!!editMember} onClose={() => setEditMember(null)} title="Editar Cargo do Membro">
+        {editMember && (
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">Alterar Cargo de <span className="font-bold text-primary">{editMember.nick}</span></label>
+              <select 
+                value={editRole} 
+                onChange={e => setEditRole(e.target.value as Role)}
+                className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              >
+                <option value="Presidente">Presidente</option>
+                <option value="Vice-Presidente">Vice-Presidente</option>
+                <option value="Diretor">Diretor</option>
+                <option value="Fiscalizador">Fiscalizador</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-3 mt-4">
+               <button onClick={() => setEditMember(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors text-sm">
+                 Cancelar
+               </button>
+               <button onClick={submitEditRole} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all text-sm">
+                 Salvar
+               </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal isOpen={!!deactivateMember} onClose={() => setDeactivateMember(null)} title="Inativar ou Colocar em Licença">
+        {deactivateMember && (
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">Tipo de Ação</label>
+              <select 
+                value={deactivateType} 
+                onChange={e => setDeactivateType(e.target.value as "Inativo" | "Licença")}
+                className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+              >
+                <option value="Inativo">Inativação Definitiva</option>
+                <option value="Licença">Licença (Afastamento Temporário)</option>
+              </select>
+            </div>
+
+            {deactivateType === "Licença" && (
+              <div className="grid grid-cols-2 gap-4 mt-2">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-foreground">Data de Início</label>
+                  <input 
+                    type="date"
+                    value={leaveStart}
+                    onChange={e => setLeaveStart(e.target.value)}
+                    className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-foreground">Data de Fim</label>
+                  <input 
+                    type="date"
+                    value={leaveEnd}
+                    onChange={e => setLeaveEnd(e.target.value)}
+                    className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
+               <button onClick={() => setDeactivateMember(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors text-sm">
+                 Cancelar
+               </button>
+               <button onClick={submitDeactivate} className="px-4 py-2 rounded-md font-medium bg-red-600 text-white hover:bg-red-700 transition-all text-sm">
+                 Confirmar
+               </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

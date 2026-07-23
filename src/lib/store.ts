@@ -84,12 +84,26 @@ export const getMembers = async (): Promise<Member[]> => {
   return getParsedData<Member[]>(KEYS.MEMBERS, []);
 };
 
-export const updateMemberStatus = async (id: string, status: "Ativo" | "Inativo"): Promise<void> => {
+export const updateMemberStatus = async (id: string, status: "Ativo" | "Inativo" | "Licença"): Promise<void> => {
   await delay(200);
   const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
   const idx = members.findIndex(m => m.id === id);
   if (idx !== -1 && typeof window !== "undefined") {
     members[idx].status = status;
+    if (status === "Ativo") {
+      delete members[idx].leaveStartDate;
+      delete members[idx].leaveEndDate;
+    }
+    localStorage.setItem(KEYS.MEMBERS, JSON.stringify(members));
+  }
+};
+
+export const updateMember = async (id: string, data: Partial<Member>): Promise<void> => {
+  await delay(200);
+  const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
+  const idx = members.findIndex(m => m.id === id);
+  if (idx !== -1 && typeof window !== "undefined") {
+    members[idx] = { ...members[idx], ...data };
     localStorage.setItem(KEYS.MEMBERS, JSON.stringify(members));
   }
 };

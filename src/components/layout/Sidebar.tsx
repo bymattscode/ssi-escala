@@ -16,10 +16,10 @@ export function Sidebar() {
   const location = useLocation();
   const { role } = useAuth();
 
-  // Presidência and Vice can see everything.
+  // Presidente and Vice can see everything.
   // Diretor can't see Configurações. Fiscalizador can't see Configurações.
   const filteredNavItems = navItems.filter((item) => {
-    if (role === "Presidência" || role === "Vice-Presidência") return true;
+    if (role === "Presidente" || role === "Vice-Presidente") return true;
     
     if (role === "Diretor") {
       return !["Configurações", "Relatórios e Auditoria"].includes(item.label);

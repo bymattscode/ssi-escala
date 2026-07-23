@@ -1,4 +1,4 @@
-export type Role = "Presidência" | "Vice-Presidência" | "Diretor" | "Fiscalizador";
+export type Role = "Presidente" | "Vice-Presidente" | "Diretor" | "Fiscalizador";
 export type CaseStatus = "Aberto" | "Resolvido" | "Cancelado";
 export type ScheduleStatus = "Pendente" | "Concluído" | "Atrasado" | "Justificativa Enviada";
 
@@ -6,10 +6,11 @@ export interface Member {
   id: string;
   nick: string;
   role: Role;
-  status: "Ativo" | "Inativo";
+  status: "Ativo" | "Inativo" | "Licença";
   entryDate: string;
   promotionDate?: string;
-  notes: string;
+  leaveStartDate?: string;
+  leaveEndDate?: string;
   avatarUrl?: string;
 }
 
@@ -20,7 +21,7 @@ export interface Schedule {
   referenceDay: string; // "Domingo", "Segunda", etc.
   deadline: string; // data/hora ou texto "+2 dias"
   status: ScheduleStatus;
-  responsibleId?: string; // Presidência que gerou
+  responsibleId?: string; // Presidente que gerou
   observations?: string;
   type: "Fiscalizador" | "Diretor";
   

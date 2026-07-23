@@ -10,8 +10,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Inicialmente usando "Presidência" por padrão, mas pode ser trocado na interface
-  const [role, setRole] = useState<Role>("Presidência");
+  // Inicialmente usando "Presidente" por padrão, mas pode ser trocado na interface
+  const [role, setRole] = useState<Role>("Presidente");
   const [userName] = useState("Admin");
 
   return (

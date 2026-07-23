@@ -11,7 +11,7 @@ export function TopBar() {
   const [showRoleMenu, setShowRoleMenu] = useState(false);
 
   const { role, setRole, userName } = useAuth();
-  const canBackup = role === "Presidência" || role === "Vice-Presidência";
+  const canBackup = role === "Presidente" || role === "Vice-Presidente";
 
   useEffect(() => {
     const fetchBackup = async () => {
@@ -25,7 +25,7 @@ export function TopBar() {
 
   const handleBackup = () => {
     if (!canBackup) {
-      toast.error("Permissão negada. Apenas Presidência pode executar backups.");
+      toast.error("Permissão negada. Apenas Presidente pode executar backups.");
       return;
     }
 
@@ -36,7 +36,7 @@ export function TopBar() {
     setTimeout(async () => {
       const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
       await updateConfig({ lastWrite: now });
-      await addSyncLog({ type: "success", message: "Backup manual realizado com sucesso pela Presidência." });
+      await addSyncLog({ type: "success", message: "Backup manual realizado com sucesso pela Presidente." });
       
       setIsBackingUp(false);
       setLastBackup(now);
@@ -111,7 +111,7 @@ export function TopBar() {
                 Simular Perfil
               </div>
               <div className="flex flex-col p-1">
-                {(["Presidência", "Diretor", "Fiscalizador"] as Role[]).map((r) => (
+                {(["Presidente", "Diretor", "Fiscalizador"] as Role[]).map((r) => (
                   <button
                     key={r}
                     onClick={() => { setRole(r); setShowRoleMenu(false); toast.success(`Perfil alterado para ${r}`); }}
