@@ -202,9 +202,8 @@ function CasosPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Orientação Cabível</label>
               <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
-                <option className="bg-background text-foreground">Análise profunda</option>
-                <option className="bg-background text-foreground">Advertir verbalmente</option>
-                <option className="bg-background text-foreground">Punir</option>
+                <option className="bg-background text-foreground">Sim</option>
+                <option className="bg-background text-foreground">Não</option>
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
