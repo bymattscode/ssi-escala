@@ -1,15 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { mockCases, mockMembers } from "@/lib/mockData";
-import { Case, CaseStatus } from "@/lib/types";
+import { Case, CaseStatus, Member } from "@/lib/types";
 import { Search, Plus, Filter, AlertCircle, CheckCircle2, Clock, XCircle, MoreVertical, FileText, Gavel, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { getCases, getMembers, addCase, updateCase } from "../lib/store";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/casos")({
   component: CasosPage,
 });
 
-function getMemberDetails(memberId: string) {
-  return mockMembers.find((m) => m.id === memberId) || null;
+function getMemberDetails(memberId: string, members: Member[]) {
+  return members.find((m) => m.id === memberId) || null;
 }
 
 function StatusBadge({ status }: { status: CaseStatus }) {
@@ -52,13 +54,100 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
 function CasosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
+  const [cases, setCases] = useState<Case[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  
+  const { role } = useAuth();
+  const isFiscalizador = role === "Fiscalizador";
   
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [resolveCase, setResolveCase] = useState<Case | null>(null);
   const [viewCase, setViewCase] = useState<Case | null>(null);
+  
+  // Create state
+  const [newOffender, setNewOffender] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+  const [newDate, setNewDate] = useState(new Date().toISOString().slice(0, 16));
+  const [newOrientation, setNewOrientation] = useState("Sim");
+  const [newProof, setNewProof] = useState("");
+  
+  // Resolve state
+  const [resCrime, setResCrime] = useState("");
+  const [resOrder, setResOrder] = useState("");
+  const [resPunishment, setResPunishment] = useState("Sem Punição");
+  const [resDecision, setResDecision] = useState("Resolver");
+  const [resAttachment, setResAttachment] = useState("");
+  const [resCancelReason, setResCancelReason] = useState("");
 
-  const filteredCases = mockCases.filter(c => {
+  const fetchData = async () => {
+    const c = await getCases();
+    const m = await getMembers();
+    setCases(c);
+    setMembers(m);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleCreate = async () => {
+    if (!newOffender || !newDesc) return;
+    const newCase: Case = {
+      id: `c${Date.now()}`,
+      status: "Aberto",
+      creatorId: "1", // Mock ID of logged user
+      offenderNick: newOffender,
+      description: newDesc,
+      creationDate: newDate.replace('T', ' '),
+      orientation: newOrientation,
+      proofAttachment: newProof
+    };
+    await addCase(newCase);
+    setIsCreateOpen(false);
+    toast.success("Caso aberto com sucesso!");
+    fetchData();
+    // Reset
+    setNewOffender("");
+    setNewDesc("");
+    setNewDate(new Date().toISOString().slice(0, 16));
+    setNewOrientation("Sim");
+    setNewProof("");
+  };
+
+  const handleResolve = async () => {
+    if (!resolveCase) return;
+    
+    if (resDecision === "Cancelar" && !resCancelReason) {
+      toast.error("Por favor, preencha o motivo do cancelamento.");
+      return;
+    }
+    
+    await updateCase(resolveCase.id, {
+      status: resDecision === "Resolver" ? "Resolvido" : "Cancelado",
+      resolverId: "1",
+      resolutionDate: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      punishmentApplied: resDecision === "Resolver" ? resPunishment : undefined,
+      crimeCommitted: resDecision === "Resolver" ? resCrime : undefined,
+      orderNumber: resDecision === "Resolver" ? resOrder : undefined,
+      resolutionAttachment: resAttachment || undefined,
+      cancellationReason: resDecision === "Cancelar" ? resCancelReason : undefined
+    });
+    
+    setResolveCase(null);
+    toast.success(`Caso ${resDecision === "Resolver" ? "resolvido" : "cancelado"}.`);
+    fetchData();
+    
+    // Reset
+    setResCrime("");
+    setResOrder("");
+    setResPunishment("Sem Punição");
+    setResDecision("Resolver");
+    setResAttachment("");
+    setResCancelReason("");
+  };
+
+  const filteredCases = cases.filter(c => {
     const matchesSearch = c.offenderNick.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           c.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "Todos" || c.status === statusFilter;
@@ -132,8 +221,8 @@ function CasosPage() {
             </thead>
             <tbody>
               {filteredCases.map((c) => {
-                const creator = getMemberDetails(c.creatorId);
-                const resolver = c.resolverId ? getMemberDetails(c.resolverId) : null;
+                const creator = getMemberDetails(c.creatorId, members);
+                const resolver = c.resolverId ? getMemberDetails(c.resolverId, members) : null;
                 return (
                   <tr key={c.id} className="border-b border-border hover:bg-secondary/20 transition-colors group">
                     <td className="px-6 py-4 font-medium text-foreground">#{c.id.toUpperCase()}</td>
@@ -152,7 +241,7 @@ function CasosPage() {
                       >
                         <FileText className="h-4 w-4" />
                       </button>
-                      {(c.status === "Aberto") && (
+                      {(c.status === "Aberto" && !isFiscalizador) && (
                         <button 
                           onClick={() => setResolveCase(c)}
                           className="p-1.5 text-muted-foreground hover:text-green-500 bg-background rounded-md border border-border hover:border-green-500/30 transition-colors" 
@@ -181,43 +270,43 @@ function CasosPage() {
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Abrir Novo Caso (Fiscalizador)">
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Infrator (Nick)</label>
-              <input type="text" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: Bravo" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Data/Hora da Infração</label>
-              <input type="datetime-local" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" />
-            </div>
-          </div>
-          
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Descrição da Infração</label>
-            <textarea className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors min-h-[100px]" placeholder="Descreva os acontecimentos com clareza..."></textarea>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Orientação Cabível</label>
-              <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
-                <option className="bg-background text-foreground">Sim</option>
-                <option className="bg-background text-foreground">Não</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Anexo / Prova (URL)</label>
-              <input type="text" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="https://imgur.com/..." />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
-            <button onClick={() => setIsCreateOpen(false)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors">
-              Cancelar
-            </button>
-            <button onClick={() => setIsCreateOpen(false)} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all ">
-              Enviar Caso
-            </button>
-          </div>
+             <div className="flex flex-col gap-1.5">
+               <label className="text-sm font-medium text-foreground">Infrator (Nick)</label>
+               <input type="text" value={newOffender} onChange={e => setNewOffender(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: Bravo" />
+             </div>
+             <div className="flex flex-col gap-1.5">
+               <label className="text-sm font-medium text-foreground">Data/Hora da Infração</label>
+               <input type="datetime-local" value={newDate} onChange={e => setNewDate(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" />
+             </div>
+           </div>
+           
+           <div className="flex flex-col gap-1.5">
+             <label className="text-sm font-medium text-foreground">Descrição da Infração</label>
+             <textarea value={newDesc} onChange={e => setNewDesc(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors min-h-[100px]" placeholder="Descreva os acontecimentos com clareza..."></textarea>
+           </div>
+ 
+           <div className="grid grid-cols-2 gap-4">
+             <div className="flex flex-col gap-1.5">
+               <label className="text-sm font-medium text-foreground">Orientação Cabível</label>
+               <select value={newOrientation} onChange={e => setNewOrientation(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
+                 <option value="Sim" className="bg-background text-foreground">Sim</option>
+                 <option value="Não" className="bg-background text-foreground">Não</option>
+               </select>
+             </div>
+             <div className="flex flex-col gap-1.5">
+               <label className="text-sm font-medium text-foreground">Anexo / Prova (URL)</label>
+               <input type="text" value={newProof} onChange={e => setNewProof(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="https://imgur.com/..." />
+             </div>
+           </div>
+ 
+           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
+             <button onClick={() => setIsCreateOpen(false)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors">
+               Cancelar
+             </button>
+             <button onClick={handleCreate} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all ">
+               Enviar Caso
+             </button>
+           </div>
         </div>
       </Modal>
 
@@ -231,47 +320,54 @@ function CasosPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Crime Cometido</label>
-              <input type="text" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: Insubordinação, Ausência..." />
+              <input type="text" disabled={resDecision === "Cancelar"} value={resCrime} onChange={e => setResCrime(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50" placeholder="Ex: Insubordinação, Ausência..." />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Número da Ordem (se houver)</label>
-              <input type="text" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: ORD-2026-001" />
+              <input type="text" disabled={resDecision === "Cancelar"} value={resOrder} onChange={e => setResOrder(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50" placeholder="Ex: ORD-2026-001" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Punição Aplicada</label>
-              <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
-                <option className="bg-background text-foreground">Sem Punição</option>
-                <option className="bg-background text-foreground">Advertência Interna</option>
-                <option className="bg-background text-foreground">Medalhas Negativas</option>
-                <option className="bg-background text-foreground">Rebaixamento</option>
-                <option className="bg-background text-foreground">Expulsão</option>
+              <select disabled={resDecision === "Cancelar"} value={resPunishment} onChange={e => setResPunishment(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50">
+                <option value="Sem Punição" className="bg-background text-foreground">Sem Punição</option>
+                <option value="Advertência Interna" className="bg-background text-foreground">Advertência Interna</option>
+                <option value="Medalhas Negativas" className="bg-background text-foreground">Medalhas Negativas</option>
+                <option value="Rebaixamento" className="bg-background text-foreground">Rebaixamento</option>
+                <option value="Expulsão" className="bg-background text-foreground">Expulsão</option>
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Decisão do Caso</label>
-              <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
-                <option className="bg-background text-foreground">Resolver (Aplicar)</option>
-                <option className="bg-background text-foreground">Cancelar Caso (Inválido)</option>
+              <select value={resDecision} onChange={e => setResDecision(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
+                <option value="Resolver" className="bg-background text-foreground">Resolver (Aplicar)</option>
+                <option value="Cancelar" className="bg-background text-foreground">Cancelar Caso (Inválido)</option>
               </select>
             </div>
           </div>
           
+          {resDecision === "Cancelar" && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">Motivo do Cancelamento</label>
+              <input type="text" value={resCancelReason} onChange={e => setResCancelReason(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors border-red-500/50" placeholder="Ex: Provas insuficientes..." />
+            </div>
+          )}
+          
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Anexo da Resolução (opcional)</label>
-            <input type="text" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="URL do relatório ou provas..." />
+            <input type="text" value={resAttachment} onChange={e => setResAttachment(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="URL do relatório ou provas..." />
           </div>
 
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
-            <button onClick={() => setResolveCase(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors">
-              Cancelar
-            </button>
-            <button onClick={() => setResolveCase(null)} className="px-4 py-2 rounded-md font-medium bg-green-500 text-white hover:bg-green-600 transition-all ">
-              Concluir Análise
-            </button>
-          </div>
+             <button onClick={() => setResolveCase(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors">
+               Voltar
+             </button>
+             <button onClick={handleResolve} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all ">
+               Concluir Análise
+             </button>
+           </div>
         </div>
       </Modal>
 
@@ -282,7 +378,7 @@ function CasosPage() {
             <div className="flex items-center justify-between border-b border-border/50 pb-4">
               <div className="flex flex-col">
                 <h3 className="text-xl font-bold text-foreground">Infrator: {viewCase.offenderNick}</h3>
-                <p className="text-sm text-muted-foreground mt-1">Aberto por {getMemberDetails(viewCase.creatorId)?.nick} em {viewCase.creationDate}</p>
+                 <p className="text-sm text-muted-foreground mt-1">Aberto por {getMemberDetails(viewCase.creatorId, members)?.nick} em {viewCase.creationDate}</p>
               </div>
               <StatusBadge status={viewCase.status} />
             </div>
@@ -306,9 +402,9 @@ function CasosPage() {
             {viewCase.status === "Resolvido" && (
               <div className="flex flex-col gap-4 border-t border-border/50 pt-4 mt-2">
                 <h4 className="text-sm font-bold text-green-500 uppercase tracking-wider flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Resolução (Por {getMemberDetails(viewCase.resolverId!)?.nick})
-                </h4>
+                   <CheckCircle2 className="h-4 w-4" />
+                   Resolução (Por {getMemberDetails(viewCase.resolverId!, members)?.nick || "Desconhecido"})
+                 </h4>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1">
@@ -336,6 +432,25 @@ function CasosPage() {
                     </a>
                   </div>
                 )}
+              </div>
+            )}
+
+            {viewCase.status === "Cancelado" && (
+              <div className="flex flex-col gap-4 border-t border-border/50 pt-4 mt-2">
+                <h4 className="text-sm font-bold text-red-500 uppercase tracking-wider flex items-center gap-2">
+                   <XCircle className="h-4 w-4" />
+                   Cancelado (Por {getMemberDetails(viewCase.resolverId!, members)?.nick || "Desconhecido"})
+                 </h4>
+                
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Motivo do Cancelamento</span>
+                  <span className="text-sm font-medium text-foreground">{viewCase.cancellationReason || "-"}</span>
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Data da Decisão</span>
+                  <span className="text-sm font-medium text-foreground">{viewCase.resolutionDate || "-"}</span>
+                </div>
               </div>
             )}
           </div>

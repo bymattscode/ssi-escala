@@ -1,15 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { mockWarnings, mockMembers } from "@/lib/mockData";
-import { Warning, PunishmentType } from "@/lib/types";
+import { Warning, PunishmentType, Member } from "@/lib/types";
 import { Search, Plus, Filter, FileWarning, Eye, AlertTriangle, ShieldOff, Skull, Link as LinkIcon, X } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { getWarnings, getMembers, addWarning } from "../lib/store";
+import { useAuth } from "../contexts/AuthContext";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/advertencias")({
   component: AdvertenciasPage,
 });
 
-function getMemberDetails(memberId: string) {
-  return mockMembers.find((m) => m.id === memberId) || null;
+function getMemberDetails(memberId: string, members: Member[]) {
+  return members.find((m) => m.id === memberId) || null;
 }
 
 const punishmentConfig: Record<PunishmentType, { color: string, icon: any, label: string }> = {
@@ -56,28 +58,81 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
 function AdvertenciasPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("Todas");
+  const [directorFilter, setDirectorFilter] = useState<string>("Todos");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [viewWarning, setViewWarning] = useState<Warning | null>(null);
 
+  // Create states
+  const [newOffender, setNewOffender] = useState("");
+  const [newType, setNewType] = useState<PunishmentType>("Observação");
+  const [newReason, setNewReason] = useState("");
+  const [newNotes, setNewNotes] = useState("");
+  const [newCaseId, setNewCaseId] = useState("");
+
+  const [warnings, setWarnings] = useState<Warning[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const { role } = useAuth();
+  const isAdminOrDir = role !== "Fiscalizador";
+
+  const fetchData = async () => {
+    setWarnings(await getWarnings());
+    setMembers(await getMembers());
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleCreate = async () => {
+    if (!newOffender || !newReason) {
+      toast.error("Preencha os campos obrigatórios (Infrator e Motivo).");
+      return;
+    }
+    
+    const newWarning: Warning = {
+      id: `w${Date.now()}`,
+      date: new Date().toLocaleDateString('pt-BR'),
+      offenderNick: newOffender,
+      punishmentType: newType,
+      reason: newReason,
+      directorId: "1", // Mock current user
+      caseId: newCaseId || undefined,
+      notes: newNotes || undefined
+    };
+
+    await addWarning(newWarning);
+    toast.success("Advertência registrada com sucesso!");
+    setIsCreateOpen(false);
+    fetchData();
+    
+    // Reset
+    setNewOffender("");
+    setNewType("Observação");
+    setNewReason("");
+    setNewNotes("");
+    setNewCaseId("");
+  };
+
   const filteredWarnings = useMemo(() => {
-    return mockWarnings.filter(w => {
+    return warnings.filter(w => {
       const matchesSearch = w.offenderNick.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = typeFilter === "Todas" || w.punishmentType === typeFilter;
-      return matchesSearch && matchesType;
+      const matchesDirector = directorFilter === "Todos" || w.directorId === directorFilter;
+      return matchesSearch && matchesType && matchesDirector;
     });
-  }, [searchTerm, typeFilter]);
+  }, [searchTerm, typeFilter, directorFilter, warnings]);
 
   // Estatísticas
   const stats = useMemo(() => {
     const s = {
-      total: mockWarnings.length,
-      observacoes: mockWarnings.filter(w => w.punishmentType === "Observação").length,
-      medalhas: mockWarnings.filter(w => w.punishmentType === "Medalhas Negativas").length,
-      advertencias: mockWarnings.filter(w => w.punishmentType === "Advertência Interna").length,
-      graves: mockWarnings.filter(w => w.punishmentType === "Rebaixamento" || w.punishmentType === "Expulsão").length,
+      total: warnings.length,
+      observacoes: warnings.filter(w => w.punishmentType === "Observação").length,
+      medalhas: warnings.filter(w => w.punishmentType === "Medalhas Negativas").length,
+      advertencias: warnings.filter(w => w.punishmentType === "Advertência Interna").length,
+      graves: warnings.filter(w => w.punishmentType === "Rebaixamento" || w.punishmentType === "Expulsão").length,
     };
     return s;
-  }, []);
+  }, [warnings]);
 
   return (
     <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
@@ -89,13 +144,15 @@ function AdvertenciasPage() {
           </h1>
           <p className="text-muted-foreground mt-1">Gestão exclusiva de Diretores e Presidência sobre advertências.</p>
         </div>
-        <button 
-          onClick={() => setIsCreateOpen(true)}
-          className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all w-full sm:w-auto"
-        >
-          <Plus className="h-4 w-4" />
-          Registrar Advertência
-        </button>
+        {isAdminOrDir && (
+           <button 
+             onClick={() => setIsCreateOpen(true)}
+             className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all w-full sm:w-auto"
+           >
+             <Plus className="h-4 w-4" />
+             Registrar Advertência
+           </button>
+         )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -149,6 +206,17 @@ function AdvertenciasPage() {
                 <option className="bg-background text-foreground" key={type} value={type}>{type}</option>
               ))}
             </select>
+            
+            <select 
+              value={directorFilter}
+              onChange={(e) => setDirectorFilter(e.target.value)}
+              className="bg-background border border-border rounded-md px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-primary/50 transition-colors shadow-sm"
+            >
+              <option className="bg-background text-foreground" value="Todos">Qualquer Responsável</option>
+              {members.filter(m => m.role === "Diretor" || m.role === "Presidência").map(m => (
+                <option className="bg-background text-foreground" key={m.id} value={m.id}>{m.nick}</option>
+              ))}
+            </select>
           </div>
           
           <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -183,8 +251,8 @@ function AdvertenciasPage() {
             </thead>
             <tbody>
               {filteredWarnings.map((w) => {
-                const director = getMemberDetails(w.directorId);
-                return (
+                 const director = getMemberDetails(w.directorId, members);
+                 return (
                   <tr key={w.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                     <td className="px-6 py-4 font-medium text-foreground">#{w.id.toUpperCase()}</td>
                     <td className="px-6 py-4 text-muted-foreground">{w.date}</td>
@@ -226,35 +294,40 @@ function AdvertenciasPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Infrator (Nick)</label>
-              <input type="text" className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: Charlie" />
+              <select value={newOffender} onChange={e => setNewOffender(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
+                <option value="" disabled className="bg-background text-foreground">Selecione o membro...</option>
+                {members.filter(m => m.status === "Ativo").map(m => (
+                  <option key={m.id} value={m.nick} className="bg-background text-foreground">{m.nick}</option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Tipo de Punição</label>
-              <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
-                <option className="bg-background text-foreground">Observação</option>
-                <option className="bg-background text-foreground">Medalhas Negativas</option>
-                <option className="bg-background text-foreground">Advertência Interna</option>
-                <option className="bg-background text-foreground">Rebaixamento</option>
-                <option className="bg-background text-foreground">Expulsão</option>
+              <select value={newType} onChange={e => setNewType(e.target.value as PunishmentType)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
+                <option value="Observação" className="bg-background text-foreground">Observação</option>
+                <option value="Medalhas Negativas" className="bg-background text-foreground">Medalhas Negativas</option>
+                <option value="Advertência Interna" className="bg-background text-foreground">Advertência Interna</option>
+                <option value="Rebaixamento" className="bg-background text-foreground">Rebaixamento</option>
+                <option value="Expulsão" className="bg-background text-foreground">Expulsão</option>
               </select>
             </div>
           </div>
           
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Motivo</label>
-            <textarea className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors min-h-[80px]" placeholder="Motivo da punição..."></textarea>
+            <textarea value={newReason} onChange={e => setNewReason(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors min-h-[80px]" placeholder="Motivo da punição..."></textarea>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Observações / Orientações</label>
-            <textarea className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors min-h-[60px]" placeholder="Observações adicionais (opcional)..."></textarea>
+            <textarea value={newNotes} onChange={e => setNewNotes(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors min-h-[60px]" placeholder="Observações adicionais (opcional)..."></textarea>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Vincular a um Caso? (ID do Caso - opcional)</label>
             <div className="flex items-center relative">
               <LinkIcon className="absolute left-3 h-4 w-4 text-muted-foreground" />
-              <input type="text" className="bg-background border border-border rounded-md pl-9 pr-3 py-2 text-sm text-foreground w-full focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: C2" />
+              <input type="text" value={newCaseId} onChange={e => setNewCaseId(e.target.value)} className="bg-background border border-border rounded-md pl-9 pr-3 py-2 text-sm text-foreground w-full focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: C2" />
             </div>
             <p className="text-xs text-muted-foreground mt-1">Se esta punição foi originada de um caso aberto no painel de casos.</p>
           </div>
@@ -263,7 +336,7 @@ function AdvertenciasPage() {
             <button onClick={() => setIsCreateOpen(false)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors">
               Cancelar
             </button>
-            <button onClick={() => setIsCreateOpen(false)} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all ">
+            <button onClick={handleCreate} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all ">
               Registrar
             </button>
           </div>
@@ -277,7 +350,7 @@ function AdvertenciasPage() {
             <div className="flex items-center justify-between border-b border-border/50 pb-4">
               <div className="flex flex-col">
                 <h3 className="text-xl font-bold text-foreground">Infrator: {viewWarning.offenderNick}</h3>
-                <p className="text-sm text-muted-foreground mt-1">Registrado por {getMemberDetails(viewWarning.directorId)?.nick} em {viewWarning.date}</p>
+                 <p className="text-sm text-muted-foreground mt-1">Registrado por {getMemberDetails(viewWarning.directorId, members)?.nick} em {viewWarning.date}</p>
               </div>
               <PunishmentBadge type={viewWarning.punishmentType} />
             </div>

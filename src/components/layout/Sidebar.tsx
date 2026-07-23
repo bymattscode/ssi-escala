@@ -1,5 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { LayoutDashboard, CalendarDays, Users, AlertTriangle, FileWarning, Settings } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
@@ -12,12 +13,29 @@ const navItems = [
 
 export function Sidebar() {
   const location = useLocation();
+  const { role } = useAuth();
+
+  // Presidência and Vice can see everything.
+  // Diretor can't see Configurações. Fiscalizador can't see Configurações.
+  const filteredNavItems = navItems.filter((item) => {
+    if (role === "Presidência" || role === "Vice-Presidência") return true;
+    
+    if (role === "Diretor") {
+      return item.label !== "Configurações";
+    }
+
+    if (role === "Fiscalizador") {
+      return ["Dashboard", "Escala Semanal", "Gestão de Casos"].includes(item.label);
+    }
+    
+    return true;
+  });
 
   return (
     <aside className="w-64 bg-card/95 backdrop-blur-md border-r border-border h-[calc(100vh-4rem)] flex flex-col fixed left-0 top-16 z-20 ">
       <nav className="flex-1 py-6 px-4 flex flex-col gap-2 overflow-y-auto">
         <div className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2 px-2">Menu Principal</div>
-        {navItems.map((item, idx) => {
+        {filteredNavItems.map((item, idx) => {
           // O item é ativo se a rota for igual ao href dele. 
           // (Tratamento especial para as escalas poderia ser feito com state/params)
           const isActive = location.pathname === item.href && (item.href !== "/escalas" || idx === 1); // Simplificação

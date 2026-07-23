@@ -4,16 +4,20 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { mockSchedules, mockMembers } from "@/lib/mockData";
-import { CalendarDays, Settings2, Search, Filter, RotateCcw, AlertTriangle, CheckCircle2, Clock, XCircle, CalendarIcon } from "lucide-react";
-import { useState } from "react";
+import { CalendarDays, Search, RotateCcw, AlertTriangle, CheckCircle2, Clock, XCircle, CalendarIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { getSchedules, getMembers, updateSchedule } from "../lib/store";
+import { Schedule, Member } from "../lib/types";
+import { generateWeeklySchedule } from "../lib/scheduler";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/escalas")({
   component: EscalasPage,
 });
 
-function getMemberDetails(memberId: string) {
-  return mockMembers.find((m) => m.id === memberId) || null;
+function getMemberDetails(memberId: string, members: Member[]) {
+  return members.find((m) => m.id === memberId) || null;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -34,7 +38,19 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function EscalaTable({ schedules }: { schedules: typeof mockSchedules }) {
+function EscalaTable({ 
+  schedules, 
+  members, 
+  onStatusUpdate,
+  isAdmin,
+  onMemberChange
+}: { 
+  schedules: Schedule[], 
+  members: Member[], 
+  onStatusUpdate: (id: string, currentStatus: string) => void,
+  isAdmin: boolean,
+  onMemberChange: (scheduleId: string, newMemberId: string) => void
+}) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm text-left">
@@ -50,14 +66,27 @@ function EscalaTable({ schedules }: { schedules: typeof mockSchedules }) {
         </thead>
         <tbody>
           {schedules.map((schedule) => {
-            const member = getMemberDetails(schedule.memberId);
+            const member = getMemberDetails(schedule.memberId, members);
+            const roleMembers = members.filter(m => m.role === schedule.type && m.status === "Ativo");
             return (
               <tr key={schedule.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                 <td className="px-6 py-4 font-medium text-foreground flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
                     {member?.nick?.charAt(0) || "?"}
                   </div>
-                  {member?.nick || "Desconhecido"}
+                  {isAdmin ? (
+                    <select
+                      value={schedule.memberId}
+                      onChange={(e) => onMemberChange(schedule.id, e.target.value)}
+                      className="bg-background border border-border rounded-md px-2 py-1 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors w-full min-w-[120px]"
+                    >
+                      {roleMembers.map(m => (
+                        <option key={m.id} value={m.id}>{m.nick}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="truncate">{member?.nick || "Desconhecido"}</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 text-muted-foreground">{schedule.type}</td>
                 <td className="px-6 py-4 text-foreground font-medium">{schedule.referenceDay}</td>
@@ -66,8 +95,8 @@ function EscalaTable({ schedules }: { schedules: typeof mockSchedules }) {
                   <StatusBadge status={schedule.status} />
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button className="text-primary hover:text-primary/80 font-medium transition-colors">
-                    Registrar função
+                  <button onClick={() => onStatusUpdate(schedule.id, schedule.status)} className="text-primary hover:text-primary/80 font-medium transition-colors">
+                    Mudar Status
                   </button>
                 </td>
               </tr>
@@ -87,38 +116,106 @@ function EscalaTable({ schedules }: { schedules: typeof mockSchedules }) {
 }
 
 function EscalasPage() {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 6, 26)); // Default to some Sunday for mock
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { role } = useAuth();
+  const isAdmin = role === "Presidência" || role === "Vice-Presidência";
   
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 }); // Sunday
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 }); // Saturday
   const weekDisplay = `Semana: Dom ${format(weekStart, "dd/MM")} a Sáb ${format(weekEnd, "dd/MM")}`;
-  const selectedWeek = "2026-W30"; // Mock string for filtering backwards compatibility
   
-  const fiscalizadoresSchedules = mockSchedules.filter(s => s.type === "Fiscalizador" && s.week === selectedWeek);
-  const diretoresSchedules = mockSchedules.filter(s => s.type === "Diretor" && s.week === selectedWeek);
+  const weekNumber = format(weekStart, "I"); 
+  const selectedWeek = `${format(weekStart, "yyyy")}-W${weekNumber}`;
+
+  const fetchSchedules = async () => {
+    const data = await getSchedules();
+    setSchedules(data);
+  };
+
+  const fetchMembers = async () => {
+    const data = await getMembers();
+    setMembers(data);
+  };
+
+  useEffect(() => {
+    fetchSchedules();
+    fetchMembers();
+  }, []);
+
+  const handleGenerate = async () => {
+    if (!isAdmin) return;
+    setIsGenerating(true);
+    toast.info("Gerando escala automática...");
+    
+    try {
+      await generateWeeklySchedule(weekStart, members, "Fiscalizador", "1");
+      await generateWeeklySchedule(weekStart, members, "Diretor", "1");
+      await fetchSchedules();
+      toast.success("Escalas geradas com sucesso para a semana!");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleStatusUpdate = async (id: string, currentStatus: string) => {
+    const nextStatusMap: any = {
+      "Pendente": "Concluído",
+      "Concluído": "Atrasado",
+      "Atrasado": "Justificativa Enviada",
+      "Justificativa Enviada": "Pendente",
+    };
+    const next = nextStatusMap[currentStatus];
+    await updateSchedule(id, { status: next });
+    toast.success(`Status atualizado para ${next}`);
+    fetchSchedules();
+  };
+
+  const handleMemberChange = async (scheduleId: string, newMemberId: string) => {
+    await updateSchedule(scheduleId, { memberId: newMemberId });
+    toast.success("Membro atribuído com sucesso!");
+    fetchSchedules();
+  };
   
-  const total = mockSchedules.filter(s => s.week === selectedWeek).length;
-  const pendentes = mockSchedules.filter(s => s.week === selectedWeek && s.status === "Pendente").length;
-  const concluidos = mockSchedules.filter(s => s.week === selectedWeek && s.status === "Concluído").length;
-  const atrasados = mockSchedules.filter(s => s.week === selectedWeek && s.status === "Atrasado").length;
+  const filteredSchedules = schedules.filter(s => {
+    if (s.week !== selectedWeek) return false;
+    if (!searchQuery) return true;
+    
+    const member = getMemberDetails(s.memberId, members);
+    return member?.nick.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+  
+  const fiscalizadoresSchedules = filteredSchedules.filter(s => s.type === "Fiscalizador");
+  const diretoresSchedules = filteredSchedules.filter(s => s.type === "Diretor");
+  
+  const pendentes = filteredSchedules.filter(s => s.status === "Pendente").length;
+  const concluidos = filteredSchedules.filter(s => s.status === "Concluído").length;
+  const atrasados = filteredSchedules.filter(s => s.status === "Atrasado").length;
 
   return (
     <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">Escalas da Equipe</h1>
           <p className="text-muted-foreground mt-1">Gerencie atribuições, prazos e acompanhe o progresso semanal.</p>
         </div>
-        <div className="flex gap-3">
-          <button className="flex items-center gap-2 bg-secondary text-foreground hover:bg-secondary/80 px-4 py-2 rounded-md font-medium transition-colors border border-border shadow-sm">
-            <RotateCcw className="h-4 w-4" />
-            Regerar Escala
-          </button>
-          <button className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all ">
-            <CalendarDays className="h-4 w-4" />
-            Gerar Automática
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-3">
+            <button onClick={handleGenerate} disabled={isGenerating} className="flex items-center gap-2 bg-secondary text-foreground hover:bg-secondary/80 px-4 py-2 rounded-md font-medium transition-colors border border-border shadow-sm">
+              <RotateCcw className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
+              Regerar Escala
+            </button>
+            <button onClick={handleGenerate} disabled={isGenerating} className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all ">
+              <CalendarDays className="h-4 w-4" />
+              Gerar Automática
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -156,12 +253,14 @@ function EscalasPage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 pt-4 pb-3 border-b border-border gap-4 bg-secondary/10">
             <TabsList className="bg-secondary/50 border border-border rounded-lg p-1">
               <TabsTrigger value="fiscalizadores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-4">
-                Escala dos Fiscalizadores
-              </TabsTrigger>
-              <TabsTrigger value="diretores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-4">
-                Escala dos Diretores
-              </TabsTrigger>
-            </TabsList>
+                 Escala dos Fiscalizadores
+               </TabsTrigger>
+               {role !== "Fiscalizador" && (
+                 <TabsTrigger value="diretores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-4">
+                   Escala dos Diretores
+                 </TabsTrigger>
+               )}
+             </TabsList>
             
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <Popover>
@@ -187,6 +286,8 @@ function EscalasPage() {
                 <Search className="h-4 w-4 text-muted-foreground mr-2" />
                 <input 
                   type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar membro..." 
                   className="bg-transparent border-none outline-none text-sm text-foreground w-full placeholder:text-muted-foreground"
                 />
@@ -195,14 +296,17 @@ function EscalasPage() {
           </div>
 
           <TabsContent value="fiscalizadores" className="p-0 m-0 border-none outline-none">
-            <EscalaTable schedules={fiscalizadoresSchedules} />
-          </TabsContent>
-
-          <TabsContent value="diretores" className="p-0 m-0 border-none outline-none">
-            <EscalaTable schedules={diretoresSchedules} />
-          </TabsContent>
-        </Tabs>
+             <EscalaTable schedules={fiscalizadoresSchedules} members={members} onStatusUpdate={handleStatusUpdate} isAdmin={isAdmin} onMemberChange={handleMemberChange} />
+           </TabsContent>
+ 
+           {role !== "Fiscalizador" && (
+             <TabsContent value="diretores" className="p-0 m-0 border-none outline-none">
+               <EscalaTable schedules={diretoresSchedules} members={members} onStatusUpdate={handleStatusUpdate} isAdmin={isAdmin} onMemberChange={handleMemberChange} />
+             </TabsContent>
+           )}
+         </Tabs>
       </div>
     </div>
   );
 }
+
