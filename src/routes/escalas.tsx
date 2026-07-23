@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format, startOfWeek, endOfWeek } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { mockSchedules, mockMembers } from "@/lib/mockData";
-import { CalendarDays, Settings2, Search, Filter, RotateCcw, AlertTriangle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { CalendarDays, Settings2, Search, Filter, RotateCcw, AlertTriangle, CheckCircle2, Clock, XCircle, CalendarIcon } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/escalas")({
@@ -90,7 +94,12 @@ function EscalaTable({ schedules }: { schedules: typeof mockSchedules }) {
 }
 
 function EscalasPage() {
-  const [selectedWeek, setSelectedWeek] = useState("2026-W30");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date(2026, 6, 26)); // Default to some Sunday for mock
+  
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 }); // Sunday
+  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 }); // Saturday
+  const weekDisplay = `Semana: Dom ${format(weekStart, "dd/MM")} a Sáb ${format(weekEnd, "dd/MM")}`;
+  const selectedWeek = "2026-W30"; // Mock string for filtering backwards compatibility
   
   const fiscalizadoresSchedules = mockSchedules.filter(s => s.type === "Fiscalizador" && s.week === selectedWeek);
   const diretoresSchedules = mockSchedules.filter(s => s.type === "Diretor" && s.week === selectedWeek);
@@ -171,15 +180,25 @@ function EscalasPage() {
             </TabsList>
             
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="flex items-center bg-background border border-border rounded-md px-3 py-1.5 focus-within:border-primary/50 transition-colors flex-1 sm:w-56">
-                <span className="text-xs text-muted-foreground mr-2 whitespace-nowrap">Semana:</span>
-                <input 
-                  type="week" 
-                  value={selectedWeek}
-                  onChange={(e) => setSelectedWeek(e.target.value)}
-                  className="bg-transparent border-none outline-none text-sm text-foreground w-full [color-scheme:dark]"
-                />
-              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="flex items-center bg-background border border-border hover:border-primary/50 hover:bg-secondary/20 rounded-md px-3 py-1.5 transition-colors flex-1 sm:w-64 text-left justify-between">
+                    <span className="text-sm text-foreground flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4 text-primary" />
+                      {weekDisplay}
+                    </span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 border-border bg-card shadow-2xl" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => date && setSelectedDate(date)}
+                    initialFocus
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
               <div className="flex items-center bg-background border border-border rounded-md px-3 py-1.5 focus-within:border-primary/50 transition-colors flex-1 sm:w-64 shadow-sm">
                 <Search className="h-4 w-4 text-muted-foreground mr-2" />
                 <input 
