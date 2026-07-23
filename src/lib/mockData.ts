@@ -34,7 +34,7 @@ export const mockCases: Case[] = [
   { 
     id: "c3", creationDate: "2026-07-22 18:45", creatorId: "7", offenderNick: "Golf", 
     description: "Abuso de poder com membros novatos.", orientation: "Análise profunda", 
-    status: "Em Análise", resolverId: "3"
+    status: "Resolvido", resolverId: "3"
   }
 ];
 

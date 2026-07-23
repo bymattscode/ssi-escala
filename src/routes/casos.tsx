@@ -13,14 +13,12 @@ function getMemberDetails(memberId: string) {
 }
 
 function StatusBadge({ status }: { status: CaseStatus }) {
-  const styles: Record<CaseStatus, { bg: string, icon: any }> = {
+  const styles: Record<Exclude<CaseStatus, "Em Análise">, { bg: string, icon: any }> = {
     "Aberto": { bg: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: AlertCircle },
-    "Em Análise": { bg: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", icon: Clock },
     "Resolvido": { bg: "bg-green-500/10 text-green-500 border-green-500/20", icon: CheckCircle2 },
     "Cancelado": { bg: "bg-red-500/10 text-red-500 border-red-500/20", icon: XCircle },
   };
-  
-  const Icon = styles[status]?.icon || Clock;
+  const Icon = styles[status]?.icon || AlertCircle;
   
   return (
     <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1.5 w-fit ${styles[status]?.bg}`}>
@@ -154,7 +152,7 @@ function CasosPage() {
                       >
                         <FileText className="h-4 w-4" />
                       </button>
-                      {(c.status === "Aberto" || c.status === "Em Análise") && (
+                      {(c.status === "Aberto") && (
                         <button 
                           onClick={() => setResolveCase(c)}
                           className="p-1.5 text-muted-foreground hover:text-green-500 bg-background rounded-md border border-border hover:border-green-500/30 transition-colors" 

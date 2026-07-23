@@ -1,5 +1,5 @@
 export type Role = "Presidência" | "Vice-Presidência" | "Diretor" | "Fiscalizador";
-export type CaseStatus = "Aberto" | "Em Análise" | "Resolvido" | "Cancelado";
+export type CaseStatus = "Aberto" | "Resolvido" | "Cancelado";
 export type ScheduleStatus = "Pendente" | "Concluído" | "Atrasado" | "Justificativa Enviada";
 
 export interface Member {
