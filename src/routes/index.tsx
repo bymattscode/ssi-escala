@@ -1,31 +1,78 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Users, AlertTriangle, FileWarning, CalendarDays, ShieldAlert, BadgeCheck } from "lucide-react";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "SSI" },
-      { name: "description", content: "SSI — aplicativo em construção." },
-      { property: "og:title", content: "SSI" },
-      { property: "og:description", content: "SSI — aplicativo em construção." },
-    ],
-  }),
-  component: Index,
+  component: Dashboard,
 });
 
-function Index() {
+function StatCard({ title, value, icon: Icon, description }: any) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-6">
-      <div className="max-w-xl text-center">
-        <p className="text-sm font-medium tracking-[0.3em] text-muted-foreground">
-          ESBOÇO
-        </p>
-        <h1 className="mt-4 text-6xl font-bold tracking-tight text-foreground">
-          SSI
-        </h1>
-        <p className="mt-4 text-base text-muted-foreground">
-          Estrutura inicial do aplicativo. Pronto para receber suas próximas ordens.
-        </p>
+    <div className="bg-card border border-border p-6 rounded-xl flex flex-col hover:border-primary/50 transition-colors shadow-sm group">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+        <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+          <Icon className="h-5 w-5" />
+        </div>
       </div>
-    </main>
+      <div className="text-3xl font-bold text-foreground">{value}</div>
+      {description && <p className="text-xs text-muted-foreground mt-2">{description}</p>}
+    </div>
+  );
+}
+
+function Dashboard() {
+  return (
+    <div className="flex flex-col gap-8 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground mt-2">Visão geral do Setor de Segurança dos Instrutores.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard title="Fiscalizadores Ativos" value="12" icon={Users} description="+2 desde a última semana" />
+        <StatCard title="Casos Abertos" value="5" icon={AlertTriangle} description="Requer atenção da diretoria" />
+        <StatCard title="Casos Resolvidos" value="48" icon={BadgeCheck} description="Neste mês" />
+        <StatCard title="Advertências (Mês)" value="3" icon={FileWarning} description="Punições aplicadas" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="col-span-2 bg-card border border-border rounded-xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-foreground">Acesso Rápido</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+             <Link to="/casos" className="flex items-center gap-3 p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary/50 hover:bg-secondary transition-all group">
+                <div className="bg-destructive/10 p-3 rounded-md text-destructive group-hover:bg-destructive group-hover:text-destructive-foreground transition-colors">
+                  <ShieldAlert className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-foreground">Abrir Novo Caso</h3>
+                  <p className="text-sm text-muted-foreground">Exclusivo para Fiscalizadores</p>
+                </div>
+             </Link>
+             <Link to="/escalas" className="flex items-center gap-3 p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary/50 hover:bg-secondary transition-all group">
+                <div className="bg-primary/10 p-3 rounded-md text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  <CalendarDays className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-foreground">Minha Escala</h3>
+                  <p className="text-sm text-muted-foreground">Verifique seus dias e status</p>
+                </div>
+             </Link>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-6 flex flex-col">
+          <h2 className="text-xl font-semibold text-foreground mb-6">Próxima Escala Automática</h2>
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <div className="h-20 w-20 bg-secondary rounded-full flex items-center justify-center text-primary mb-4 border border-primary/20">
+              <CalendarDays className="h-10 w-10" />
+            </div>
+            <p className="text-foreground font-medium mb-1">Domingo, 00:00</p>
+            <p className="text-sm text-muted-foreground">A escala da próxima semana será gerada automaticamente.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
