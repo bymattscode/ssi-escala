@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Users, AlertTriangle, FileWarning, CalendarDays, ShieldAlert, BadgeCheck } from "lucide-react";
+import { Users, AlertTriangle, FileWarning, CalendarDays, ShieldAlert, BadgeCheck, Book, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -42,23 +42,45 @@ function Dashboard() {
           </div>
           <div className="grid grid-cols-2 gap-4">
              <Link to="/casos" className="flex items-center gap-3 p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary/50 hover:bg-secondary transition-all group">
-                <div className="bg-destructive/10 p-3 rounded-md text-destructive group-hover:bg-destructive group-hover:text-destructive-foreground transition-colors">
+                <div className="bg-destructive/10 p-3 rounded-md text-destructive group-hover:bg-destructive group-hover:text-destructive-foreground transition-colors shrink-0">
                   <ShieldAlert className="h-6 w-6" />
                 </div>
-                <div>
-                  <h3 className="font-medium text-foreground">Abrir Novo Caso</h3>
-                  <p className="text-sm text-muted-foreground">Exclusivo para Fiscalizadores</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-foreground truncate">Abrir Novo Caso</h3>
+                  <p className="text-sm text-muted-foreground truncate">Exclusivo para Fiscalizadores</p>
                 </div>
              </Link>
              <Link to="/escalas" className="flex items-center gap-3 p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary/50 hover:bg-secondary transition-all group">
-                <div className="bg-primary/10 p-3 rounded-md text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <div className="bg-primary/10 p-3 rounded-md text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
                   <CalendarDays className="h-6 w-6" />
                 </div>
-                <div>
-                  <h3 className="font-medium text-foreground">Minha Escala</h3>
-                  <p className="text-sm text-muted-foreground">Verifique seus dias e status</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-foreground truncate">Minha Escala</h3>
+                  <p className="text-sm text-muted-foreground truncate">Verifique seus dias e status</p>
                 </div>
              </Link>
+             <a href="https://sites.google.com/view/instrutores-da-rcc/c%C3%B3digo-penal" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary/50 hover:bg-secondary transition-all group">
+                <div className="bg-orange-500/10 p-3 rounded-md text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-colors shrink-0">
+                  <Book className="h-6 w-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-foreground truncate flex items-center gap-1.5">
+                    Código Penal <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                  </h3>
+                  <p className="text-sm text-muted-foreground truncate">Consulta de regras</p>
+                </div>
+             </a>
+             <a href="https://www.policiarcc.com/t38418-ins-quadro-de-advertencias" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 rounded-lg bg-secondary/50 border border-border hover:border-primary/50 hover:bg-secondary transition-all group">
+                <div className="bg-yellow-500/10 p-3 rounded-md text-yellow-500 group-hover:bg-yellow-500 group-hover:text-white transition-colors shrink-0">
+                  <FileWarning className="h-6 w-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-foreground truncate flex items-center gap-1.5">
+                    Quadro de Advs <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                  </h3>
+                  <p className="text-sm text-muted-foreground truncate">Tópico no fórum oficial</p>
+                </div>
+             </a>
           </div>
         </div>
 
