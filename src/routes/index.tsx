@@ -76,7 +76,7 @@ function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-medium text-foreground truncate flex items-center gap-1.5">
-                    Quadro de Advs <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                    Quadro de Advertências <ExternalLink className="h-3 w-3 text-muted-foreground" />
                   </h3>
                   <p className="text-sm text-muted-foreground truncate">Tópico no fórum oficial</p>
                 </div>
