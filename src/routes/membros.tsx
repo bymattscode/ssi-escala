@@ -3,7 +3,7 @@ import { Member, Role } from "@/lib/types";
 import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, ShieldCheck, ShieldAlert, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getMembers, updateMemberStatus, updateMember, addMember, addAuditLog } from "../lib/store";
+import { getMembers, updateMemberStatus, updateMember, deleteMember, addMember, addAuditLog } from "../lib/store";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/membros")({
@@ -146,6 +146,8 @@ function MembrosPage() {
 
   const [editMember, setEditMember] = useState<Member | null>(null);
   const [editRole, setEditRole] = useState<Role>("Fiscalizador");
+  const [editEntryDate, setEditEntryDate] = useState("");
+  const [editPromotionDate, setEditPromotionDate] = useState("");
 
   const [deactivateMember, setDeactivateMember] = useState<Member | null>(null);
   const [deactivateType, setDeactivateType] = useState<"Inativo" | "Licença">("Inativo");
@@ -155,6 +157,8 @@ function MembrosPage() {
   const handleEdit = (m: Member) => {
     setEditMember(m);
     setEditRole(m.role);
+    setEditEntryDate(m.entryDate || "");
+    setEditPromotionDate(m.promotionDate || "");
   };
 
   const handleDeactivate = (m: Member) => {
@@ -182,9 +186,13 @@ function MembrosPage() {
       }
     }
     
-    await updateMember(editMember.id, { role: editRole });
-    await addAuditLog("1", role, "Edição de Cargo", "Membros", `O cargo de ${editMember.nick} foi alterado para ${editRole}.`, editMember.id);
-    toast.success("Cargo atualizado com sucesso!");
+    await updateMember(editMember.id, { 
+      role: editRole,
+      entryDate: editEntryDate || editMember.entryDate,
+      promotionDate: editPromotionDate || undefined
+    });
+    await addAuditLog("1", role, "Edição de Membro", "Membros", `Os dados do membro ${editMember.nick} foram atualizados.`, editMember.id);
+    toast.success("Membro atualizado com sucesso!");
     setEditMember(null);
     fetchMembers();
   };
@@ -206,9 +214,9 @@ function MembrosPage() {
       await addAuditLog("1", role, "Membro em Licença", "Membros", `O membro ${deactivateMember.nick} entrou em licença de ${leaveStart} até ${leaveEnd}.`, deactivateMember.id);
       toast.success("Membro colocado em licença!");
     } else {
-      await updateMemberStatus(deactivateMember.id, "Inativo");
-      await addAuditLog("1", role, "Inativação de Membro", "Membros", `O membro ${deactivateMember.nick} foi inativado.`, deactivateMember.id);
-      toast.success("Membro inativado!");
+      await deleteMember(deactivateMember.id);
+      await addAuditLog("1", role, "Desligamento de Membro", "Membros", `O membro ${deactivateMember.nick} foi desligado do setor.`, deactivateMember.id);
+      toast.success("Membro desligado do setor!");
     }
     setDeactivateMember(null);
     fetchMembers();
@@ -294,21 +302,43 @@ function MembrosPage() {
         )}
       </div>
 
-      <Modal isOpen={!!editMember} onClose={() => setEditMember(null)} title="Editar Cargo do Membro">
+      <Modal isOpen={!!editMember} onClose={() => setEditMember(null)} title="Editar Dados do Membro">
         {editMember && (
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">Alterar Cargo de <span className="font-bold text-primary">{editMember.nick}</span></label>
-              <select 
-                value={editRole} 
-                onChange={e => setEditRole(e.target.value as Role)}
-                className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
-              >
-                <option value="Presidente">Presidente</option>
-                <option value="Vice-Presidente">Vice-Presidente</option>
-                <option value="Diretor">Diretor</option>
-                <option value="Fiscalizador">Fiscalizador</option>
-              </select>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-foreground">Cargo de <span className="font-bold text-primary">{editMember.nick}</span></label>
+                <select 
+                  value={editRole} 
+                  onChange={e => setEditRole(e.target.value as Role)}
+                  className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                >
+                  <option value="Fiscalizador">Fiscalizador</option>
+                  <option value="Diretor">Diretor</option>
+                  <option value="Vice-Presidente">Vice-Presidente</option>
+                  <option value="Presidente">Presidente</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-foreground">Data de Entrada</label>
+                <input 
+                  type="date"
+                  value={editEntryDate}
+                  onChange={e => setEditEntryDate(e.target.value)}
+                  className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-foreground">Data de Promoção</label>
+                <input 
+                  type="date"
+                  value={editPromotionDate}
+                  onChange={e => setEditPromotionDate(e.target.value)}
+                  className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                />
+              </div>
             </div>
             <div className="flex justify-end gap-3 mt-4">
                <button onClick={() => setEditMember(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors text-sm">
@@ -322,7 +352,7 @@ function MembrosPage() {
         )}
       </Modal>
 
-      <Modal isOpen={!!deactivateMember} onClose={() => setDeactivateMember(null)} title="Inativar ou Colocar em Licença">
+      <Modal isOpen={!!deactivateMember} onClose={() => setDeactivateMember(null)} title="Desligar ou Colocar em Licença">
         {deactivateMember && (
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
@@ -332,7 +362,7 @@ function MembrosPage() {
                 onChange={e => setDeactivateType(e.target.value as "Inativo" | "Licença")}
                 className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               >
-                <option value="Inativo">Inativação Definitiva</option>
+                <option value="Inativo">Desligamento do Setor (Apagar da lista)</option>
                 <option value="Licença">Licença (Afastamento Temporário)</option>
               </select>
             </div>

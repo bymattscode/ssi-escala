@@ -108,6 +108,15 @@ export const updateMember = async (id: string, data: Partial<Member>): Promise<v
   }
 };
 
+export const deleteMember = async (id: string): Promise<void> => {
+  await delay(200);
+  const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
+  const newMembers = members.filter(m => m.id !== id);
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.MEMBERS, JSON.stringify(newMembers));
+  }
+};
+
 export const addMember = async (member: Member): Promise<void> => {
   await delay(200);
   const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
