@@ -171,17 +171,14 @@ function EscalasPage() {
             </TabsList>
             
             <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="flex items-center bg-background border border-border rounded-md px-3 py-1.5 focus-within:border-primary/50 transition-colors flex-1 sm:w-64">
-                <select 
+              <div className="flex items-center bg-background border border-border rounded-md px-3 py-1.5 focus-within:border-primary/50 transition-colors flex-1 sm:w-56">
+                <span className="text-xs text-muted-foreground mr-2 whitespace-nowrap">Semana:</span>
+                <input 
+                  type="week" 
                   value={selectedWeek}
                   onChange={(e) => setSelectedWeek(e.target.value)}
-                  className="bg-transparent border-none outline-none text-sm text-foreground w-full appearance-none"
-                >
-                  <option className="bg-background text-foreground" value="2026-W28">Semana: Dom 12/07 a Sáb 18/07</option>
-                  <option className="bg-background text-foreground" value="2026-W29">Semana: Dom 19/07 a Sáb 25/07</option>
-                  <option className="bg-background text-foreground" value="2026-W30">Semana: Dom 26/07 a Sáb 01/08 (Atual)</option>
-                  <option className="bg-background text-foreground" value="2026-W31">Semana: Dom 02/08 a Sáb 08/08</option>
-                </select>
+                  className="bg-transparent border-none outline-none text-sm text-foreground w-full [color-scheme:dark]"
+                />
               </div>
               <div className="flex items-center bg-background border border-border rounded-md px-3 py-1.5 focus-within:border-primary/50 transition-colors flex-1 sm:w-64 shadow-sm">
                 <Search className="h-4 w-4 text-muted-foreground mr-2" />
