@@ -16,9 +16,12 @@ export interface Schedule {
   id: string;
   week: string; // e.g. "2026-W30"
   memberId: string;
-  dayOfWeek: "Domingo" | "Segunda" | "Terça" | "Quarta" | "Quinta" | "Sexta" | "Sábado";
+  referenceDay: string; // "Domingo", "Segunda", etc.
+  deadline: string; // data/hora ou texto "+2 dias"
   status: ScheduleStatus;
-  justification?: string;
+  responsibleId?: string; // Presidência que gerou
+  observations?: string;
+  type: "Fiscalizador" | "Diretor";
 }
 
 export interface Case {
