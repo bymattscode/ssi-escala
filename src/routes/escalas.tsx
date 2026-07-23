@@ -121,16 +121,7 @@ function EscalasPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">Total na Semana</p>
-            <h3 className="text-2xl font-bold text-foreground mt-1">{total}</h3>
-          </div>
-          <div className="h-10 w-10 bg-primary/10 text-primary rounded-full flex items-center justify-center">
-            <CalendarDays className="h-5 w-5" />
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-card border border-border rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
             <p className="text-sm font-medium text-muted-foreground">Concluídos</p>
