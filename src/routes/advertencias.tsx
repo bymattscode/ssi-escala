@@ -14,7 +14,7 @@ function getMemberDetails(memberId: string) {
 
 const punishmentConfig: Record<PunishmentType, { color: string, icon: any, label: string }> = {
   "Observação": { color: "text-blue-500 bg-blue-500/10 border-blue-500/20", icon: Eye, label: "Observação" },
-  "Medalhas Negativas": { color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20", icon: AlertTriangle, label: "Medalhas (-)" },
+  "Medalhas Negativas": { color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20", icon: AlertTriangle, label: "Medalhas Negativas" },
   "Advertência Interna": { color: "text-orange-500 bg-orange-500/10 border-orange-500/20", icon: FileWarning, label: "Advertência" },
   "Rebaixamento": { color: "text-red-500 bg-red-500/10 border-red-500/20", icon: ShieldOff, label: "Rebaixamento" },
   "Expulsão": { color: "text-red-700 bg-red-700/10 border-red-700/20", icon: Skull, label: "Expulsão" },
