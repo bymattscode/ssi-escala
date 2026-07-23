@@ -4,10 +4,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Search, RotateCcw, AlertTriangle, CheckCircle2, Clock, XCircle, CalendarIcon } from "lucide-react";
+import { CalendarDays, Search, RotateCcw, AlertTriangle, CheckCircle2, Clock, XCircle, CalendarIcon, FileText, Gavel, X, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getSchedules, getMembers, updateSchedule } from "../lib/store";
+import { getSchedules, getMembers, updateSchedule, addAuditLog } from "../lib/store";
 import { Schedule, Member } from "../lib/types";
 import { generateWeeklySchedule } from "../lib/scheduler";
 import { toast } from "sonner";
@@ -38,18 +38,45 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// Simple Modal wrapper
+function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-card border border-border shadow-2xl rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-secondary/30">
+          <h2 className="text-lg font-bold text-foreground">{title}</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto flex-1">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EscalaTable({ 
   schedules, 
   members, 
   onStatusUpdate,
   isAdmin,
-  onMemberChange
+  onMemberChange,
+  onJustify,
+  onReview,
+  onView
 }: { 
   schedules: Schedule[], 
   members: Member[], 
   onStatusUpdate: (id: string, currentStatus: string) => void,
   isAdmin: boolean,
-  onMemberChange: (scheduleId: string, newMemberId: string) => void
+  onMemberChange: (scheduleId: string, newMemberId: string) => void,
+  onJustify: (schedule: Schedule) => void,
+  onReview: (schedule: Schedule) => void,
+  onView: (schedule: Schedule) => void
 }) {
   return (
     <div className="overflow-x-auto">
@@ -94,10 +121,38 @@ function EscalaTable({
                 <td className="px-6 py-4">
                   <StatusBadge status={schedule.status} />
                 </td>
-                <td className="px-6 py-4 text-right">
-                  <button onClick={() => onStatusUpdate(schedule.id, schedule.status)} className="text-primary hover:text-primary/80 font-medium transition-colors">
-                    Mudar Status
+                <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                  <button 
+                    onClick={() => onView(schedule)}
+                    className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors" 
+                    title="Ver Detalhes/Histórico"
+                  >
+                    <FileText className="h-4 w-4" />
                   </button>
+                  
+                  {schedule.status === "Atrasado" && (
+                    <button 
+                      onClick={() => onJustify(schedule)}
+                      className="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 px-2 py-1 rounded-md border border-yellow-500/20 transition-colors font-medium"
+                    >
+                      Justificar
+                    </button>
+                  )}
+                  
+                  {schedule.status === "Justificativa Enviada" && isAdmin && (
+                    <button 
+                      onClick={() => onReview(schedule)}
+                      className="text-xs bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 px-2 py-1 rounded-md border border-blue-500/20 transition-colors font-medium flex items-center gap-1"
+                    >
+                      <Gavel className="h-3 w-3" /> Analisar
+                    </button>
+                  )}
+                  
+                  {isAdmin && (
+                    <button onClick={() => onStatusUpdate(schedule.id, schedule.status)} className="text-xs text-primary hover:text-primary/80 font-medium transition-colors ml-2">
+                      Ciclar Status
+                    </button>
+                  )}
                 </td>
               </tr>
             );
@@ -121,8 +176,20 @@ function EscalasPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { role } = useAuth();
+  const { role, userName } = useAuth();
   const isAdmin = role === "Presidência" || role === "Vice-Presidência";
+  
+  // Modals state
+  const [justifyingSchedule, setJustifyingSchedule] = useState<Schedule | null>(null);
+  const [justificationReason, setJustificationReason] = useState("");
+  const [justificationText, setJustificationText] = useState("");
+  const [justificationOccurrenceDate, setJustificationOccurrenceDate] = useState("");
+  const [justificationAttachment, setJustificationAttachment] = useState("");
+  
+  const [reviewingSchedule, setReviewingSchedule] = useState<Schedule | null>(null);
+  const [reviewDecision, setReviewDecision] = useState<"Aprovada" | "Recusada">("Aprovada");
+  
+  const [viewSchedule, setViewSchedule] = useState<Schedule | null>(null);
   
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 }); // Sunday
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 }); // Saturday
@@ -154,6 +221,9 @@ function EscalasPage() {
     try {
       await generateWeeklySchedule(weekStart, members, "Fiscalizador", "1");
       await generateWeeklySchedule(weekStart, members, "Diretor", "1");
+      
+      await addAuditLog("1", role, "Geração de Escala", "Escalas", `Escalas automáticas geradas para a semana ${selectedWeek}.`);
+      
       await fetchSchedules();
       toast.success("Escalas geradas com sucesso para a semana!");
     } catch (e: any) {
@@ -172,13 +242,62 @@ function EscalasPage() {
     };
     const next = nextStatusMap[currentStatus];
     await updateSchedule(id, { status: next });
+    
+    await addAuditLog("1", role, "Alteração de Status", "Escalas", `Status da escala #${id} alterado para ${next}.`, id);
+    
     toast.success(`Status atualizado para ${next}`);
     fetchSchedules();
   };
 
   const handleMemberChange = async (scheduleId: string, newMemberId: string) => {
     await updateSchedule(scheduleId, { memberId: newMemberId });
+    await addAuditLog("1", role, "Edição de Membro", "Escalas", `Membro atribuído à escala #${scheduleId}.`, scheduleId);
     toast.success("Membro atribuído com sucesso!");
+    fetchSchedules();
+  };
+
+  const handleSubmitJustification = async () => {
+    if (!justifyingSchedule || !justificationReason || !justificationText || !justificationOccurrenceDate) {
+      toast.error("Por favor, preencha o motivo, a data e as observações.");
+      return;
+    }
+    
+    await updateSchedule(justifyingSchedule.id, {
+      status: "Justificativa Enviada",
+      justificationReason,
+      justificationText,
+      justificationOccurrenceDate,
+      justificationAttachment,
+      justificationStatus: "Pendente",
+      justificationDate: new Date().toISOString()
+    });
+    
+    await addAuditLog("1", role, "Envio de Justificativa", "Escalas", `Justificativa enviada para a escala #${justifyingSchedule.id}.`, justifyingSchedule.id);
+    
+    toast.success("Justificativa enviada com sucesso! Aguarde a análise da presidência.");
+    setJustifyingSchedule(null);
+    setJustificationReason("");
+    setJustificationText("");
+    setJustificationOccurrenceDate("");
+    setJustificationAttachment("");
+    fetchSchedules();
+  };
+  
+  const handleReviewJustification = async () => {
+    if (!reviewingSchedule) return;
+    
+    const nextStatus = reviewDecision === "Aprovada" ? "Concluído" : "Atrasado";
+    
+    await updateSchedule(reviewingSchedule.id, { 
+      status: nextStatus,
+      justificationStatus: reviewDecision,
+      justificationReviewerId: "1"
+    });
+    
+    await addAuditLog("1", role, "Análise de Justificativa", "Escalas", `Justificativa da escala #${reviewingSchedule.id} ${reviewDecision.toLowerCase()}.`, reviewingSchedule.id);
+    
+    toast.success(`Justificativa ${reviewDecision.toLowerCase()}!`);
+    setReviewingSchedule(null);
     fetchSchedules();
   };
   
@@ -296,16 +415,223 @@ function EscalasPage() {
           </div>
 
           <TabsContent value="fiscalizadores" className="p-0 m-0 border-none outline-none">
-             <EscalaTable schedules={fiscalizadoresSchedules} members={members} onStatusUpdate={handleStatusUpdate} isAdmin={isAdmin} onMemberChange={handleMemberChange} />
+             <EscalaTable 
+               schedules={fiscalizadoresSchedules} 
+               members={members} 
+               onStatusUpdate={handleStatusUpdate} 
+               isAdmin={isAdmin} 
+               onMemberChange={handleMemberChange} 
+               onJustify={setJustifyingSchedule}
+               onReview={setReviewingSchedule}
+               onView={setViewSchedule}
+             />
            </TabsContent>
  
            {role !== "Fiscalizador" && (
              <TabsContent value="diretores" className="p-0 m-0 border-none outline-none">
-               <EscalaTable schedules={diretoresSchedules} members={members} onStatusUpdate={handleStatusUpdate} isAdmin={isAdmin} onMemberChange={handleMemberChange} />
+               <EscalaTable 
+                 schedules={diretoresSchedules} 
+                 members={members} 
+                 onStatusUpdate={handleStatusUpdate} 
+                 isAdmin={isAdmin} 
+                 onMemberChange={handleMemberChange} 
+                 onJustify={setJustifyingSchedule}
+                 onReview={setReviewingSchedule}
+                 onView={setViewSchedule}
+               />
              </TabsContent>
            )}
          </Tabs>
       </div>
+
+      {/* MODAL ENVIAR JUSTIFICATIVA */}
+      <Modal isOpen={!!justifyingSchedule} onClose={() => setJustifyingSchedule(null)} title="Justificar Atraso/Ausência">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
+            Descreva o motivo pelo qual você não conseguiu cumprir o prazo da escala <strong className="text-foreground">{justifyingSchedule?.referenceDay}</strong>.
+          </p>
+          
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">Motivo Principal *</label>
+            <select 
+              value={justificationReason} 
+              onChange={e => setJustificationReason(e.target.value)}
+              className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+            >
+              <option value="">Selecione o motivo...</option>
+              <option value="Problemas Técnicos/Internet">Problemas Técnicos / Internet</option>
+              <option value="Motivos Pessoais/Saúde">Motivos Pessoais / Saúde</option>
+              <option value="Falta de Demanda (Sem membros para fiscalizar)">Falta de Demanda (Sem membros para fiscalizar)</option>
+              <option value="Esquecimento">Esquecimento</option>
+              <option value="Outro">Outro (Especifique nas observações)</option>
+            </select>
+          </div>
+          
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">Data da Ocorrência *</label>
+            <input 
+              type="date"
+              value={justificationOccurrenceDate}
+              onChange={e => setJustificationOccurrenceDate(e.target.value)}
+              className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">Observações *</label>
+            <textarea 
+              value={justificationText}
+              onChange={e => setJustificationText(e.target.value)}
+              placeholder="Digite os detalhes da sua justificativa aqui..."
+              className="bg-background border border-border rounded-md p-3 min-h-[100px] text-sm text-foreground focus:outline-none focus:border-primary/50"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">Anexo de Prova (Opcional)</label>
+            <input 
+              type="url"
+              value={justificationAttachment}
+              onChange={e => setJustificationAttachment(e.target.value)}
+              placeholder="https://imgur.com/..."
+              className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+            />
+            <span className="text-xs text-muted-foreground">Insira o link para a imagem ou documento que comprove o motivo (ex: Print de erro).</span>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4">
+             <button onClick={() => setJustifyingSchedule(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors text-sm">
+               Cancelar
+             </button>
+             <button onClick={handleSubmitJustification} className="px-4 py-2 rounded-md font-medium bg-yellow-600 text-white hover:bg-yellow-700 transition-all text-sm">
+               Enviar Justificativa
+             </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL ANALISAR JUSTIFICATIVA */}
+      <Modal isOpen={!!reviewingSchedule} onClose={() => setReviewingSchedule(null)} title="Analisar Justificativa">
+        {reviewingSchedule && (
+          <div className="flex flex-col gap-4">
+            <div className="bg-secondary/30 p-4 rounded-md border border-border/50 text-sm flex flex-col gap-2">
+              <div>
+                <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Membro:</span>
+                <p className="font-medium text-foreground">{getMemberDetails(reviewingSchedule.memberId, members)?.nick}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Justificativa Enviada em:</span>
+                <p className="text-foreground">{reviewingSchedule.justificationDate}</p>
+              </div>
+              {reviewingSchedule.justificationReason && (
+                <div>
+                  <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Motivo Principal:</span>
+                  <p className="text-foreground">{reviewingSchedule.justificationReason}</p>
+                </div>
+              )}
+              {reviewingSchedule.justificationOccurrenceDate && (
+                <div>
+                  <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Data da Ocorrência:</span>
+                  <p className="text-foreground">{reviewingSchedule.justificationOccurrenceDate}</p>
+                </div>
+              )}
+              <div>
+                <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Observações:</span>
+                <p className="text-foreground mt-1 bg-background p-3 rounded border border-border/50">
+                  {reviewingSchedule.justificationText}
+                </p>
+              </div>
+              {reviewingSchedule.justificationAttachment && (
+                <div>
+                  <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Anexo:</span>
+                  <a href={reviewingSchedule.justificationAttachment} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center gap-1 mt-1 break-all">
+                    <ExternalLink className="h-3 w-3" />
+                    {reviewingSchedule.justificationAttachment}
+                  </a>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex flex-col gap-2 mt-2">
+              <label className="text-sm font-medium text-foreground">Decisão da Presidência</label>
+              <select 
+                value={reviewDecision} 
+                onChange={e => setReviewDecision(e.target.value as "Aprovada" | "Recusada")} 
+                className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+              >
+                <option value="Aprovada">Aprovar Justificativa (Status -&gt; Concluído)</option>
+                <option value="Recusada">Recusar Justificativa (Status -&gt; Atrasado)</option>
+              </select>
+            </div>
+            
+            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
+               <button onClick={() => setReviewingSchedule(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors text-sm">
+                 Cancelar
+               </button>
+               <button onClick={handleReviewJustification} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all text-sm">
+                 Confirmar Análise
+               </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL DETALHES DA ESCALA */}
+      <Modal isOpen={!!viewSchedule} onClose={() => setViewSchedule(null)} title="Detalhes da Escala">
+        {viewSchedule && (
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between border-b border-border/50 pb-4">
+              <div className="flex flex-col">
+                <h3 className="text-xl font-bold text-foreground">{getMemberDetails(viewSchedule.memberId, members)?.nick}</h3>
+                 <p className="text-sm text-muted-foreground mt-1">Escala de {viewSchedule.type} - {viewSchedule.referenceDay}</p>
+              </div>
+              <StatusBadge status={viewSchedule.status} />
+            </div>
+            
+            {viewSchedule.justificationText && (
+              <div className="flex flex-col gap-2 bg-secondary/20 p-4 rounded-xl border border-border/50">
+                <h4 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  Histórico de Justificativa
+                </h4>
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Status da Análise</span>
+                    <span className="text-sm font-medium text-foreground">{viewSchedule.justificationStatus || "Pendente"}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Enviado em</span>
+                    <span className="text-sm font-medium text-foreground">{viewSchedule.justificationDate || "-"}</span>
+                  </div>
+                </div>
+                <div className="mt-2 flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Motivo</span>
+                  <p className="text-sm text-foreground font-medium">{viewSchedule.justificationReason || "-"}</p>
+                </div>
+                {viewSchedule.justificationOccurrenceDate && (
+                  <div className="mt-1 flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Data da Ocorrência</span>
+                    <p className="text-sm text-foreground">{viewSchedule.justificationOccurrenceDate}</p>
+                  </div>
+                )}
+                <div className="mt-2 flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Observações</span>
+                  <p className="text-sm text-foreground bg-background p-2 rounded border border-border/50">{viewSchedule.justificationText}</p>
+                </div>
+                {viewSchedule.justificationAttachment && (
+                  <div className="mt-2 flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Anexo de Prova</span>
+                    <a href={viewSchedule.justificationAttachment} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm break-all">
+                      Acessar Anexo
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
     </div>
   );
 }

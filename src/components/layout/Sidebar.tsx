@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, CalendarDays, Users, AlertTriangle, FileWarning, Settings } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Users, AlertTriangle, FileWarning, Settings, BarChart3 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { icon: Users, label: "Listagem de Membros", href: "/membros" },
   { icon: AlertTriangle, label: "Gestão de Casos", href: "/casos" },
   { icon: FileWarning, label: "Registro de Punições", href: "/advertencias" },
+  { icon: BarChart3, label: "Relatórios e Auditoria", href: "/relatorios" },
   { icon: Settings, label: "Configurações", href: "/configuracoes" },
 ];
 
@@ -21,7 +22,7 @@ export function Sidebar() {
     if (role === "Presidência" || role === "Vice-Presidência") return true;
     
     if (role === "Diretor") {
-      return item.label !== "Configurações";
+      return !["Configurações", "Relatórios e Auditoria"].includes(item.label);
     }
 
     if (role === "Fiscalizador") {

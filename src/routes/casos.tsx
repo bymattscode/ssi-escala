@@ -3,7 +3,7 @@ import { Case, CaseStatus, Member } from "@/lib/types";
 import { Search, Plus, Filter, AlertCircle, CheckCircle2, Clock, XCircle, MoreVertical, FileText, Gavel, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getCases, getMembers, addCase, updateCase } from "../lib/store";
+import { getCases, getMembers, addCase, updateCase, addAuditLog } from "../lib/store";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/casos")({
@@ -104,6 +104,7 @@ function CasosPage() {
       proofAttachment: newProof
     };
     await addCase(newCase);
+    await addAuditLog("1", role, "Abertura de Caso", "Casos", `Caso #${newCase.id} aberto contra ${newOffender}.`, newCase.id);
     setIsCreateOpen(false);
     toast.success("Caso aberto com sucesso!");
     fetchData();
@@ -133,6 +134,15 @@ function CasosPage() {
       resolutionAttachment: resAttachment || undefined,
       cancellationReason: resDecision === "Cancelar" ? resCancelReason : undefined
     });
+    
+    await addAuditLog(
+      "1", 
+      role, 
+      resDecision === "Resolver" ? "Resolução de Caso" : "Cancelamento de Caso", 
+      "Casos", 
+      `Caso #${resolveCase.id} foi ${resDecision === "Resolver" ? "resolvido" : "cancelado"}.`, 
+      resolveCase.id
+    );
     
     setResolveCase(null);
     toast.success(`Caso ${resDecision === "Resolver" ? "resolvido" : "cancelado"}.`);

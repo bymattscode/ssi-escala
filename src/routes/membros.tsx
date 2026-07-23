@@ -3,7 +3,7 @@ import { Member, Role } from "@/lib/types";
 import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getMembers, updateMemberStatus, addMember } from "../lib/store";
+import { getMembers, updateMemberStatus, addMember, addAuditLog } from "../lib/store";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/membros")({
@@ -119,6 +119,7 @@ function MembrosPage() {
     if (!isAdmin) return;
     const next = current === "Ativo" ? "Inativo" : "Ativo";
     await updateMemberStatus(id, next as "Ativo" | "Inativo");
+    await addAuditLog("1", role, "Alteração de Status", "Membros", `O status do membro foi alterado para ${next}.`, id);
     toast.success(`Membro marcado como ${next}`);
     fetchMembers();
   };
@@ -135,6 +136,7 @@ function MembrosPage() {
       notes: "Criado via mock interface"
     };
     await addMember(newMember);
+    await addAuditLog("1", role, "Criação de Membro", "Membros", `O membro ${nick} foi adicionado.`, newMember.id);
     toast.success("Membro adicionado!");
     fetchMembers();
   };

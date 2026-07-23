@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Users, AlertTriangle, FileWarning, CalendarDays, ShieldAlert, BadgeCheck, Book, ExternalLink, HardDrive } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
-import { getMembers, getCases, getWarnings, getConfig } from "../lib/store";
+import { getMembers, getCases, getWarnings, getConfig, getAuditLogs, getSchedules } from "../lib/store";
+import { AuditLog } from "../lib/types";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -39,10 +40,11 @@ function Dashboard() {
     openCases: 0,
     resolvedCases: 0,
     punishments: 0,
+    pendingJustifications: 0,
     lastBackup: "-"
   });
   
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<AuditLog[]>([]);
   const nextSunday = getNextSunday();
 
   useEffect(() => {
@@ -51,60 +53,19 @@ function Dashboard() {
       const cases = await getCases();
       const warnings = await getWarnings();
       const config = await getConfig();
+      const schedules = await getSchedules();
+      const logs = await getAuditLogs();
 
       setStats({
         activeInspectors: members.filter(m => m.role === "Fiscalizador" && m.status === "Ativo").length,
         openCases: cases.filter(c => c.status === "Aberto").length,
         resolvedCases: cases.filter(c => c.status === "Resolvido").length,
         punishments: warnings.length,
+        pendingJustifications: schedules.filter(s => s.status === "Justificativa Enviada" && s.justificationStatus === "Pendente").length,
         lastBackup: config.lastWrite || "-"
       });
 
-      // Format activities
-      const activities: any[] = [];
-      
-      cases.forEach(c => {
-        activities.push({
-          id: c.id,
-          type: "Caso Aberto",
-          title: `Caso #${String(c.id).toUpperCase()} aberto contra ${c.offenderNick}`,
-          date: c.creationDate || "Data desconhecida",
-          rawDate: c.creationDate ? new Date(c.creationDate.replace(' ', 'T')).getTime() : 0
-        });
-        
-        if (c.status === "Resolvido" && c.resolutionDate) {
-          activities.push({
-            id: String(c.id) + "_res",
-            type: "Caso Resolvido",
-            title: `Caso #${String(c.id).toUpperCase()} resolvido`,
-            date: c.resolutionDate,
-            rawDate: new Date(c.resolutionDate.replace(' ', 'T')).getTime()
-          });
-        }
-      });
-      
-      warnings.forEach(w => {
-        // Convert dd/mm/yyyy to parsable for sorting
-        const dateStr = w.date || "";
-        const parts = dateStr.split('/');
-        let rawDate = Date.now();
-        if (parts.length === 3) {
-          rawDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`).getTime();
-        } else if (dateStr) {
-          rawDate = new Date(dateStr).getTime();
-        }
-        
-        activities.push({
-          id: w.id,
-          type: "Punição",
-          title: `${w.punishmentType} registrada para ${w.offenderNick}`,
-          date: dateStr,
-          rawDate: isNaN(rawDate) ? 0 : rawDate
-        });
-      });
-      
-      activities.sort((a, b) => b.rawDate - a.rawDate);
-      setRecentActivities(activities.slice(0, 5));
+      setRecentActivities(logs.slice(0, 5));
     };
     fetchStats();
   }, []);
@@ -175,12 +136,21 @@ function Dashboard() {
                   </div>
                </a>
              )}
-          </div>
+           </div>
         </div>
 
         <div className="bg-card border border-border rounded-xl p-6 flex flex-col justify-between">
           <div>
             <h2 className="text-xl font-semibold text-foreground mb-6">Status do Sistema</h2>
+            {role !== "Fiscalizador" && stats.pendingJustifications > 0 && (
+              <div className="mb-6 bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-lg flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Justificativas Pendentes</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Há {stats.pendingJustifications} justificativa(s) aguardando análise na página de Escalas.</p>
+                </div>
+              </div>
+            )}
             <div className="flex-1 flex flex-col items-center justify-center text-center mb-6">
               <div className="h-20 w-20 bg-secondary rounded-full flex items-center justify-center text-primary mb-4 border border-primary/20">
                 <CalendarDays className="h-10 w-10" />
@@ -208,21 +178,15 @@ function Dashboard() {
           {recentActivities.map((act) => (
             <div key={act.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50 hover:bg-secondary/50 transition-colors">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-md ${
-                  act.type === "Caso Aberto" ? "bg-blue-500/10 text-blue-500" :
-                  act.type === "Caso Resolvido" ? "bg-green-500/10 text-green-500" :
-                  "bg-orange-500/10 text-orange-500"
-                }`}>
-                  {act.type === "Caso Aberto" ? <AlertTriangle className="h-4 w-4" /> :
-                   act.type === "Caso Resolvido" ? <BadgeCheck className="h-4 w-4" /> :
-                   <FileWarning className="h-4 w-4" />}
+                <div className="p-2 rounded-md bg-secondary border border-border text-foreground shrink-0">
+                  <BadgeCheck className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="font-medium text-sm text-foreground">{act.title}</p>
-                  <p className="text-xs text-muted-foreground">{act.type}</p>
+                  <p className="font-medium text-sm text-foreground truncate max-w-xs sm:max-w-md">{act.details}</p>
+                  <p className="text-xs text-muted-foreground">{act.action} ({act.module})</p>
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground">{act.date}</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">{act.timestamp.split(' ')[0]}</span>
             </div>
           ))}
           {recentActivities.length === 0 && (

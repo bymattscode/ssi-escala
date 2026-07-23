@@ -1,4 +1,4 @@
-import { Member, Schedule, Case, Warning } from './types';
+import { Member, Schedule, Case, Warning, AuditLog, AuditAction, AuditModule, Role } from './types';
 import { mockMembers, mockSchedules, mockCases, mockWarnings } from './mockData';
 
 // Constants for localStorage keys
@@ -7,7 +7,8 @@ const KEYS = {
   SCHEDULES: 'ssi_schedules',
   CASES: 'ssi_cases',
   WARNINGS: 'ssi_warnings',
-  CONFIG: 'ssi_config'
+  CONFIG: 'ssi_config',
+  AUDIT: 'ssi_audit'
 };
 
 // Helper for localStorage
@@ -29,15 +30,53 @@ const initialize = () => {
   const DEFAULT_CONFIG = {
     sheetUrl: "",
     googleConnected: false,
-    lastSync: ""
+    lastRead: "",
+    lastWrite: "",
+    logs: []
   };
   if (!localStorage.getItem(KEYS.CONFIG)) localStorage.setItem(KEYS.CONFIG, JSON.stringify(DEFAULT_CONFIG));
+  if (!localStorage.getItem(KEYS.AUDIT)) localStorage.setItem(KEYS.AUDIT, JSON.stringify([]));
 };
 
 initialize();
 
 // Simulating network delay
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+// --- AUDIT ---
+export const getAuditLogs = async (): Promise<AuditLog[]> => {
+  await delay(100);
+  return getParsedData<AuditLog[]>(KEYS.AUDIT, []);
+};
+
+export const addAuditLog = async (
+  userId: string,
+  userRole: Role,
+  action: AuditAction,
+  module: AuditModule,
+  details: string,
+  targetId?: string
+): Promise<void> => {
+  const logs = getParsedData<AuditLog[]>(KEYS.AUDIT, []);
+  
+  const newLog: AuditLog = {
+    id: `audit-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    date: new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" }),
+    timestamp: Date.now(),
+    userId,
+    userRole,
+    action,
+    module,
+    details,
+    targetId
+  };
+  
+  logs.unshift(newLog); // prepend
+  
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.AUDIT, JSON.stringify(logs));
+  }
+};
 
 // --- MEMBERS ---
 export const getMembers = async (): Promise<Member[]> => {

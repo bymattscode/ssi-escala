@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Warning, PunishmentType, Member } from "@/lib/types";
 import { Search, Plus, Filter, FileWarning, Eye, AlertTriangle, ShieldOff, Skull, Link as LinkIcon, X } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
-import { getWarnings, getMembers, addWarning } from "../lib/store";
+import { getWarnings, getMembers, addWarning, addAuditLog } from "../lib/store";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -101,6 +101,7 @@ function AdvertenciasPage() {
     };
 
     await addWarning(newWarning);
+    await addAuditLog("1", role, "Registro de Punição", "Advertências", `Punição (${newType}) registrada para ${newOffender}.`, newWarning.id);
     toast.success("Advertência registrada com sucesso!");
     setIsCreateOpen(false);
     fetchData();

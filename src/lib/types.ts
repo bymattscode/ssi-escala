@@ -23,6 +23,15 @@ export interface Schedule {
   responsibleId?: string; // Presidência que gerou
   observations?: string;
   type: "Fiscalizador" | "Diretor";
+  
+  // Justificativas
+  justificationReason?: string;
+  justificationText?: string;
+  justificationAttachment?: string;
+  justificationOccurrenceDate?: string;
+  justificationStatus?: "Pendente" | "Aprovada" | "Recusada";
+  justificationDate?: string;
+  justificationReviewerId?: string;
 }
 
 export interface Case {
@@ -58,4 +67,24 @@ export interface Warning {
   directorId: string;
   caseId?: string;
   notes?: string;
+}
+
+export type AuditAction = 
+  | "Criação de Membro" | "Edição de Membro" | "Alteração de Status"
+  | "Geração de Escala" | "Regeneração de Escala" | "Envio de Justificativa" | "Análise de Justificativa"
+  | "Abertura de Caso" | "Resolução de Caso" | "Cancelamento de Caso"
+  | "Registro de Punição" | "Sincronização" | "Backup Executado";
+
+export type AuditModule = "Membros" | "Escalas" | "Casos" | "Punições" | "Sistema";
+
+export interface AuditLog {
+  id: string;
+  date: string;
+  timestamp: number;
+  userId: string; // Quem fez a ação
+  userRole: Role;
+  action: AuditAction;
+  module: AuditModule;
+  details: string;
+  targetId?: string; // ID do registro afetado (ex: id do caso, id do membro)
 }
