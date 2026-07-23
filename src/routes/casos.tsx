@@ -87,7 +87,7 @@ function CasosPage() {
         <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-border gap-4 bg-secondary/10">
           
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            {["Todos", "Aberto", "Em Análise", "Resolvido", "Cancelado"].map(status => (
+            {["Todos", "Aberto", "Resolvido", "Cancelado"].map(status => (
               <button 
                 key={status}
                 onClick={() => setStatusFilter(status)}
@@ -257,7 +257,6 @@ function CasosPage() {
               <label className="text-sm font-medium text-foreground">Decisão do Caso</label>
               <select className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
                 <option className="bg-background text-foreground">Resolver (Aplicar)</option>
-                <option className="bg-background text-foreground">Em Análise (Aguardar)</option>
                 <option className="bg-background text-foreground">Cancelar Caso (Inválido)</option>
               </select>
             </div>
