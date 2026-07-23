@@ -9,8 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MembrosRouteImport } from './routes/membros'
+import { Route as EscalasRouteImport } from './routes/escalas'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as CasosRouteImport } from './routes/casos'
+import { Route as AdvertenciasRouteImport } from './routes/advertencias'
 import { Route as IndexRouteImport } from './routes/index'
 
+const MembrosRoute = MembrosRouteImport.update({
+  id: '/membros',
+  path: '/membros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EscalasRoute = EscalasRouteImport.update({
+  id: '/escalas',
+  path: '/escalas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CasosRoute = CasosRouteImport.update({
+  id: '/casos',
+  path: '/casos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdvertenciasRoute = AdvertenciasRouteImport.update({
+  id: '/advertencias',
+  path: '/advertencias',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +49,102 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/advertencias': typeof AdvertenciasRoute
+  '/casos': typeof CasosRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/escalas': typeof EscalasRoute
+  '/membros': typeof MembrosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/advertencias': typeof AdvertenciasRoute
+  '/casos': typeof CasosRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/escalas': typeof EscalasRoute
+  '/membros': typeof MembrosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/advertencias': typeof AdvertenciasRoute
+  '/casos': typeof CasosRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/escalas': typeof EscalasRoute
+  '/membros': typeof MembrosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/advertencias'
+    | '/casos'
+    | '/configuracoes'
+    | '/escalas'
+    | '/membros'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/advertencias'
+    | '/casos'
+    | '/configuracoes'
+    | '/escalas'
+    | '/membros'
+  id:
+    | '__root__'
+    | '/'
+    | '/advertencias'
+    | '/casos'
+    | '/configuracoes'
+    | '/escalas'
+    | '/membros'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdvertenciasRoute: typeof AdvertenciasRoute
+  CasosRoute: typeof CasosRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
+  EscalasRoute: typeof EscalasRoute
+  MembrosRoute: typeof MembrosRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/membros': {
+      id: '/membros'
+      path: '/membros'
+      fullPath: '/membros'
+      preLoaderRoute: typeof MembrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/escalas': {
+      id: '/escalas'
+      path: '/escalas'
+      fullPath: '/escalas'
+      preLoaderRoute: typeof EscalasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/casos': {
+      id: '/casos'
+      path: '/casos'
+      fullPath: '/casos'
+      preLoaderRoute: typeof CasosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/advertencias': {
+      id: '/advertencias'
+      path: '/advertencias'
+      fullPath: '/advertencias'
+      preLoaderRoute: typeof AdvertenciasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,7 +157,22 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdvertenciasRoute: AdvertenciasRoute,
+  CasosRoute: CasosRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
+  EscalasRoute: EscalasRoute,
+  MembrosRoute: MembrosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

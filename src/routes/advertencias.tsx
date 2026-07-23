@@ -254,7 +254,7 @@ function AdvertenciasPage() {
                  const director = getMemberDetails(w.directorId, members);
                  return (
                   <tr key={w.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
-                    <td className="px-6 py-4 font-medium text-foreground">#{w.id.toUpperCase()}</td>
+                    <td className="px-6 py-4 font-medium text-foreground">#{String(w.id).toUpperCase()}</td>
                     <td className="px-6 py-4 text-muted-foreground">{w.date}</td>
                     <td className="px-6 py-4 font-bold text-foreground">{w.offenderNick}</td>
                     <td className="px-6 py-4">
@@ -344,7 +344,7 @@ function AdvertenciasPage() {
       </Modal>
 
       {/* MODAL DETALHES ADVERTÊNCIA */}
-      <Modal isOpen={!!viewWarning} onClose={() => setViewWarning(null)} title={`Detalhes do Registro #${viewWarning?.id.toUpperCase()}`}>
+      <Modal isOpen={!!viewWarning} onClose={() => setViewWarning(null)} title={`Detalhes do Registro #${viewWarning ? String(viewWarning.id).toUpperCase() : ""}`}>
         {viewWarning && (
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between border-b border-border/50 pb-4">
@@ -378,7 +378,7 @@ function AdvertenciasPage() {
                   Caso Vinculado
                 </h4>
                 <p className="text-sm text-muted-foreground">
-                  Esta advertência originou-se do caso <strong className="text-foreground">#{viewWarning.caseId.toUpperCase()}</strong>.
+                  Esta advertência originou-se do caso <strong className="text-foreground">#{String(viewWarning.caseId).toUpperCase()}</strong>.
                 </p>
               </div>
             )}

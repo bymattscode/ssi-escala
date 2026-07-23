@@ -67,16 +67,16 @@ function Dashboard() {
         activities.push({
           id: c.id,
           type: "Caso Aberto",
-          title: `Caso #${c.id.toUpperCase()} aberto contra ${c.offenderNick}`,
-          date: c.creationDate,
-          rawDate: new Date(c.creationDate.replace(' ', 'T')).getTime()
+          title: `Caso #${String(c.id).toUpperCase()} aberto contra ${c.offenderNick}`,
+          date: c.creationDate || "Data desconhecida",
+          rawDate: c.creationDate ? new Date(c.creationDate.replace(' ', 'T')).getTime() : 0
         });
         
         if (c.status === "Resolvido" && c.resolutionDate) {
           activities.push({
-            id: c.id + "_res",
+            id: String(c.id) + "_res",
             type: "Caso Resolvido",
-            title: `Caso #${c.id.toUpperCase()} resolvido`,
+            title: `Caso #${String(c.id).toUpperCase()} resolvido`,
             date: c.resolutionDate,
             rawDate: new Date(c.resolutionDate.replace(' ', 'T')).getTime()
           });
@@ -85,15 +85,21 @@ function Dashboard() {
       
       warnings.forEach(w => {
         // Convert dd/mm/yyyy to parsable for sorting
-        const parts = w.date.split('/');
-        const rawDate = parts.length === 3 ? new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`).getTime() : Date.now();
+        const dateStr = w.date || "";
+        const parts = dateStr.split('/');
+        let rawDate = Date.now();
+        if (parts.length === 3) {
+          rawDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`).getTime();
+        } else if (dateStr) {
+          rawDate = new Date(dateStr).getTime();
+        }
         
         activities.push({
           id: w.id,
           type: "Punição",
           title: `${w.punishmentType} registrada para ${w.offenderNick}`,
-          date: w.date,
-          rawDate: rawDate
+          date: dateStr,
+          rawDate: isNaN(rawDate) ? 0 : rawDate
         });
       });
       

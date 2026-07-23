@@ -225,7 +225,7 @@ function CasosPage() {
                 const resolver = c.resolverId ? getMemberDetails(c.resolverId, members) : null;
                 return (
                   <tr key={c.id} className="border-b border-border hover:bg-secondary/20 transition-colors group">
-                    <td className="px-6 py-4 font-medium text-foreground">#{c.id.toUpperCase()}</td>
+                    <td className="px-6 py-4 font-medium text-foreground">#{String(c.id).toUpperCase()}</td>
                     <td className="px-6 py-4 text-muted-foreground">{c.creationDate}</td>
                     <td className="px-6 py-4 font-bold text-foreground">{c.offenderNick}</td>
                     <td className="px-6 py-4 text-muted-foreground">{creator?.nick || "-"}</td>
@@ -311,7 +311,7 @@ function CasosPage() {
       </Modal>
 
       {/* MODAL RESOLVER CASO */}
-      <Modal isOpen={!!resolveCase} onClose={() => setResolveCase(null)} title={`Resolver Caso #${resolveCase?.id.toUpperCase()}`}>
+      <Modal isOpen={!!resolveCase} onClose={() => setResolveCase(null)} title={`Resolver Caso #${resolveCase ? String(resolveCase.id).toUpperCase() : ""}`}>
         <div className="flex flex-col gap-4">
           <div className="bg-secondary/30 p-3 rounded-md border border-border/50 text-sm">
             <p className="text-muted-foreground">Você está analisando a infração de <strong className="text-foreground">{resolveCase?.offenderNick}</strong>.</p>
@@ -372,7 +372,7 @@ function CasosPage() {
       </Modal>
 
       {/* MODAL VISUALIZAR CASO */}
-      <Modal isOpen={!!viewCase} onClose={() => setViewCase(null)} title={`Detalhes do Caso #${viewCase?.id.toUpperCase()}`}>
+      <Modal isOpen={!!viewCase} onClose={() => setViewCase(null)} title={`Detalhes do Caso #${viewCase ? String(viewCase.id).toUpperCase() : ""}`}>
         {viewCase && (
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between border-b border-border/50 pb-4">
