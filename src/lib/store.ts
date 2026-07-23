@@ -12,12 +12,15 @@ const KEYS = {
 
 // Helper for localStorage
 const getParsedData = <T,>(key: string, defaultValue: T): T => {
+  if (typeof window === "undefined") return defaultValue;
   const data = localStorage.getItem(key);
   return data ? JSON.parse(data) : defaultValue;
 };
 
 // Initialize localStorage with mockData if empty
 const initialize = () => {
+  if (typeof window === "undefined") return;
+  
   if (!localStorage.getItem(KEYS.MEMBERS)) localStorage.setItem(KEYS.MEMBERS, JSON.stringify(mockMembers));
   if (!localStorage.getItem(KEYS.SCHEDULES)) localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(mockSchedules));
   if (!localStorage.getItem(KEYS.CASES)) localStorage.setItem(KEYS.CASES, JSON.stringify(mockCases));
@@ -46,7 +49,7 @@ export const updateMemberStatus = async (id: string, status: "Ativo" | "Inativo"
   await delay(200);
   const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
   const idx = members.findIndex(m => m.id === id);
-  if (idx !== -1) {
+  if (idx !== -1 && typeof window !== "undefined") {
     members[idx].status = status;
     localStorage.setItem(KEYS.MEMBERS, JSON.stringify(members));
   }
@@ -56,7 +59,9 @@ export const addMember = async (member: Member): Promise<void> => {
   await delay(200);
   const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
   members.push(member);
-  localStorage.setItem(KEYS.MEMBERS, JSON.stringify(members));
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.MEMBERS, JSON.stringify(members));
+  }
 };
 
 // --- SCHEDULES ---
@@ -68,14 +73,16 @@ export const getSchedules = async (): Promise<Schedule[]> => {
 export const addSchedules = async (newSchedules: Schedule[]): Promise<void> => {
   await delay(200);
   const schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
-  localStorage.setItem(KEYS.SCHEDULES, JSON.stringify([...schedules, ...newSchedules]));
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.SCHEDULES, JSON.stringify([...schedules, ...newSchedules]));
+  }
 };
 
 export const updateSchedule = async (id: string, updates: Partial<Schedule>): Promise<void> => {
   await delay(200);
   const schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
   const idx = schedules.findIndex(s => s.id === id);
-  if (idx !== -1) {
+  if (idx !== -1 && typeof window !== "undefined") {
     schedules[idx] = { ...schedules[idx], ...updates };
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
   }
@@ -85,14 +92,18 @@ export const deleteSchedulesForWeek = async (week: string): Promise<void> => {
   await delay(200);
   let schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
   schedules = schedules.filter(s => s.week !== week);
-  localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
+  }
 }
 
 export const deleteSchedulesForWeekAndType = async (week: string, type: "Fiscalizador" | "Diretor"): Promise<void> => {
   await delay(200);
   let schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
   schedules = schedules.filter(s => !(s.week === week && s.type === type));
-  localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
+  }
 }
 
 // --- CASES ---
@@ -105,14 +116,16 @@ export const addCase = async (newCase: Case): Promise<void> => {
   await delay(200);
   const cases = getParsedData<Case[]>(KEYS.CASES, []);
   cases.push(newCase);
-  localStorage.setItem(KEYS.CASES, JSON.stringify(cases));
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.CASES, JSON.stringify(cases));
+  }
 };
 
 export const updateCase = async (id: string, updates: Partial<Case>): Promise<void> => {
   await delay(200);
   const cases = getParsedData<Case[]>(KEYS.CASES, []);
   const idx = cases.findIndex(c => c.id === id);
-  if (idx !== -1) {
+  if (idx !== -1 && typeof window !== "undefined") {
     cases[idx] = { ...cases[idx], ...updates };
     localStorage.setItem(KEYS.CASES, JSON.stringify(cases));
   }
@@ -128,14 +141,16 @@ export const addWarning = async (newWarning: Warning): Promise<void> => {
   await delay(200);
   const warnings = getParsedData<Warning[]>(KEYS.WARNINGS, []);
   warnings.push(newWarning);
-  localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
+  }
 };
 
 export const updateWarning = async (id: string, updates: Partial<Warning>): Promise<void> => {
   await delay(200);
   const warnings = getParsedData<Warning[]>(KEYS.WARNINGS, []);
   const idx = warnings.findIndex(w => w.id === id);
-  if (idx !== -1) {
+  if (idx !== -1 && typeof window !== "undefined") {
     warnings[idx] = { ...warnings[idx], ...updates };
     localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
   }
@@ -172,7 +187,9 @@ export const updateConfig = async (updates: Partial<SystemConfig>): Promise<void
   await delay(200);
   const config = await getConfig();
   const newConfig = { ...config, ...updates };
-  localStorage.setItem(KEYS.CONFIG, JSON.stringify(newConfig));
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.CONFIG, JSON.stringify(newConfig));
+  }
 };
 
 export const addSyncLog = async (logData: Omit<SyncLog, "id" | "date">): Promise<void> => {
