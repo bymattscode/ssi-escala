@@ -32,7 +32,7 @@ function Dashboard() {
         <StatCard title="Fiscalizadores Ativos" value="12" icon={Users} description="+2 desde a última semana" />
         <StatCard title="Casos Abertos" value="5" icon={AlertTriangle} description="Requer atenção da diretoria" />
         <StatCard title="Casos Resolvidos" value="48" icon={BadgeCheck} description="Neste mês" />
-        <StatCard title="Advertências (Mês)" value="3" icon={FileWarning} description="Punições aplicadas" />
+        <StatCard title="Punições (Mês)" value="3" icon={FileWarning} description="Punições aplicadas" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
