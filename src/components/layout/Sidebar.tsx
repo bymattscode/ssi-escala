@@ -1,10 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, CalendarDays, Users, AlertTriangle, FileWarning, Settings, CalendarRange } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Users, AlertTriangle, FileWarning, Settings } from "lucide-react";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-  { icon: CalendarDays, label: "Escala Fiscalizadores", href: "/escalas" }, // Podemos usar search params para a aba, ou apenas /escalas
-  { icon: CalendarRange, label: "Escala Diretores", href: "/escalas" },
+  { icon: CalendarDays, label: "Escalas", href: "/escalas" },
   { icon: Users, label: "Membros", href: "/membros" },
   { icon: AlertTriangle, label: "Casos", href: "/casos" },
   { icon: FileWarning, label: "Advertências", href: "/advertencias" },
