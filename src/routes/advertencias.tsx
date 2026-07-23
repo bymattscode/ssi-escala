@@ -177,7 +177,7 @@ function AdvertenciasPage() {
                 <th className="px-6 py-4 font-medium">Infrator</th>
                 <th className="px-6 py-4 font-medium">Punição</th>
                 <th className="px-6 py-4 font-medium">Motivo</th>
-                <th className="px-6 py-4 font-medium">Diretor Responsável</th>
+                <th className="px-6 py-4 font-medium">Responsável</th>
                 <th className="px-6 py-4 font-medium text-right">Ações</th>
               </tr>
             </thead>
