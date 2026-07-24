@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -124,15 +124,25 @@ import { AuthProvider } from "../contexts/AuthContext";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <div className="flex flex-col min-h-screen w-full bg-background font-sans text-foreground">
-          <TopBar />
+          <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
           <div className="flex flex-1 mt-16 w-full relative">
-            <Sidebar />
-            <main className="flex-1 p-6 sm:p-8 ml-64 relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background">
+            <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+            
+            {/* Overlay for mobile when sidebar is open */}
+            {isMobileMenuOpen && (
+              <div 
+                className="fixed inset-0 top-16 bg-background/80 backdrop-blur-sm z-10 md:hidden"
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+            )}
+            
+            <main className="flex-1 p-4 sm:p-6 md:p-8 md:ml-64 w-full relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background">
               <Outlet />
             </main>
           </div>

@@ -12,7 +12,12 @@ const navItems = [
   { icon: Settings, label: "Configurações", href: "/configuracoes" },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const { role } = useAuth();
 
@@ -33,7 +38,7 @@ export function Sidebar() {
   });
 
   return (
-    <aside className="w-64 bg-card/95 backdrop-blur-md border-r border-border h-[calc(100vh-4rem)] flex flex-col fixed left-0 top-16 z-20 ">
+    <aside className={`w-64 bg-card/95 backdrop-blur-md border-r border-border h-[calc(100vh-4rem)] flex flex-col fixed left-0 top-16 z-20 transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
       <nav className="flex-1 py-6 px-4 flex flex-col gap-2 overflow-y-auto">
         <div className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2 px-2">Menu Principal</div>
         {filteredNavItems.map((item, idx) => {
@@ -44,6 +49,7 @@ export function Sidebar() {
             <Link
               key={item.label}
               to={item.href}
+              onClick={() => onClose?.()}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 group relative overflow-hidden ${
                 isActive 
                   ? "bg-primary/15 text-primary font-medium border border-primary/30 " 
