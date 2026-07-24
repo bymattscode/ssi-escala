@@ -55,7 +55,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const members = await getMembers();
     // Allow 'Admin' as a hardcoded fallback just in case the list gets empty
     const foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.status === 'Ativo') 
-      || (nick === 'Admin' ? { id: 'admin', nick: 'Admin', role: 'Presidente', status: 'Ativo', entryDate: new Date().toISOString() } as Member : undefined);
+      || (nick === 'Admin' ? { 
+          id: 'admin', 
+          nick: 'Admin', 
+          role: 'Presidente', 
+          status: 'Ativo', 
+          entryDate: new Date().toISOString(),
+          group: 'SSI',
+          accessLevel: '1',
+          permissions: ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"]
+        } as Member : undefined);
       
     if (foundUser) {
       setUser(foundUser);

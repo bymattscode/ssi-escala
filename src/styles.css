@@ -110,3 +110,6 @@
     font-family: 'Inter', system-ui, sans-serif;
   }
 }
+
+/* Hide Lovable Badge */
+#lovable-badge, #lovable-badge-container, .lovable-badge, div[data-lovable-badge] { display: none !important; opacity: 0 !important; visibility: hidden !important; }
