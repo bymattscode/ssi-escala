@@ -140,7 +140,7 @@ function RelatoriosPage() {
               Relatórios Operacionais
             </TabsTrigger>
           </TabsList>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap justify-start sm:justify-end items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground">Módulo:</span>
               <select 
