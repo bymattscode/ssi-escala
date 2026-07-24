@@ -424,8 +424,8 @@ function MembrosPage() {
                 onChange={e => setDeactivateType(e.target.value as "Inativo" | "Licença")}
                 className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
               >
-                <option value="Inativo">Desligamento do Setor (Apagar da lista)</option>
-                <option value="Licença">Licença (Afastamento Temporário)</option>
+                <option value="Inativo">Desligamento do Setor</option>
+                <option value="Licença">Licença</option>
               </select>
             </div>
 
