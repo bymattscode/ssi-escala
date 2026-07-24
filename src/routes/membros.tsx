@@ -68,11 +68,18 @@ function MemberCard({ member, isAdmin, onEdit, onDeactivate, onReactivate }: { m
 
       <div className="flex items-start gap-4">
         <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg overflow-hidden shrink-0">
-          {member.avatarUrl ? (
-            <img src={member.avatarUrl} alt={member.nick} className="h-full w-full object-cover" />
-          ) : (
-            member.nick.charAt(0)
-          )}
+          <img 
+            src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${member.nick}&action=std&direction=2&head_direction=2&gesture=sml&size=m&headonly=1`} 
+            alt={member.nick} 
+            className="h-full w-full object-cover scale-150 pt-2"
+            onError={(e) => { 
+              e.currentTarget.style.display = 'none'; 
+              if (e.currentTarget.nextElementSibling) {
+                (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'block'; 
+              }
+            }} 
+          />
+          <span className="hidden">{member.nick.charAt(0)}</span>
         </div>
         <div className="flex flex-col flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
