@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 import { ShieldCheck, UserCircle, Loader2 } from "lucide-react";
@@ -16,6 +16,16 @@ function Login() {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [debouncedNick, setDebouncedNick] = useState("");
+  const [avatarError, setAvatarError] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedNick(nick);
+      setAvatarError(false);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [nick]);
 
   const handleNext = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +113,23 @@ function Login() {
         </p>
 
         {step === "input" ? (
-          <form onSubmit={handleNext} className="w-full flex flex-col gap-4">
+          <form onSubmit={handleNext} className="w-full flex flex-col gap-4 mt-2">
+            
+            <div className="flex justify-center mb-2 h-20 relative">
+              <div className="h-20 w-20 rounded-full bg-secondary/50 border border-border flex items-center justify-center overflow-hidden shadow-inner transition-all duration-300">
+                {debouncedNick.trim() && !avatarError ? (
+                  <img 
+                    src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${debouncedNick}&action=std&direction=2&head_direction=2&gesture=sml&size=m`} 
+                    alt="Avatar preview" 
+                    className="h-full w-full object-cover mt-2 scale-110 animate-in fade-in zoom-in duration-300"
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : (
+                  <UserCircle className="h-10 w-10 text-muted-foreground/50 animate-in fade-in duration-300" />
+                )}
+              </div>
+            </div>
+
             <div className="flex flex-col gap-2">
               <label htmlFor="nick" className="text-sm font-medium text-foreground ml-1">
                 Nick do Habbo
