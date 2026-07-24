@@ -25,32 +25,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = !!user;
 
   useEffect(() => {
-    // Verificar sessão no localStorage
-    const savedSession = localStorage.getItem('ssi-auth-session');
-    if (savedSession) {
-      try {
-        const parsed = JSON.parse(savedSession);
-        // Verificar se expirou (2 horas = 7200000 ms)
-        if (Date.now() - parsed.timestamp < 7200000) {
-          const members = getMembers();
-          const foundUser = members.find(u => u.nick.toLowerCase() === parsed.nick.toLowerCase() && u.status === 'Ativo');
-          if (foundUser) {
-            setUser(foundUser);
+    const initSession = async () => {
+      const savedSession = localStorage.getItem('ssi-auth-session');
+      if (savedSession) {
+        try {
+          const parsed = JSON.parse(savedSession);
+          // Verificar se expirou (2 horas = 7200000 ms)
+          if (Date.now() - parsed.timestamp < 7200000) {
+            const members = await getMembers();
+            const foundUser = members.find(u => u.nick.toLowerCase() === parsed.nick.toLowerCase() && u.status === 'Ativo');
+            if (foundUser) {
+              setUser(foundUser);
+            } else {
+              localStorage.removeItem('ssi-auth-session');
+            }
           } else {
             localStorage.removeItem('ssi-auth-session');
           }
-        } else {
+        } catch (e) {
           localStorage.removeItem('ssi-auth-session');
         }
-      } catch (e) {
-        localStorage.removeItem('ssi-auth-session');
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+    initSession();
   }, []);
 
   const login = async (nick: string): Promise<boolean> => {
-    const members = getMembers();
+    const members = await getMembers();
     // Allow 'Admin' as a hardcoded fallback just in case the list gets empty
     const foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.status === 'Ativo') 
       || (nick === 'Admin' ? { id: 'admin', nick: 'Admin', role: 'Presidente', status: 'Ativo', entryDate: new Date().toISOString() } as Member : undefined);

@@ -19,22 +19,15 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
-  const { role } = useAuth();
+  const { user } = useAuth();
 
-  // Presidente and Vice can see everything.
-  // Diretor can't see Configurações. Fiscalizador can't see Configurações.
   const filteredNavItems = navItems.filter((item) => {
-    if (role === "Presidente" || role === "Vice-Presidente") return true;
-    
-    if (role === "Diretor") {
-      return !["Configurações", "Relatórios e Auditoria"].includes(item.label);
+    // Se não tiver user (o que não deve acontecer, mas por segurança), mostra só Dashboard
+    if (!user || !user.permissions) {
+      return item.label === "Dashboard";
     }
-
-    if (role === "Fiscalizador") {
-      return ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos"].includes(item.label);
-    }
-    
-    return true;
+    // Libera a aba se o nome dela estiver no array de permissões
+    return user.permissions.includes(item.label as any);
   });
 
   return (

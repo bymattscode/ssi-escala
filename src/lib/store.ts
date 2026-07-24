@@ -90,7 +90,28 @@ export const addAuditLog = async (
 // --- MEMBERS ---
 export const getMembers = async (): Promise<Member[]> => {
   await delay(200);
-  return getParsedData<Member[]>(KEYS.MEMBERS, []);
+  const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
+  
+  // Retrocompatibilidade: Injetar permissões padrão e grupo se não existirem
+  return members.map(m => {
+    const updated = { ...m };
+    if (!updated.group) updated.group = "SSI";
+    if (!updated.permissions) {
+      if (m.role === "Presidente" || m.role === "Vice-Presidente") {
+        updated.permissions = ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"];
+      } else if (m.role === "Diretor") {
+        updated.permissions = ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições"];
+      } else if (m.role === "Fiscalizador") {
+        updated.permissions = ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos"];
+      } else {
+        updated.permissions = ["Dashboard"];
+      }
+    }
+    if (!updated.accessLevel) {
+      updated.accessLevel = m.role === "Presidente" || m.role === "Vice-Presidente" ? "1" : m.role === "Diretor" ? "2" : "3";
+    }
+    return updated;
+  });
 };
 
 export const updateMemberStatus = async (id: string, status: "Ativo" | "Inativo" | "Licença"): Promise<void> => {

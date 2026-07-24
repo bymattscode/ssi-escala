@@ -1,5 +1,6 @@
 export type Role = "Presidente" | "Vice-Presidente" | "Diretor" | "Fiscalizador" | "Convidado";
 export type UserGroup = "SSI" | "GATE" | "CSI" | "Supremacia" | "Ministério";
+export type ModulePermission = "Dashboard" | "Escala Semanal" | "Listagem de Membros" | "Gestão de Casos" | "Registro de Punições" | "Relatórios e Auditoria" | "Configurações";
 export type CaseStatus = "Aberto" | "Resolvido" | "Cancelado";
 export type ScheduleStatus = "Pendente" | "Concluído" | "Atrasado" | "Justificativa Enviada";
 
@@ -13,6 +14,9 @@ export interface Member {
   leaveStartDate?: string;
   leaveEndDate?: string;
   avatarUrl?: string;
+  group?: UserGroup;
+  accessLevel?: string;
+  permissions?: ModulePermission[];
 }
 
 export interface AuthorizedUser {

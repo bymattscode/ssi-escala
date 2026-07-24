@@ -45,7 +45,7 @@ function Login() {
         setIsLoading(false);
       } else {
         setIsLoading(false);
-        toast.error("Nick não autorizado a acessar o sistema.");
+        toast.error("Acesso Negado: Você não possui permissão para acessar o sistema.");
       }
     }, 800);
   };

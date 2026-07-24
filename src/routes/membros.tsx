@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Member, Role } from "@/lib/types";
+import { Member, Role, UserGroup, ModulePermission } from "../lib/types";
 import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, ShieldCheck, ShieldAlert, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -142,6 +142,16 @@ function MembrosPage() {
     setMembers(data);
   };
 
+  const ALL_PERMISSIONS: ModulePermission[] = ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"];
+
+  const togglePermission = (perm: ModulePermission, current: ModulePermission[], set: (v: ModulePermission[]) => void) => {
+    if (current.includes(perm)) {
+      set(current.filter(p => p !== perm));
+    } else {
+      set([...current, perm]);
+    }
+  };
+
   useEffect(() => {
     fetchMembers();
   }, []);
@@ -150,11 +160,17 @@ function MembrosPage() {
   const [editRole, setEditRole] = useState<Role>("Fiscalizador");
   const [editEntryDate, setEditEntryDate] = useState("");
   const [editPromotionDate, setEditPromotionDate] = useState("");
+  const [editGroup, setEditGroup] = useState<UserGroup>("SSI");
+  const [editAccessLevel, setEditAccessLevel] = useState("3");
+  const [editPermissions, setEditPermissions] = useState<ModulePermission[]>([]);
 
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [newMemberNick, setNewMemberNick] = useState("");
   const [newMemberRole, setNewMemberRole] = useState<Role>("Fiscalizador");
   const [newMemberEntryDate, setNewMemberEntryDate] = useState(new Date().toISOString().split("T")[0]);
+  const [newMemberGroup, setNewMemberGroup] = useState<UserGroup>("SSI");
+  const [newMemberAccessLevel, setNewMemberAccessLevel] = useState("3");
+  const [newMemberPermissions, setNewMemberPermissions] = useState<ModulePermission[]>([]);
 
   const [deactivateMember, setDeactivateMember] = useState<Member | null>(null);
   const [deactivateType, setDeactivateType] = useState<"Inativo" | "Licença">("Inativo");
@@ -166,6 +182,9 @@ function MembrosPage() {
     setEditRole(m.role);
     setEditEntryDate(m.entryDate || "");
     setEditPromotionDate(m.promotionDate || "");
+    setEditGroup(m.group || "SSI");
+    setEditAccessLevel(m.accessLevel || "3");
+    setEditPermissions(m.permissions || []);
   };
 
   const handleDeactivate = (m: Member) => {
@@ -196,7 +215,10 @@ function MembrosPage() {
     await updateMember(editMember.id, { 
       role: editRole,
       entryDate: editEntryDate || editMember.entryDate,
-      promotionDate: editPromotionDate || undefined
+      promotionDate: editPromotionDate || undefined,
+      group: editGroup,
+      accessLevel: editAccessLevel,
+      permissions: editPermissions
     });
     await addAuditLog("1", role, "Edição de Membro", "Membros", `Os dados do membro ${editMember.nick} foram atualizados.`, editMember.id);
     toast.success("Membro atualizado com sucesso!");
@@ -242,6 +264,9 @@ function MembrosPage() {
     setNewMemberNick("");
     setNewMemberRole("Fiscalizador");
     setNewMemberEntryDate(new Date().toISOString().split("T")[0]);
+    setNewMemberGroup("SSI");
+    setNewMemberAccessLevel("3");
+    setNewMemberPermissions(["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos"]);
     setIsAddingMember(true);
   };
 
@@ -255,7 +280,10 @@ function MembrosPage() {
       nick: newMemberNick.trim(),
       role: newMemberRole,
       status: "Ativo",
-      entryDate: newMemberEntryDate || new Date().toISOString().split("T")[0]
+      entryDate: newMemberEntryDate || new Date().toISOString().split("T")[0],
+      group: newMemberGroup,
+      accessLevel: newMemberAccessLevel,
+      permissions: newMemberPermissions
     };
     await addMember(newMember);
     await addAuditLog("1", role, "Criação de Membro", "Membros", `O membro ${newMember.nick} foi adicionado como ${newMemberRole}.`, newMember.id);
@@ -354,6 +382,36 @@ function MembrosPage() {
               className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
             />
           </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">Grupo</label>
+              <select value={newMemberGroup} onChange={e => setNewMemberGroup(e.target.value as UserGroup)} className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50">
+                <option value="SSI">SSI</option>
+                <option value="GATE">GATE</option>
+                <option value="CSI">CSI</option>
+                <option value="Supremacia">Supremacia</option>
+                <option value="Ministério">Ministério</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-foreground">Nível Acesso</label>
+              <input type="number" value={newMemberAccessLevel} onChange={e => setNewMemberAccessLevel(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50" placeholder="Ex: 3" />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 mt-2">
+            <label className="text-sm font-medium text-foreground">Módulos Liberados</label>
+            <div className="grid grid-cols-2 gap-2 bg-secondary/20 p-3 rounded-md border border-border">
+              {ALL_PERMISSIONS.map(perm => (
+                <label key={perm} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-secondary/40 p-1 rounded transition-colors">
+                  <input type="checkbox" checked={newMemberPermissions.includes(perm)} onChange={() => togglePermission(perm, newMemberPermissions, setNewMemberPermissions)} className="rounded border-border text-primary focus:ring-primary" />
+                  <span className="text-muted-foreground select-none">{perm}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className="flex justify-end gap-3 mt-4">
             <button onClick={() => setIsAddingMember(false)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors text-sm">
               Cancelar
@@ -402,6 +460,35 @@ function MembrosPage() {
                   onChange={e => setEditPromotionDate(e.target.value)}
                   className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-foreground">Grupo</label>
+                  <select value={editGroup} onChange={e => setEditGroup(e.target.value as UserGroup)} className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50">
+                    <option value="SSI">SSI</option>
+                    <option value="GATE">GATE</option>
+                    <option value="CSI">CSI</option>
+                    <option value="Supremacia">Supremacia</option>
+                    <option value="Ministério">Ministério</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-foreground">Nível Acesso</label>
+                  <input type="number" value={editAccessLevel} onChange={e => setEditAccessLevel(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50" />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 mt-2">
+                <label className="text-sm font-medium text-foreground">Módulos Liberados</label>
+                <div className="grid grid-cols-2 gap-2 bg-secondary/20 p-3 rounded-md border border-border">
+                  {ALL_PERMISSIONS.map(perm => (
+                    <label key={perm} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-secondary/40 p-1 rounded transition-colors">
+                      <input type="checkbox" checked={editPermissions.includes(perm)} onChange={() => togglePermission(perm, editPermissions, setEditPermissions)} className="rounded border-border text-primary focus:ring-primary" />
+                      <span className="text-muted-foreground select-none">{perm}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-4">
