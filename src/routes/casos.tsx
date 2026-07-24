@@ -327,14 +327,10 @@ function CasosPage() {
             <p className="text-muted-foreground">Você está analisando a infração de <strong className="text-foreground">{resolveCase?.offenderNick}</strong>.</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Crime Cometido</label>
               <input type="text" disabled={resDecision === "Cancelar"} value={resCrime} onChange={e => setResCrime(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50" placeholder="Ex: Insubordinação, Ausência..." />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-foreground">Número da Ordem (se houver)</label>
-              <input type="text" disabled={resDecision === "Cancelar"} value={resOrder} onChange={e => setResOrder(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50" placeholder="Ex: ORD-2026-001" />
             </div>
           </div>
 
@@ -424,10 +420,6 @@ function CasosPage() {
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-muted-foreground">Punição</span>
                     <span className="text-sm font-medium text-foreground">{viewCase.punishmentApplied || "-"}</span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Número da Ordem</span>
-                    <span className="text-sm font-medium text-foreground">{viewCase.orderNumber || "-"}</span>
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-muted-foreground">Data da Resolução</span>
