@@ -342,6 +342,7 @@ function MembrosPage() {
               <option value="Diretor">Diretor</option>
               <option value="Vice-Presidente">Vice-Presidente</option>
               <option value="Presidente">Presidente</option>
+              <option value="Convidado">Convidado (Ministério, GATE...)</option>
             </select>
           </div>
           <div className="flex flex-col gap-2">
@@ -379,6 +380,7 @@ function MembrosPage() {
                   <option value="Diretor">Diretor</option>
                   <option value="Vice-Presidente">Vice-Presidente</option>
                   <option value="Presidente">Presidente</option>
+                  <option value="Convidado">Convidado (Ministério, GATE...)</option>
                 </select>
               </div>
 

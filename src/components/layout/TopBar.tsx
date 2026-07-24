@@ -115,7 +115,7 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
             </div>
             <div className="h-10 w-10 rounded-full bg-secondary/80 border border-border group-hover/user:border-primary/50 group-hover/user:bg-primary/10 flex items-center justify-center text-muted-foreground group-hover/user:text-primary transition-all duration-300 shadow-sm shrink-0 overflow-hidden">
               {user ? (
-                <img src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${user.habboNick}&action=std&direction=2&head_direction=2&gesture=sml&size=m`} alt={userName} className="h-12 w-12 object-cover mt-2" />
+                <img src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${user.nick}&action=std&direction=2&head_direction=2&gesture=sml&size=m`} alt={userName} className="h-12 w-12 object-cover mt-2" />
               ) : (
                 <UserCircle className="h-6 w-6" />
               )}

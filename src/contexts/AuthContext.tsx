@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Role, AuthorizedUser } from '../lib/types';
-import { AUTHORIZED_USERS } from '../lib/store';
+import { Role, Member } from '../lib/types';
+import { getMembers } from '../lib/store';
 
 interface AuthContextType {
-  user: AuthorizedUser | null;
+  user: Member | null;
   role: Role;
   setRole: (role: Role) => void;
   userName: string;
@@ -16,12 +16,12 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthorizedUser | null>(null);
+  const [user, setUser] = useState<Member | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Fallbacks para manter compatibilidade com o código existente
   const role = user?.role || "Convidado";
-  const userName = user?.habboNick || "Desconhecido";
+  const userName = user?.nick || "Desconhecido";
   const isAuthenticated = !!user;
 
   useEffect(() => {
@@ -32,7 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(savedSession);
         // Verificar se expirou (2 horas = 7200000 ms)
         if (Date.now() - parsed.timestamp < 7200000) {
-          const foundUser = AUTHORIZED_USERS.find(u => u.habboNick.toLowerCase() === parsed.nick.toLowerCase() && u.status === 'Ativo');
+          const members = getMembers();
+          const foundUser = members.find(u => u.nick.toLowerCase() === parsed.nick.toLowerCase() && u.status === 'Ativo');
           if (foundUser) {
             setUser(foundUser);
           } else {
@@ -49,11 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (nick: string): Promise<boolean> => {
-    const foundUser = AUTHORIZED_USERS.find(u => u.habboNick.toLowerCase() === nick.toLowerCase() && u.status === 'Ativo');
+    const members = getMembers();
+    // Allow 'Admin' as a hardcoded fallback just in case the list gets empty
+    const foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.status === 'Ativo') 
+      || (nick === 'Admin' ? { id: 'admin', nick: 'Admin', role: 'Presidente', status: 'Ativo', entryDate: new Date().toISOString() } as Member : undefined);
+      
     if (foundUser) {
       setUser(foundUser);
       localStorage.setItem('ssi-auth-session', JSON.stringify({
-        nick: foundUser.habboNick,
+        nick: foundUser.nick,
         timestamp: Date.now()
       }));
       return true;
