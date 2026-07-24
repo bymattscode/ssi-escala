@@ -129,7 +129,7 @@ function RelatoriosPage() {
       </div>
 
       <Tabs defaultValue="auditoria" className="w-full mt-2" onValueChange={setActiveTab}>
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-border/50 pb-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border/50 pb-4">
           <TabsList className="bg-secondary/50 border border-border">
             <TabsTrigger value="auditoria" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <History className="h-4 w-4 mr-2" />
@@ -140,7 +140,7 @@ function RelatoriosPage() {
               Relatórios Operacionais
             </TabsTrigger>
           </TabsList>
-          <div className="flex flex-wrap justify-start sm:justify-end items-center gap-3">
+          <div className="flex flex-wrap lg:flex-nowrap justify-start sm:justify-end items-center gap-3 w-full lg:w-auto mt-4 sm:mt-0">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground">Módulo:</span>
               <select 
