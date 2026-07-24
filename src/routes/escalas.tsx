@@ -374,11 +374,9 @@ function EscalasPage() {
               <TabsTrigger value="fiscalizadores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-4">
                  Escala dos Fiscalizadores
                </TabsTrigger>
-               {role !== "Fiscalizador" && (
-                 <TabsTrigger value="diretores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-4">
-                   Escala dos Diretores
-                 </TabsTrigger>
-               )}
+               <TabsTrigger value="diretores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-4">
+                 Escala dos Diretores
+               </TabsTrigger>
              </TabsList>
             
             <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -427,20 +425,18 @@ function EscalasPage() {
              />
            </TabsContent>
  
-           {role !== "Fiscalizador" && (
-             <TabsContent value="diretores" className="p-0 m-0 border-none outline-none">
-               <EscalaTable 
-                 schedules={diretoresSchedules} 
-                 members={members} 
-                 onStatusUpdate={handleStatusUpdate} 
-                 isAdmin={isAdmin} 
-                 onMemberChange={handleMemberChange} 
-                 onJustify={setJustifyingSchedule}
-                 onReview={setReviewingSchedule}
-                 onView={setViewSchedule}
-               />
-             </TabsContent>
-           )}
+           <TabsContent value="diretores" className="p-0 m-0 border-none outline-none">
+             <EscalaTable 
+               schedules={diretoresSchedules} 
+               members={members} 
+               onStatusUpdate={handleStatusUpdate} 
+               isAdmin={isAdmin} 
+               onMemberChange={handleMemberChange} 
+               onJustify={setJustifyingSchedule}
+               onReview={setReviewingSchedule}
+               onView={setViewSchedule}
+             />
+           </TabsContent>
          </Tabs>
       </div>
 

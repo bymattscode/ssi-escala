@@ -26,7 +26,7 @@ export function Sidebar() {
     }
 
     if (role === "Fiscalizador") {
-      return ["Dashboard", "Escala Semanal", "Gestão de Casos"].includes(item.label);
+      return ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos"].includes(item.label);
     }
     
     return true;
