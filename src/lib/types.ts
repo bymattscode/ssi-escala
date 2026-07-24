@@ -1,4 +1,5 @@
-export type Role = "Presidente" | "Vice-Presidente" | "Diretor" | "Fiscalizador";
+export type Role = "Presidente" | "Vice-Presidente" | "Diretor" | "Fiscalizador" | "Convidado";
+export type UserGroup = "SSI" | "GATE" | "CSI" | "Supremacia" | "Ministério";
 export type CaseStatus = "Aberto" | "Resolvido" | "Cancelado";
 export type ScheduleStatus = "Pendente" | "Concluído" | "Atrasado" | "Justificativa Enviada";
 
@@ -12,6 +13,14 @@ export interface Member {
   leaveStartDate?: string;
   leaveEndDate?: string;
   avatarUrl?: string;
+}
+
+export interface AuthorizedUser {
+  habboNick: string;
+  group: UserGroup;
+  role: Role;
+  status: "Ativo" | "Inativo";
+  permissions: string[];
 }
 
 export interface Schedule {

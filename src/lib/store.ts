@@ -1,5 +1,14 @@
-import { Member, Schedule, Case, Warning, AuditLog, AuditAction, AuditModule, Role } from './types';
+import { Member, Schedule, Case, Warning, AuditLog, AuditAction, AuditModule, Role, AuthorizedUser } from './types';
 import { mockMembers, mockSchedules, mockCases, mockWarnings } from './mockData';
+
+export const AUTHORIZED_USERS: AuthorizedUser[] = [
+  { habboNick: 'Admin', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
+  { habboNick: 'GaloCego', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
+  { habboNick: 'Brunom2a', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
+  { habboNick: 'mattscode', group: 'SSI', role: 'Diretor', status: 'Ativo', permissions: ['casos', 'escalas'] },
+  { habboNick: 'FiscalSSI', group: 'SSI', role: 'Fiscalizador', status: 'Ativo', permissions: ['casos', 'escalas'] },
+  { habboNick: 'Policial123', group: 'GATE', role: 'Convidado', status: 'Ativo', permissions: ['read_only'] },
+];
 
 // Constants for localStorage keys
 const KEYS = {

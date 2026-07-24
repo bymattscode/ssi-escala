@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as MembrosRouteImport } from './routes/membros'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as EscalasRouteImport } from './routes/escalas'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as CasosRouteImport } from './routes/casos'
@@ -25,6 +26,11 @@ const RelatoriosRoute = RelatoriosRouteImport.update({
 const MembrosRoute = MembrosRouteImport.update({
   id: '/membros',
   path: '/membros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EscalasRoute = EscalasRouteImport.update({
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/casos': typeof CasosRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/escalas': typeof EscalasRoute
+  '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
   '/relatorios': typeof RelatoriosRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/casos': typeof CasosRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/escalas': typeof EscalasRoute
+  '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
   '/relatorios': typeof RelatoriosRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/casos': typeof CasosRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/escalas': typeof EscalasRoute
+  '/login': typeof LoginRoute
   '/membros': typeof MembrosRoute
   '/relatorios': typeof RelatoriosRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/casos'
     | '/configuracoes'
     | '/escalas'
+    | '/login'
     | '/membros'
     | '/relatorios'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/casos'
     | '/configuracoes'
     | '/escalas'
+    | '/login'
     | '/membros'
     | '/relatorios'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/casos'
     | '/configuracoes'
     | '/escalas'
+    | '/login'
     | '/membros'
     | '/relatorios'
   fileRoutesById: FileRoutesById
@@ -117,6 +129,7 @@ export interface RootRouteChildren {
   CasosRoute: typeof CasosRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   EscalasRoute: typeof EscalasRoute
+  LoginRoute: typeof LoginRoute
   MembrosRoute: typeof MembrosRoute
   RelatoriosRoute: typeof RelatoriosRoute
 }
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/membros'
       fullPath: '/membros'
       preLoaderRoute: typeof MembrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/escalas': {
@@ -181,6 +201,7 @@ const rootRouteChildren: RootRouteChildren = {
   CasosRoute: CasosRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   EscalasRoute: EscalasRoute,
+  LoginRoute: LoginRoute,
   MembrosRoute: MembrosRoute,
   RelatoriosRoute: RelatoriosRoute,
 }

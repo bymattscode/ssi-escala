@@ -4,6 +4,8 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useLocation,
+  Navigate,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -120,33 +122,60 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 import { Toaster } from "sonner";
-import { AuthProvider } from "../contexts/AuthContext";
+import { AuthProvider, useAuth } from "../contexts/AuthContext";
+
+function AppLayout() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center text-foreground">
+        <div className="h-16 w-16 bg-primary/10 border border-primary/30 rounded-2xl flex items-center justify-center overflow-hidden p-2 mb-4 animate-pulse">
+          <img src="/logo.png" alt="SSI Logo" className="h-full w-full object-contain" />
+        </div>
+        <p className="text-muted-foreground animate-pulse">Verificando acesso...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated && location.pathname !== '/login') {
+    return <Navigate to="/login" />;
+  }
+
+  if (location.pathname === '/login') {
+    return <Outlet />;
+  }
+
+  return (
+    <div className="flex flex-col min-h-screen w-full bg-background font-sans text-foreground">
+      <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+      <div className="flex flex-1 mt-16 w-full relative">
+        <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+        
+        {isMobileMenuOpen && (
+          <div 
+            className="fixed inset-0 top-16 bg-background/80 backdrop-blur-sm z-10 md:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        )}
+        
+        <main className="flex-1 p-4 sm:p-6 md:p-8 md:ml-64 w-full relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="flex flex-col min-h-screen w-full bg-background font-sans text-foreground">
-          <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
-          <div className="flex flex-1 mt-16 w-full relative">
-            <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
-            
-            {/* Overlay for mobile when sidebar is open */}
-            {isMobileMenuOpen && (
-              <div 
-                className="fixed inset-0 top-16 bg-background/80 backdrop-blur-sm z-10 md:hidden"
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-            )}
-            
-            <main className="flex-1 p-4 sm:p-6 md:p-8 md:ml-64 w-full relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background">
-              <Outlet />
-            </main>
-          </div>
-        </div>
+        <AppLayout />
         <Toaster theme="dark" position="top-right" />
       </AuthProvider>
     </QueryClientProvider>

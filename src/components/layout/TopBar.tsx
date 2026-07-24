@@ -1,5 +1,6 @@
-import { UserCircle, HardDrive, Shield, CheckCircle2, RefreshCw, ChevronDown, Menu } from "lucide-react";
+import { UserCircle, HardDrive, Shield, CheckCircle2, RefreshCw, ChevronDown, Menu, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { Role } from "../../lib/types";
@@ -9,9 +10,15 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [lastBackup, setLastBackup] = useState<string>("-");
   const [showRoleMenu, setShowRoleMenu] = useState(false);
+  const navigate = useNavigate();
 
-  const { role, setRole, userName } = useAuth();
+  const { user, role, setRole, userName, logout } = useAuth();
   const canBackup = role === "Presidente" || role === "Vice-Presidente";
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/login" });
+  };
 
   useEffect(() => {
     const fetchBackup = async () => {
@@ -106,8 +113,12 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
               </p>
               <p className="text-xs text-primary/80 mt-1">{role}</p>
             </div>
-            <div className="h-10 w-10 rounded-full bg-secondary/80 border border-border group-hover/user:border-primary/50 group-hover/user:bg-primary/10 flex items-center justify-center text-muted-foreground group-hover/user:text-primary transition-all duration-300 shadow-sm shrink-0">
-              <UserCircle className="h-6 w-6" />
+            <div className="h-10 w-10 rounded-full bg-secondary/80 border border-border group-hover/user:border-primary/50 group-hover/user:bg-primary/10 flex items-center justify-center text-muted-foreground group-hover/user:text-primary transition-all duration-300 shadow-sm shrink-0 overflow-hidden">
+              {user ? (
+                <img src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${user.habboNick}&action=std&direction=2&head_direction=2&gesture=sml&size=m`} alt={userName} className="h-12 w-12 object-cover mt-2" />
+              ) : (
+                <UserCircle className="h-6 w-6" />
+              )}
             </div>
           </div>
           
@@ -126,6 +137,16 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
                     {r}
                   </button>
                 ))}
+                
+                <div className="h-px bg-border my-1" />
+                
+                <button
+                  onClick={handleLogout}
+                  className="text-left px-3 py-2 text-sm rounded-md transition-colors text-red-400 hover:bg-red-950/30 hover:text-red-400 flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </button>
               </div>
             </div>
           )}
