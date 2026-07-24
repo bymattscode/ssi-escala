@@ -186,7 +186,7 @@ function Dashboard() {
                   <p className="text-xs text-muted-foreground">{act.action} ({act.module})</p>
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">{act.timestamp.split(' ')[0]}</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">{act.date.split(' ')[0]}</span>
             </div>
           ))}
           {recentActivities.length === 0 && (

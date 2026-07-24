@@ -101,7 +101,7 @@ function AdvertenciasPage() {
     };
 
     await addWarning(newWarning);
-    await addAuditLog("1", role, "Registro de Punição", "Advertências", `Punição (${newType}) registrada para ${newOffender}.`, newWarning.id);
+    await addAuditLog("1", role, "Registro de Punição", "Punições", `Punição (${newType}) registrada para ${newOffender}.`, newWarning.id);
     toast.success("Advertência registrada com sucesso!");
     setIsCreateOpen(false);
     fetchData();
