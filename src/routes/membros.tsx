@@ -69,9 +69,9 @@ function MemberCard({ member, isAdmin, onEdit, onDeactivate, onReactivate }: { m
       <div className="flex items-start gap-4">
         <div className="h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg overflow-hidden shrink-0">
           <img 
-            src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${member.nick}&action=std&direction=2&head_direction=2&gesture=sml&size=m&headonly=1`} 
+            src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${member.nick}&action=std&direction=2&head_direction=2&gesture=sml&size=m`} 
             alt={member.nick} 
-            className="h-full w-full object-cover scale-150 pt-2"
+            className="h-[3.5rem] w-[3.5rem] max-w-none object-cover mt-2"
             onError={(e) => { 
               e.currentTarget.style.display = 'none'; 
               if (e.currentTarget.nextElementSibling) {

@@ -107,11 +107,11 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
             className="flex items-center gap-3 border-l border-border pl-4 sm:pl-6 cursor-pointer group-hover/user:opacity-80 transition-opacity"
             onClick={() => setShowRoleMenu(!showRoleMenu)}
           >
-            <div className="text-right hidden md:flex md:flex-col md:items-end">
-              <p className="text-sm font-medium text-foreground leading-none flex items-center gap-1 group-hover/user:text-primary transition-colors">
+            <div className="text-right hidden md:flex md:flex-col md:items-end group-hover/user:text-primary transition-colors">
+              <p className="text-sm font-medium text-foreground leading-none flex items-center justify-end gap-1 w-full">
                 {userName} <ChevronDown className="h-3 w-3" />
               </p>
-              <p className="text-xs text-primary/80 mt-1">{role}</p>
+              <p className="text-xs text-primary/80 mt-1.5 pr-4">{role}</p>
             </div>
             <div className="h-10 w-10 rounded-full bg-secondary/80 border border-border group-hover/user:border-primary/50 group-hover/user:bg-primary/10 flex items-center justify-center text-muted-foreground group-hover/user:text-primary transition-all duration-300 shadow-sm shrink-0 overflow-hidden">
               {user ? (
