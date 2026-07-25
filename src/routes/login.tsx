@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { ShieldCheck, UserCircle, Loader2, Key, Copy, CheckCircle2, ArrowRight } from "lucide-react";
 import { getMembers, updateMember } from "../lib/store";
 import { fetchAllFromRemote, syncModule } from "../lib/syncManager";
+import { fetchGoogleSheets } from "../lib/googleSheets";
 
 export const Route = createFileRoute("/login")({
   component: Login,
@@ -112,15 +113,26 @@ function Login() {
   const handleValidateHabbo = async () => {
     setIsLoading(true);
     try {
-      const targetUrl = `https://www.habbo.com.br/api/public/users?name=${nick.trim()}`;
+      const targetUrl = `https://www.habbo.com.br/api/public/users?name=${encodeURIComponent(nick.trim())}`;
       const encodedUrl = encodeURIComponent(targetUrl);
       
       const proxies = [
-        () => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
+        // 1: Servidor próprio Google Apps Script (Blindado no servidor do Google contra adblocks/CORS)
+        async () => {
+          const res = await fetchGoogleSheets({ action: "validateHabbo", nick: nick.trim() });
+          if (res.success && res.data) return res.data;
+          throw new Error("Google Proxy Falhou");
+        },
+        // 2: corsproxy.io com URL direta sem encriptação dupla
+        () => fetch(`https://corsproxy.io/?${targetUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
+        // 3: allorigins raw
         () => fetch(`https://api.allorigins.win/raw?url=${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
-        () => fetch(`https://corsproxy.io/?${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
-        () => fetch(`https://thingproxy.freeboard.io/fetch/${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
-        () => fetch(`https://api.allorigins.win/get?url=${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }).then(data => JSON.parse(data.contents)),
+        // 4: thingproxy sem encoding no path
+        () => fetch(`https://thingproxy.freeboard.io/fetch/${targetUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
+        // 5: codetabs
+        () => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
+        // 6: allorigins get wrapper
+        () => fetch(`https://api.allorigins.win/get?url=${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }).then(data => typeof data.contents === 'string' ? JSON.parse(data.contents) : data.contents),
       ];
 
       let habboData: any = null;

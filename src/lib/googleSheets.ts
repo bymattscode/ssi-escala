@@ -1,9 +1,10 @@
 import { getConfig } from './store';
 
 export type SyncPayload = {
-  action: "readAll" | "sync" | "backup" | "ping";
+  action: "readAll" | "sync" | "backup" | "ping" | "validateHabbo";
   module?: string;
   payload?: any;
+  nick?: string;
 };
 
 export type SyncResponse = {
