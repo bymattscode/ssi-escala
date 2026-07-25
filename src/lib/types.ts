@@ -3,6 +3,7 @@ export type UserGroup = "SSI" | "GATE" | "CSI" | "Supremacia" | "Ministério";
 export type ModulePermission = "Dashboard" | "Escala Semanal" | "Listagem de Membros" | "Gestão de Casos" | "Registro de Punições" | "Relatórios e Auditoria" | "Configurações";
 export type CaseStatus = "Aberto" | "Resolvido" | "Cancelado";
 export type ScheduleStatus = "Pendente" | "Concluído" | "Atrasado" | "Justificado" | "Não Justificado";
+export type SyncStatus = "synced" | "pending" | "error";
 
 export interface Member {
   id: string;
@@ -18,6 +19,8 @@ export interface Member {
   accessLevel?: string;
   permissions?: ModulePermission[];
   accessCode?: string;
+  updatedAt?: number;
+  syncStatus?: SyncStatus;
 }
 
 export interface AuthorizedUser {
@@ -52,6 +55,8 @@ export interface Schedule {
   justificationStatus?: "Pendente" | "Aprovada" | "Recusada";
   justificationDate?: string;
   justificationReviewerId?: string;
+  updatedAt?: number;
+  syncStatus?: SyncStatus;
 }
 
 export interface Case {
@@ -74,6 +79,8 @@ export interface Case {
   resolutionDate?: string;
   resolverId?: string;
   cancellationReason?: string;
+  updatedAt?: number;
+  syncStatus?: SyncStatus;
 }
 
 export type PunishmentType = "Observação" | "Medalhas Negativas" | "Advertência Interna" | "Rebaixamento" | "Expulsão" | "Sem Punição";
@@ -87,6 +94,8 @@ export interface Warning {
   directorId: string;
   caseId?: string;
   notes?: string;
+  updatedAt?: number;
+  syncStatus?: SyncStatus;
 }
 
 export type AuditAction = 

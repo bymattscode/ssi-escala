@@ -80,7 +80,7 @@ function EscalaTable({
   onRegisterFunction: (schedule: Schedule) => void
 }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="w-full">
       <table className="w-full text-sm text-left">
         <thead className="text-xs text-muted-foreground uppercase bg-secondary/30 border-b border-border">
           <tr>
@@ -137,10 +137,10 @@ function EscalaTable({
                 </td>
                 <td className="px-4 py-4 text-muted-foreground whitespace-nowrap">{schedule.type}</td>
                 <td className="px-4 py-4 text-foreground font-medium whitespace-nowrap">{schedule.referenceDay}</td>
-                <td className="px-4 py-4 text-muted-foreground">
-                  <div className="flex flex-col">
-                    <span className="whitespace-nowrap">{schedule.deadline.split(' ')[0]}</span>
-                    <span className="whitespace-nowrap">{schedule.deadline.split(' ')[1]}</span>
+                <td className="px-4 py-4 text-muted-foreground whitespace-nowrap">
+                  <div className="flex flex-col items-start leading-tight">
+                    <span>{schedule.deadline.split(' (')[0]}</span>
+                    <span className="text-xs">({schedule.deadline.split('(')[1] || '23:59)'}</span>
                   </div>
                 </td>
                 <td className="px-4 py-4">
@@ -168,20 +168,23 @@ function EscalaTable({
                     </button>
                   )}
                   
-                  {isAdmin && (
-                    <button onClick={() => onStatusUpdate(schedule.id, schedule.status)} className="text-[10px] text-primary hover:text-primary/80 font-medium transition-colors ml-2 flex flex-col items-center leading-none gap-0.5 border border-primary/20 rounded px-2 py-1 bg-primary/5">
-                      <span>Ciclar</span>
-                      <span>Status</span>
+                  <div className="flex items-center gap-1 ml-2">
+                    {isAdmin && (
+                      <button onClick={() => onStatusUpdate(schedule.id, schedule.status)} className="text-[10px] text-primary hover:text-primary/80 font-medium transition-colors flex flex-col items-center leading-none gap-0.5 border border-primary/20 rounded px-2 py-1 bg-primary/5 shadow-sm hover:bg-primary/10">
+                        <span>Ciclar</span>
+                        <span>Status</span>
+                      </button>
+                    )}
+                    
+                    <button 
+                      onClick={() => onView(schedule)}
+                      className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors shrink-0 shadow-sm" 
+                      title="Ver Detalhes/Histórico"
+                    >
+                      <ExternalLink className="h-4 w-4" />
                     </button>
-                  )}
+                  </div>
                   
-                  <button 
-                    onClick={() => onView(schedule)}
-                    className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors shrink-0" 
-                    title="Ver Detalhes/Histórico"
-                  >
-                    <FileText className="h-4 w-4" />
-                  </button>
                   </div>
                 </td>
               </tr>
@@ -583,11 +586,7 @@ function EscalasPage() {
                   <AlertTriangle className="h-4 w-4 text-yellow-500" />
                   Histórico de Justificativa
                 </h4>
-                <div className="grid grid-cols-2 gap-4 mt-2">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Status da Análise</span>
-                    <span className="text-sm font-medium text-foreground">{viewSchedule.justificationStatus || "Pendente"}</span>
-                  </div>
+                <div className="grid grid-cols-1 gap-4 mt-2">
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-muted-foreground">Enviado em</span>
                     <span className="text-sm font-medium text-foreground">{viewSchedule.justificationDate || "-"}</span>

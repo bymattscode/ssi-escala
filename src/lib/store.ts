@@ -10,8 +10,7 @@ export const AUTHORIZED_USERS: AuthorizedUser[] = [
   { habboNick: 'Policial123', group: 'GATE', role: 'Convidado', status: 'Ativo', permissions: ['read_only'] },
 ];
 
-// Constants for localStorage keys
-const KEYS = {
+export const KEYS = {
   MEMBERS: 'ssi_members',
   SCHEDULES: 'ssi_schedules',
   CASES: 'ssi_cases',
@@ -129,6 +128,8 @@ export const updateMemberStatus = async (id: string, status: "Ativo" | "Inativo"
   const idx = members.findIndex(m => m.id === id);
   if (idx !== -1 && typeof window !== "undefined") {
     members[idx].status = status;
+    members[idx].updatedAt = Date.now();
+    members[idx].syncStatus = "pending";
     if (status === "Ativo") {
       delete members[idx].leaveStartDate;
       delete members[idx].leaveEndDate;
@@ -142,7 +143,7 @@ export const updateMember = async (id: string, data: Partial<Member>): Promise<v
   const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
   const idx = members.findIndex(m => m.id === id);
   if (idx !== -1 && typeof window !== "undefined") {
-    members[idx] = { ...members[idx], ...data };
+    members[idx] = { ...members[idx], ...data, updatedAt: Date.now(), syncStatus: "pending" };
     localStorage.setItem(KEYS.MEMBERS, JSON.stringify(members));
   }
 };
@@ -159,7 +160,7 @@ export const deleteMember = async (id: string): Promise<void> => {
 export const addMember = async (member: Member): Promise<void> => {
   await delay(200);
   const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
-  members.push(member);
+  members.push({ ...member, updatedAt: Date.now(), syncStatus: "pending" });
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.MEMBERS, JSON.stringify(members));
   }
@@ -170,18 +171,43 @@ export const getSchedules = async (): Promise<Schedule[]> => {
   await delay(200);
   const schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
   
-  // Normalizar status antigo "Justificativa Enviada" para "Justificado"
   let needsSave = false;
+  const now = new Date();
+  
   const normalized = schedules.map(s => {
-    if (s.status === "Justificativa Enviada" as any) {
+    let updated = { ...s };
+    
+    // Normalizar status antigo
+    if (updated.status === "Justificativa Enviada" as any) {
       needsSave = true;
-      return { ...s, status: "Justificado" as any };
+      updated.status = "Justificado";
     }
-    if (!s.status || s.status === "undefined" as any) {
+    if (!updated.status || updated.status === "undefined" as any) {
       needsSave = true;
-      return { ...s, status: "Pendente" as any };
+      updated.status = "Pendente";
     }
-    return s;
+    
+    // Automação: Atualizar status de escalas vencidas
+    if (updated.status === "Pendente" && updated.deadlineDate) {
+      const deadlineDate = new Date(updated.deadlineDate);
+      if (deadlineDate < now) {
+        needsSave = true;
+        updated.status = "Atrasado";
+        updated.updatedAt = Date.now();
+        updated.syncStatus = "pending";
+      }
+    } else if (updated.status === "Atrasado" && updated.deadlineDate) {
+      const deadlineDate = new Date(updated.deadlineDate);
+      const hoursLate = (now.getTime() - deadlineDate.getTime()) / (1000 * 60 * 60);
+      if (hoursLate > 24) {
+        needsSave = true;
+        updated.status = "Não Justificado";
+        updated.updatedAt = Date.now();
+        updated.syncStatus = "pending";
+      }
+    }
+    
+    return updated;
   });
   
   if (needsSave && typeof window !== "undefined") {
@@ -194,8 +220,11 @@ export const getSchedules = async (): Promise<Schedule[]> => {
 export const addSchedules = async (newSchedules: Schedule[]): Promise<void> => {
   await delay(200);
   const schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
+  
+  const schedulesToSave = newSchedules.map(s => ({ ...s, updatedAt: Date.now(), syncStatus: "pending" as const }));
+  
   if (typeof window !== "undefined") {
-    localStorage.setItem(KEYS.SCHEDULES, JSON.stringify([...schedules, ...newSchedules]));
+    localStorage.setItem(KEYS.SCHEDULES, JSON.stringify([...schedules, ...schedulesToSave]));
   }
 };
 
@@ -204,7 +233,7 @@ export const updateSchedule = async (id: string, updates: Partial<Schedule>): Pr
   const schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
   const idx = schedules.findIndex(s => s.id === id);
   if (idx !== -1 && typeof window !== "undefined") {
-    schedules[idx] = { ...schedules[idx], ...updates };
+    schedules[idx] = { ...schedules[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
   }
 };
@@ -236,7 +265,7 @@ export const getCases = async (): Promise<Case[]> => {
 export const addCase = async (newCase: Case): Promise<void> => {
   await delay(200);
   const cases = getParsedData<Case[]>(KEYS.CASES, []);
-  cases.push(newCase);
+  cases.push({ ...newCase, updatedAt: Date.now(), syncStatus: "pending" });
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.CASES, JSON.stringify(cases));
   }
@@ -247,7 +276,7 @@ export const updateCase = async (id: string, updates: Partial<Case>): Promise<vo
   const cases = getParsedData<Case[]>(KEYS.CASES, []);
   const idx = cases.findIndex(c => c.id === id);
   if (idx !== -1 && typeof window !== "undefined") {
-    cases[idx] = { ...cases[idx], ...updates };
+    cases[idx] = { ...cases[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
     localStorage.setItem(KEYS.CASES, JSON.stringify(cases));
   }
 };
@@ -261,7 +290,7 @@ export const getWarnings = async (): Promise<Warning[]> => {
 export const addWarning = async (newWarning: Warning): Promise<void> => {
   await delay(200);
   const warnings = getParsedData<Warning[]>(KEYS.WARNINGS, []);
-  warnings.push(newWarning);
+  warnings.push({ ...newWarning, updatedAt: Date.now(), syncStatus: "pending" });
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
   }
@@ -272,7 +301,7 @@ export const updateWarning = async (id: string, updates: Partial<Warning>): Prom
   const warnings = getParsedData<Warning[]>(KEYS.WARNINGS, []);
   const idx = warnings.findIndex(w => w.id === id);
   if (idx !== -1 && typeof window !== "undefined") {
-    warnings[idx] = { ...warnings[idx], ...updates };
+    warnings[idx] = { ...warnings[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
     localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
   }
 };
@@ -323,4 +352,19 @@ export const addSyncLog = async (logData: Omit<SyncLog, "id" | "date">): Promise
   
   const updatedLogs = [newLog, ...config.logs].slice(0, 50); // Keep last 50 logs
   await updateConfig({ logs: updatedLogs });
+};
+
+export const getPendingCount = async (): Promise<number> => {
+  const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
+  const schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
+  const cases = getParsedData<Case[]>(KEYS.CASES, []);
+  const warnings = getParsedData<Warning[]>(KEYS.WARNINGS, []);
+  
+  let count = 0;
+  count += members.filter(m => m.syncStatus === 'pending').length;
+  count += schedules.filter(s => s.syncStatus === 'pending').length;
+  count += cases.filter(c => c.syncStatus === 'pending').length;
+  count += warnings.filter(w => w.syncStatus === 'pending').length;
+  
+  return count;
 };

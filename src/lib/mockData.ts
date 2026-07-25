@@ -8,6 +8,7 @@ export const mockMembers: Member[] = [
   { id: "5", nick: "Charlie", role: "Fiscalizador", status: "Ativo", entryDate: "2025-03-10" },
   { id: "6", nick: "Delta", role: "Fiscalizador", status: "Ativo", entryDate: "2025-03-20" },
   { id: "7", nick: "Echo", role: "Fiscalizador", status: "Ativo", entryDate: "2025-04-05" },
+  { id: "8", nick: "lgbq1234", role: "Fiscalizador", status: "Ativo", entryDate: "2026-07-25" },
 ];
 
 export const mockSchedules: Schedule[] = [
