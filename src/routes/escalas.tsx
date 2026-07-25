@@ -205,9 +205,7 @@ function EscalasPage() {
   
   const [registeringSchedule, setRegisteringSchedule] = useState<Schedule | null>(null);
   const [registerStatus, setRegisterStatus] = useState<"Concluído" | "Justificativa Enviada">("Concluído");
-  const [registerId, setRegisterId] = useState("");
   const [registerComments, setRegisterComments] = useState("");
-  const [registerCasesLine, setRegisterCasesLine] = useState("");
   
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 }); // Sunday
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 }); // Saturday
@@ -345,18 +343,12 @@ function EscalasPage() {
   
   const handleRegisterSubmit = async () => {
     if (!registeringSchedule) return;
-    if (!registerId) {
-      toast.error("Por favor, preencha o ID.");
-      return;
-    }
     
     const isJustification = registerStatus === "Justificativa Enviada";
     
     await updateSchedule(registeringSchedule.id, {
       status: registerStatus,
-      conclusionId: registerId,
       comments: registerComments,
-      casesLine: registerCasesLine,
       ...(isJustification ? {
         justificationStatus: "Pendente",
         justificationDate: new Date().toISOString()
@@ -367,9 +359,7 @@ function EscalasPage() {
     
     toast.success("Registro de função enviado com sucesso!");
     setRegisteringSchedule(null);
-    setRegisterId("");
     setRegisterComments("");
-    setRegisterCasesLine("");
     setRegisterStatus("Concluído");
     fetchSchedules();
   };
@@ -718,21 +708,10 @@ function EscalasPage() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-bold text-foreground">Nick:</label>
-                <div className="bg-secondary/20 border border-border rounded-md px-3 py-2 text-sm text-muted-foreground">
-                  {getMemberDetails(registeringSchedule.memberId, members)?.nick}
+                <div className="bg-secondary/20 border border-border rounded-md px-3 py-2 text-sm text-foreground font-medium h-9 flex items-center">
+                  {getMemberDetails(registeringSchedule.memberId, members)?.nick || "Desconhecido"}
                 </div>
               </div>
-            </div>
-            
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold text-foreground">ID:</label>
-              <input 
-                type="text" 
-                value={registerId} 
-                onChange={e => setRegisterId(e.target.value)} 
-                placeholder="Ex: (BA01 / AV01)" 
-                className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
-              />
             </div>
             
             <div className="flex flex-col gap-1.5">
@@ -746,7 +725,7 @@ function EscalasPage() {
                 </button>
                 <button 
                   onClick={() => setRegisterStatus("Justificativa Enviada")}
-                  className={`py-2 rounded-md font-bold text-sm transition-all shadow-sm ${registerStatus === "Justificativa Enviada" ? "bg-amber-300 text-amber-900 border-2 border-amber-400" : "bg-amber-300/30 text-amber-600 border border-amber-300/50 hover:bg-amber-300/40"}`}
+                  className={`py-2 rounded-md font-bold text-sm transition-all shadow-sm ${registerStatus === "Justificativa Enviada" ? "bg-orange-500 text-white border-2 border-orange-600" : "bg-orange-500/20 text-orange-500 border border-orange-500/30 hover:bg-orange-500/30"}`}
                 >
                   JUSTIFICATIVA
                 </button>
@@ -754,23 +733,12 @@ function EscalasPage() {
             </div>
             
             <div className="flex flex-col gap-1.5 mt-2">
-              <label className="text-sm font-bold text-foreground">Comentários{registerStatus === "Concluído" ? " ou Print" : ""}:</label>
+              <label className="text-sm font-bold text-foreground">{registerStatus === "Concluído" ? "Print da função:" : "Comentários:"}</label>
               <textarea 
                 value={registerComments} 
                 onChange={e => setRegisterComments(e.target.value)} 
-                placeholder={registerStatus === "Concluído" ? "Informe comentários relevantes da realização ou link do print..." : "Justifique o motivo do não comparecimento..."} 
+                placeholder={registerStatus === "Concluído" ? "Informe comentários relevantes da realização ou link do print..." : "Justifique o motivo de não realizar a fiscalização..."} 
                 className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 min-h-[100px] resize-y"
-              />
-            </div>
-            
-            <div className="flex flex-col gap-1.5 mt-2">
-              <label className="text-sm font-bold text-foreground">Linha dos casos:</label>
-              <input 
-                type="text" 
-                value={registerCasesLine} 
-                onChange={e => setRegisterCasesLine(e.target.value)} 
-                placeholder="Ex: linhas/identificadores de casos..." 
-                className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
               />
             </div>
             
