@@ -323,36 +323,41 @@ function getParsedDataLocally<T>(key: string, defaultValue: T): T {
   }
 }
 
-function mergeArrays<T extends { id: string; updatedAt?: number; syncStatus?: string }>(
+function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; syncStatus?: string }>(
   local: T[], 
   remote: T[]
 ): { merged: T[]; conflictCount: number } {
   let conflictCount = 0;
   const mergedMap = new Map<string, T>();
   
+  // Usar Nick (se for membro/usuário) ou ID para evitar duplicação em sincronização cruzada
+  const getUniqueKey = (item: T) => item.nick ? item.nick.trim().toLowerCase() : item.id;
+
   for (const r of remote) {
-    mergedMap.set(r.id, { ...r, syncStatus: 'synced' });
+    const key = getUniqueKey(r);
+    mergedMap.set(key, { ...r, syncStatus: 'synced' });
   }
   
   for (const l of local) {
-    const r = mergedMap.get(l.id);
+    const key = getUniqueKey(l);
+    const r = mergedMap.get(key);
     if (!r) {
-      mergedMap.set(l.id, l);
+      mergedMap.set(key, l);
     } else {
       if (l.syncStatus === 'pending') {
         const localTime = l.updatedAt || 0;
         const remoteTime = r.updatedAt || 0;
         
         if (localTime > remoteTime) {
-          mergedMap.set(l.id, l); // Local wins
+          mergedMap.set(key, { ...r, ...l }); // Local wins
         } else if (localTime < remoteTime) {
           conflictCount++;
-          mergedMap.set(l.id, { ...r, syncStatus: 'synced' }); // Remote wins
+          mergedMap.set(key, { ...l, ...r, syncStatus: 'synced' }); // Remote wins
         } else {
-          mergedMap.set(l.id, l);
+          mergedMap.set(key, { ...l, ...r });
         }
       } else {
-        mergedMap.set(l.id, { ...r, syncStatus: 'synced' }); // Remote wins unconditionally if local wasn't changed
+        mergedMap.set(key, { ...l, ...r, syncStatus: 'synced' }); // Remote wins
       }
     }
   }

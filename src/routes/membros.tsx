@@ -40,6 +40,16 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
   );
 }
 
+function formatCleanDate(dateStr?: string): string {
+  if (!dateStr) return "-";
+  const clean = dateStr.toString().split("T")[0];
+  const parts = clean.split("-");
+  if (parts.length === 3 && parts[0].length === 4) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return clean;
+}
+
 function MemberCard({ member, isAdmin, onEdit, onDeactivate, onReactivate, onRevokeAccess }: { 
   member: Member; 
   isAdmin: boolean; 
@@ -107,19 +117,19 @@ function MemberCard({ member, isAdmin, onEdit, onDeactivate, onReactivate, onRev
       <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-border/50">
         <div className="flex flex-col">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Entrada</span>
-          <span className="text-sm text-foreground">{member.entryDate}</span>
+          <span className="text-sm text-foreground font-medium">{formatCleanDate(member.entryDate)}</span>
         </div>
         {member.promotionDate && (
           <div className="flex flex-col">
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Última Promoção</span>
-            <span className="text-sm text-foreground">{member.promotionDate}</span>
+            <span className="text-sm text-foreground font-medium">{formatCleanDate(member.promotionDate)}</span>
           </div>
         )}
         {member.status === "Licença" && member.leaveStartDate && member.leaveEndDate && (
           <div className="flex flex-col col-span-2 mt-1 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">
             <span className="text-[10px] uppercase tracking-wider text-yellow-600 font-bold">Em Licença</span>
             <span className="text-sm text-yellow-600 truncate">
-              {member.leaveStartDate} até {member.leaveEndDate}
+              {formatCleanDate(member.leaveStartDate)} até {formatCleanDate(member.leaveEndDate)}
             </span>
           </div>
         )}

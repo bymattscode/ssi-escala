@@ -129,26 +129,52 @@ export const addAuditLog = async (
 // --- MEMBERS ---
 export const getMembers = async (): Promise<Member[]> => {
   await delay(200);
-  const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
+  const rawMembers = getParsedData<Member[]>(KEYS.MEMBERS, []);
   
-  // Retrocompatibilidade: Injetar permissões padrão e grupo se não existirem
-  return members.map(m => {
-    const updated = { ...m };
-    if (!updated.group) updated.group = "SSI";
-    if (!updated.permissions) {
-      if (m.role === "Presidente" || m.role === "Vice-Presidente") {
-        updated.permissions = ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"];
-      } else if (m.role === "Diretor") {
-        updated.permissions = ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições"];
-      } else if (m.role === "Fiscalizador") {
-        updated.permissions = ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos"];
-      } else {
-        updated.permissions = ["Dashboard"];
+  // Deduplicação automática pelo nick (case-insensitive) para eliminar duplicatas da sincronização ou mock
+  const seenMap = new Map<string, Member>();
+  for (const m of rawMembers) {
+    if (!m || !m.nick) continue;
+    const cleanNick = m.nick.trim().toLowerCase();
+    const cleanEntry = m.entryDate ? m.entryDate.toString().split('T')[0] : "";
+    const cleanPromo = m.promotionDate ? m.promotionDate.toString().split('T')[0] : "";
+    const cleanedMember: Member = {
+      ...m,
+      entryDate: cleanEntry,
+      promotionDate: cleanPromo,
+      group: m.group || "SSI",
+      permissions: m.permissions || (
+        m.role === "Presidente" || m.role === "Vice-Presidente" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"] :
+        m.role === "Diretor" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições"] :
+        m.role === "Fiscalizador" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos"] :
+        ["Dashboard"]
+      ),
+      updatedAt: m.updatedAt || Date.now()
+    };
+
+    const existing = seenMap.get(cleanNick);
+    if (!existing) {
+      seenMap.set(cleanNick, cleanedMember);
+    } else {
+      // Se houver duplicata, manter a versão que possui código de acesso ou status mais completo
+      if ((!existing.accessCode && cleanedMember.accessCode) || (existing.syncStatus !== 'synced' && cleanedMember.syncStatus === 'synced')) {
+        seenMap.set(cleanNick, { ...existing, ...cleanedMember });
+      } else if (cleanedMember.accessCode && !existing.accessCode) {
+        existing.accessCode = cleanedMember.accessCode;
       }
     }
-    updated.updatedAt = Date.now();
-    return updated;
-  });
+  }
+  
+  const members = Array.from(seenMap.values());
+  
+  // Se removeu duplicatas ou limpou datas ISO, salvar estado limpo no localStorage
+  if (members.length !== rawMembers.length || JSON.stringify(members) !== JSON.stringify(rawMembers)) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(KEYS.MEMBERS, JSON.stringify(members));
+    }
+  }
+
+  return members;
 };
 
 export const updateMemberStatus = async (id: string, status: "Ativo" | "Inativo" | "Licença"): Promise<void> => {
