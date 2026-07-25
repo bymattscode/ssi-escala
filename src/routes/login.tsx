@@ -128,9 +128,9 @@ function Login() {
       } else {
         toast.error("A missão do Habbo não corresponde ao código gerado.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      if (nick === 'Admin' || nick === 'mattscode' || nick === 'GaloCego' || nick === 'Brunom2a' || nick === 'FiscalSSI') {
+      if (nick === 'Admin' || nick === 'mattscode' || nick === 'GaloCego' || nick === 'Brunom2a' || nick === 'FiscalSSI' || nick.toLowerCase() === 'tchaumateu21') {
          toast.info("Acesso liberado (Modo de contingência).");
          const newCode = `SSI-CONTINGENCIA`;
          setGeneratedAccessCode(newCode);
@@ -141,7 +141,7 @@ function Login() {
          }
          setStep("show_new_code");
       } else {
-         toast.error("Ocorreu um erro ao validar sua missão. Tente novamente.");
+         toast.error(`Erro ao validar missão: ${error.message || "Tente novamente."}`);
       }
     } finally {
       setIsLoading(false);
