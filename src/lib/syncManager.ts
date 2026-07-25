@@ -54,7 +54,13 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
     for (const key in item) {
       if (key === 'syncStatus') continue; // Ignorar campo interno
       const ptKey = map[key as keyof typeof map] || key;
-      translated[ptKey] = item[key];
+      let val = item[key];
+      if (Array.isArray(val)) {
+        val = val.join(", ");
+      } else if (typeof val === 'object' && val !== null) {
+        val = JSON.stringify(val);
+      }
+      translated[ptKey] = val;
     }
     return translated;
   });
@@ -74,7 +80,17 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
     const translated: any = {};
     for (const key in item) {
       const enKey = invertedMap[key] || key;
-      translated[enKey] = item[key];
+      let val = item[key];
+      if (enKey === 'permissions' && typeof val === 'string') {
+        if (val.trim().startsWith('[')) {
+          try { val = JSON.parse(val); } catch (e) {}
+        } else {
+          val = val.split(',').map((s: string) => s.trim()).filter(Boolean);
+        }
+      } else if (typeof val === 'string' && ((val.startsWith('[') && val.endsWith(']')) || (val.startsWith('{') && val.endsWith('}')))) {
+        try { val = JSON.parse(val); } catch (e) {}
+      }
+      translated[enKey] = val;
     }
     return translated;
   });

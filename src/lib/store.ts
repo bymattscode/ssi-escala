@@ -72,6 +72,15 @@ export const wipeAllData = () => {
 // Simulating network delay
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
+// Automate sync to cloud whenever local state changes
+const triggerAutoSync = (module: string) => {
+  if (typeof window !== "undefined") {
+    setTimeout(() => {
+      import("./syncManager").then(m => m.syncModule(module)).catch(e => console.error(`Falha no auto-sync de ${module}:`, e));
+    }, 150);
+  }
+};
+
 // --- AUDIT ---
 export const getAuditLogs = async (): Promise<AuditLog[]> => {
   await delay(100);
@@ -145,6 +154,7 @@ export const updateMemberStatus = async (id: string, status: "Ativo" | "Inativo"
       delete members[idx].leaveEndDate;
     }
     localStorage.setItem(KEYS.MEMBERS, JSON.stringify(members));
+    triggerAutoSync("membros");
   }
 };
 
@@ -155,6 +165,7 @@ export const updateMember = async (id: string, data: Partial<Member>): Promise<v
   if (idx !== -1 && typeof window !== "undefined") {
     members[idx] = { ...members[idx], ...data, updatedAt: Date.now(), syncStatus: "pending" };
     localStorage.setItem(KEYS.MEMBERS, JSON.stringify(members));
+    triggerAutoSync("membros");
   }
 };
 
@@ -164,6 +175,7 @@ export const deleteMember = async (id: string): Promise<void> => {
   const newMembers = members.filter(m => m.id !== id);
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.MEMBERS, JSON.stringify(newMembers));
+    triggerAutoSync("membros");
   }
 };
 
@@ -173,6 +185,7 @@ export const addMember = async (member: Member): Promise<void> => {
   members.push({ ...member, updatedAt: Date.now(), syncStatus: "pending" });
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.MEMBERS, JSON.stringify(members));
+    triggerAutoSync("membros");
   }
 };
 
@@ -235,6 +248,7 @@ export const addSchedules = async (newSchedules: Schedule[]): Promise<void> => {
   
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify([...schedules, ...schedulesToSave]));
+    triggerAutoSync("escalas");
   }
 };
 
@@ -245,6 +259,7 @@ export const updateSchedule = async (id: string, updates: Partial<Schedule>): Pr
   if (idx !== -1 && typeof window !== "undefined") {
     schedules[idx] = { ...schedules[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
+    triggerAutoSync("escalas");
   }
 };
 
@@ -254,6 +269,7 @@ export const deleteSchedulesForWeek = async (week: string): Promise<void> => {
   schedules = schedules.filter(s => s.week !== week);
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
+    triggerAutoSync("escalas");
   }
 }
 
@@ -263,6 +279,7 @@ export const deleteSchedulesForWeekAndType = async (week: string, type: "Fiscali
   schedules = schedules.filter(s => !(s.week === week && s.type === type));
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
+    triggerAutoSync("escalas");
   }
 }
 
@@ -278,6 +295,7 @@ export const addCase = async (newCase: Case): Promise<void> => {
   cases.push({ ...newCase, updatedAt: Date.now(), syncStatus: "pending" });
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.CASES, JSON.stringify(cases));
+    triggerAutoSync("casos");
   }
 };
 
@@ -288,6 +306,7 @@ export const updateCase = async (id: string, updates: Partial<Case>): Promise<vo
   if (idx !== -1 && typeof window !== "undefined") {
     cases[idx] = { ...cases[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
     localStorage.setItem(KEYS.CASES, JSON.stringify(cases));
+    triggerAutoSync("casos");
   }
 };
 
@@ -303,6 +322,7 @@ export const addWarning = async (newWarning: Warning): Promise<void> => {
   warnings.push({ ...newWarning, updatedAt: Date.now(), syncStatus: "pending" });
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
+    triggerAutoSync("advertencias");
   }
 };
 
@@ -313,6 +333,7 @@ export const updateWarning = async (id: string, updates: Partial<Warning>): Prom
   if (idx !== -1 && typeof window !== "undefined") {
     warnings[idx] = { ...warnings[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
     localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
+    triggerAutoSync("advertencias");
   }
 };
 
