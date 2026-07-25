@@ -24,7 +24,6 @@ function Login() {
   const [debouncedNick, setDebouncedNick] = useState("");
   const [avatarError, setAvatarError] = useState(false);
   
-  const [rememberMe, setRememberMe] = useState(true);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -78,7 +77,7 @@ function Login() {
 
       if (foundUser && foundUser.accessCode === userAccessCode) {
         toast.success(`Bem-vindo de volta, ${nick}!`);
-        await login(nick, rememberMe);
+        await login(nick);
         navigate({ to: "/" });
       } else {
         toast.error("Código de acesso inválido.");
@@ -149,7 +148,7 @@ function Login() {
   };
 
   const handleFinishLogin = async () => {
-    await login(nick, rememberMe);
+    await login(nick);
     navigate({ to: "/" });
   };
 
@@ -261,18 +260,6 @@ function Login() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 ml-1 mt-1">
-              <input 
-                type="checkbox" 
-                id="remember" 
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="rounded border-border bg-background text-primary focus:ring-primary/50 h-4 w-4"
-              />
-              <label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
-                Lembrar neste dispositivo (30 dias)
-              </label>
-            </div>
 
             <button
               type="submit"
@@ -365,18 +352,6 @@ function Login() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 mt-2 w-full justify-center">
-              <input 
-                type="checkbox" 
-                id="remember_new" 
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="rounded border-border bg-background text-primary focus:ring-primary/50 h-4 w-4"
-              />
-              <label htmlFor="remember_new" className="text-sm text-muted-foreground cursor-pointer">
-                Lembrar neste dispositivo (30 dias)
-              </label>
-            </div>
 
             <button
               onClick={handleFinishLogin}

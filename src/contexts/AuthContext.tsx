@@ -8,7 +8,7 @@ interface AuthContextType {
   setRole: (role: Role) => void;
   userName: string;
   isAuthenticated: boolean;
-  login: (nick: string, rememberMe?: boolean) => Promise<boolean>;
+  login: (nick: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (savedSession) {
         try {
           const parsed = JSON.parse(savedSession);
-          const expirationTime = parsed.rememberMe ? 2592000000 : 7200000; // 30 dias ou 2 horas
+          const expirationTime = 7200000; // 2 horas
           if (Date.now() - parsed.timestamp < expirationTime) {
             const members = await getMembers();
             const foundUser = members.find(u => u.nick.toLowerCase() === parsed.nick.toLowerCase() && u.status === 'Ativo');
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initSession();
   }, []);
 
-  const login = async (nick: string, rememberMe: boolean = false): Promise<boolean> => {
+  const login = async (nick: string): Promise<boolean> => {
     const members = await getMembers();
     // Allow 'Admin' as a hardcoded fallback just in case the list gets empty
     const foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.status === 'Ativo') 
@@ -70,8 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(foundUser);
       localStorage.setItem('ssi-auth-session', JSON.stringify({
         nick: foundUser.nick,
-        timestamp: Date.now(),
-        rememberMe
+        timestamp: Date.now()
       }));
       return true;
     }
