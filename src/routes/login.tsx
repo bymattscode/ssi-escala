@@ -149,7 +149,7 @@ function Login() {
       const proxies = [
         // 1: Servidor próprio Google Apps Script
         fetchWithTimeout(async () => {
-          const res = await fetchGoogleSheets({ action: "validateHabbo", nick: nick.trim(), timestamp: Date.now() });
+          const res = await fetchGoogleSheets({ action: "validateHabbo", nick: nick.trim() });
           if (res.success && res.data && typeof res.data.motto === 'string') return res.data;
           throw new Error("Google Proxy sem motto");
         }, 3500),
