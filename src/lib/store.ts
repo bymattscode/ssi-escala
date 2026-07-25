@@ -328,8 +328,22 @@ export const getSchedules = async (): Promise<Schedule[]> => {
   
   let needsSave = false;
   const now = new Date();
+  const deletedKeys = getDeletedKeys().map(k => String(k).trim().toLowerCase());
+  const validMembers = getParsedData<Member[]>(KEYS.MEMBERS, []);
+  const memberIdSet = new Set(validMembers.map(m => m.id));
   
-  const normalized = schedules.map(s => {
+  const filtered = schedules.filter(s => {
+    if (s.id && deletedKeys.includes(String(s.id).trim().toLowerCase())) return false;
+    // Remove escalas vinculadas aos antigos IDs numéricos de teste que não existem mais na base
+    if (s.memberId && s.memberId.length <= 3 && !memberIdSet.has(s.memberId)) {
+      addDeletedKey(s.id);
+      needsSave = true;
+      return false;
+    }
+    return true;
+  });
+
+  const normalized = filtered.map(s => {
     let updated = { ...s };
     
     // Normalizar status antigo
@@ -365,6 +379,18 @@ export const getSchedules = async (): Promise<Schedule[]> => {
     return updated;
   });
   
+  // Ordenar de Domingo a Sábado para apresentação impecável e sem bugs na ordem dos dias
+  const dayOrder: Record<string, number> = {
+    "Domingo": 0,
+    "Segunda": 1, "Segunda-feira": 1,
+    "Terça": 2, "Terça-feira": 2,
+    "Quarta": 3, "Quarta-feira": 3,
+    "Quinta": 4, "Quinta-feira": 4,
+    "Sexta": 5, "Sexta-feira": 5,
+    "Sábado": 6
+  };
+  normalized.sort((a, b) => (dayOrder[a.referenceDay] ?? 7) - (dayOrder[b.referenceDay] ?? 7));
+  
   if (needsSave && typeof window !== "undefined") {
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(normalized));
   }
@@ -376,7 +402,10 @@ export const addSchedules = async (newSchedules: Schedule[]): Promise<void> => {
   await delay(200);
   const schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
   
-  const schedulesToSave = newSchedules.map(s => ({ ...s, updatedAt: Date.now(), syncStatus: "pending" as const }));
+  const schedulesToSave = newSchedules.map(s => {
+    if (s.id) removeDeletedKey(s.id);
+    return { ...s, updatedAt: Date.now(), syncStatus: "pending" as const };
+  });
   
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify([...schedules, ...schedulesToSave]));
@@ -398,6 +427,8 @@ export const updateSchedule = async (id: string, updates: Partial<Schedule>): Pr
 export const deleteSchedulesForWeek = async (week: string): Promise<void> => {
   await delay(200);
   let schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
+  const toDelete = schedules.filter(s => s.week === week);
+  toDelete.forEach(s => addDeletedKey(s.id));
   schedules = schedules.filter(s => s.week !== week);
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
@@ -405,9 +436,11 @@ export const deleteSchedulesForWeek = async (week: string): Promise<void> => {
   }
 }
 
-export const deleteSchedulesForWeekAndType = async (week: string, type: "Fiscalizador" | "Diretor"): Promise<void> => {
+export const deleteSchedulesForWeekAndType = async (week: string, type: string): Promise<void> => {
   await delay(200);
   let schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
+  const toDelete = schedules.filter(s => s.week === week && s.type === type);
+  toDelete.forEach(s => addDeletedKey(s.id));
   schedules = schedules.filter(s => !(s.week === week && s.type === type));
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));

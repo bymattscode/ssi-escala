@@ -73,6 +73,49 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
     listToTranslate = sortMembers(listToTranslate);
   }
 
+  if (module === "escalas") {
+    const allMembers = getParsedDataLocally<any[]>(KEYS.MEMBERS, []);
+    const memberMap = new Map(allMembers.map(m => [m.id, m.nick]));
+    
+    return listToTranslate.map(item => {
+      const nick = memberMap.get(item.memberId) || item.nick || "Desconhecido";
+      let dateStr = "";
+      if (item.updatedAt) {
+        const d = new Date(Number(item.updatedAt));
+        if (!isNaN(d.getTime())) {
+          const pad = (n: number) => n.toString().padStart(2, '0');
+          dateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+      }
+      if (!dateStr && item.deadlineDate) {
+        const d = new Date(item.deadlineDate);
+        if (!isNaN(d.getTime())) {
+          const pad = (n: number) => n.toString().padStart(2, '0');
+          dateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        } else {
+          dateStr = String(item.deadlineDate).split("T")[0];
+        }
+      }
+      if (!dateStr) dateStr = "-";
+
+      // Formato impecável e limpo na planilha solicitado pelo usuário:
+      return {
+        "Data": dateStr,
+        "Nick": nick,
+        "Cargo": item.type || "-",
+        "Status": item.status || "Pendente",
+        "ID": item.conclusionId || item.referenceDay || "-",
+        "Justificativa": item.justificationText || item.justificationReason || "-",
+        "Comentários": item.comments || "-",
+        // Campos de controle interno para manter vínculo entre planilha e aplicação sem quebras:
+        "Semana": item.week || "-",
+        "Dia de Referência": item.referenceDay || "-",
+        "ID Interno": item.id || "-",
+        "ID do Membro": item.memberId || "-"
+      };
+    });
+  }
+
   return listToTranslate.map(item => {
     const translated: any = {};
     for (const key in item) {
@@ -94,6 +137,41 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
 const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
   const map = headerMaps[module];
   if (!map) return data;
+  
+  if (module === "escalas") {
+    const allMembers = getParsedDataLocally<any[]>(KEYS.MEMBERS, []);
+    const nickMap = new Map(allMembers.map(m => [String(m.nick).trim().toLowerCase(), m.id]));
+
+    return data.map((item: any) => {
+      const internalId = item["ID Interno"] && item["ID Interno"] !== "-" ? item["ID Interno"] : (item["ID"] && String(item["ID"]).startsWith("SSI-") ? item["ID"] : undefined);
+      const nick = item["Nick"] && item["Nick"] !== "-" ? String(item["Nick"]).trim() : "";
+      const memberId = (item["ID do Membro"] && item["ID do Membro"] !== "-") ? item["ID do Membro"] : (nick ? (nickMap.get(nick.toLowerCase()) || "") : "");
+      
+      let type = item["Cargo"] && item["Cargo"] !== "-" ? item["Cargo"] : (item["Tipo"] || "Fiscalizador");
+      let status = item["Status"] || "Pendente";
+      let week = item["Semana"] && item["Semana"] !== "-" ? item["Semana"] : "2026-W30";
+      let referenceDay = item["Dia de Referência"] && item["Dia de Referência"] !== "-" ? item["Dia de Referência"] : "Segunda";
+      let conclusionId = item["ID de Conclusão"] || (item["ID"] && item["ID"] !== referenceDay && !String(item["ID"]).startsWith("SSI-") && item["ID"] !== "-" ? item["ID"] : undefined);
+      let comments = item["Comentários"] && item["Comentários"] !== "-" ? item["Comentários"] : undefined;
+      let justificationText = item["Justificativa"] && item["Justificativa"] !== "-" ? item["Justificativa"] : (item["Texto da Justificativa"] || undefined);
+      
+      const id = internalId || `SSI-ESC-${nick || "UNK"}-${week}-${String(type).replace(/\s+/g, '').substring(0,3).toUpperCase()}-${Math.random().toString(36).substring(2,6)}`;
+
+      return {
+        id,
+        week,
+        memberId,
+        referenceDay,
+        deadline: `${referenceDay} (23:59)`,
+        status,
+        type,
+        conclusionId,
+        comments,
+        justificationText,
+        updatedAt: Date.now()
+      };
+    });
+  }
   
   // Invert the map for reading
   const invertedMap: Record<string, string> = {};

@@ -39,7 +39,7 @@ export interface Schedule {
   status: ScheduleStatus;
   responsibleId?: string; // Presidente que gerou
   observations?: string;
-  type: "Fiscalizador" | "Diretor";
+  type: "Fiscalizador" | "Diretor" | "Fiscalização de Avaliadores" | "Fiscalização de Capacitadores" | string;
   
   deadlineDate?: string; // ISO date format for automation
   conclusionId?: string; // BA01 / AV01 etc

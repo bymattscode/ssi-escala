@@ -96,7 +96,7 @@ function EscalaTable({
         <tbody>
           {schedules.map((schedule) => {
             const member = getMemberDetails(schedule.memberId, members);
-            const roleMembers = members.filter(m => m.role === schedule.type && m.status === "Ativo");
+            const roleMembers = members.filter(m => m.status === "Ativo");
             return (
               <tr key={schedule.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                 <td className="px-4 py-4 font-medium text-foreground">
@@ -231,6 +231,13 @@ function EscalasPage() {
   
   const [registeringSchedule, setRegisteringSchedule] = useState<Schedule | null>(null);
   const [registerComments, setRegisterComments] = useState("");
+  const [registerConclusionId, setRegisterConclusionId] = useState("");
+  
+  const handleOpenRegister = (schedule: Schedule) => {
+    setRegisteringSchedule(schedule);
+    setRegisterComments(schedule.comments || "");
+    setRegisterConclusionId(schedule.conclusionId || "");
+  };
   
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 }); // Sunday
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 }); // Saturday
@@ -291,6 +298,8 @@ function EscalasPage() {
     try {
       await generateWeeklySchedule(weekStart, members, "Fiscalizador", "1");
       await generateWeeklySchedule(weekStart, members, "Diretor", "1");
+      await generateWeeklySchedule(weekStart, members, "Fiscalização de Avaliadores", "1");
+      await generateWeeklySchedule(weekStart, members, "Fiscalização de Capacitadores", "1");
       
       await addAuditLog("1", role, "Geração de Escala", "Escalas", `Escalas automáticas geradas para a semana ${selectedWeek}.`);
       
@@ -369,6 +378,7 @@ function EscalasPage() {
     await updateSchedule(registeringSchedule.id, {
       status: "Concluído",
       comments: registerComments.trim(),
+      conclusionId: registerConclusionId.trim() || undefined,
     });
     
     await addAuditLog("1", role, "Alteração de Status", "Escalas", `Função registrada como Concluído na escala #${registeringSchedule.id}.`, registeringSchedule.id);
@@ -376,6 +386,7 @@ function EscalasPage() {
     toast.success("Registro operacional enviado e validado! Status atualizado para Concluído.");
     setRegisteringSchedule(null);
     setRegisterComments("");
+    setRegisterConclusionId("");
     fetchSchedules();
   };
   
@@ -387,8 +398,10 @@ function EscalasPage() {
     return member?.nick.toLowerCase().includes(searchQuery.toLowerCase());
   });
   
-  const fiscalizadoresSchedules = filteredSchedules.filter(s => s.type === "Fiscalizador");
+  const fiscalizadoresSchedules = filteredSchedules.filter(s => s.type === "Fiscalizador" || (!s.type && s.id.includes("FIS")));
   const diretoresSchedules = filteredSchedules.filter(s => s.type === "Diretor");
+  const avaliadoresSchedules = filteredSchedules.filter(s => s.type === "Fiscalização de Avaliadores");
+  const capacitadoresSchedules = filteredSchedules.filter(s => s.type === "Fiscalização de Capacitadores");
   
   const pendentes = filteredSchedules.filter(s => s.status === "Pendente").length;
   const concluidos = filteredSchedules.filter(s => s.status === "Concluído").length;
@@ -448,12 +461,18 @@ function EscalasPage() {
       <div className="bg-card border border-border rounded-xl shadow-sm flex flex-col overflow-hidden mt-2">
         <Tabs defaultValue="fiscalizadores" className="w-full">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 pt-4 pb-3 border-b border-border gap-4 bg-secondary/10">
-            <TabsList className="bg-secondary/50 border border-border rounded-lg p-1">
-              <TabsTrigger value="fiscalizadores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-4">
+            <TabsList className="bg-secondary/50 border border-border rounded-lg p-1 flex flex-wrap gap-1 h-auto">
+              <TabsTrigger value="fiscalizadores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-3 py-1.5 text-xs md:text-sm font-semibold transition-all">
                  Escala dos Fiscalizadores
                </TabsTrigger>
-               <TabsTrigger value="diretores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-4">
+               <TabsTrigger value="diretores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-3 py-1.5 text-xs md:text-sm font-semibold transition-all">
                  Escala dos Diretores
+               </TabsTrigger>
+               <TabsTrigger value="avaliadores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-3 py-1.5 text-xs md:text-sm font-semibold transition-all">
+                 Fiscalização de Avaliadores
+               </TabsTrigger>
+               <TabsTrigger value="capacitadores" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary rounded-md px-3 py-1.5 text-xs md:text-sm font-semibold transition-all">
+                 Fiscalização de Capacitadores
                </TabsTrigger>
              </TabsList>
             
@@ -500,7 +519,7 @@ function EscalasPage() {
                onMemberChange={handleMemberChange} 
                onJustify={setJustifyingSchedule}
                onView={setViewSchedule}
-               onRegisterFunction={setRegisteringSchedule}
+               onRegisterFunction={handleOpenRegister}
              />
             )}
            </TabsContent>
@@ -515,7 +534,37 @@ function EscalasPage() {
                onMemberChange={handleMemberChange} 
                onJustify={setJustifyingSchedule}
                onView={setViewSchedule}
-               onRegisterFunction={setRegisteringSchedule}
+               onRegisterFunction={handleOpenRegister}
+             />
+            )}
+           </TabsContent>
+
+           <TabsContent value="avaliadores" className="p-0 m-0 border-none outline-none">
+            {isLoading ? <SkeletonTable rows={5} /> : (
+             <EscalaTable 
+               schedules={avaliadoresSchedules} 
+               members={members} 
+               onStatusUpdate={handleStatusUpdate} 
+               isAdmin={isAdmin} 
+               onMemberChange={handleMemberChange} 
+               onJustify={setJustifyingSchedule}
+               onView={setViewSchedule}
+               onRegisterFunction={handleOpenRegister}
+             />
+            )}
+           </TabsContent>
+
+           <TabsContent value="capacitadores" className="p-0 m-0 border-none outline-none">
+            {isLoading ? <SkeletonTable rows={5} /> : (
+             <EscalaTable 
+               schedules={capacitadoresSchedules} 
+               members={members} 
+               onStatusUpdate={handleStatusUpdate} 
+               isAdmin={isAdmin} 
+               onMemberChange={handleMemberChange} 
+               onJustify={setJustifyingSchedule}
+               onView={setViewSchedule}
+               onRegisterFunction={handleOpenRegister}
              />
             )}
            </TabsContent>
@@ -671,6 +720,17 @@ function EscalasPage() {
                   {getMemberDetails(registeringSchedule.memberId, members)?.nick || "Desconhecido"}
                 </div>
               </div>
+            </div>
+            
+            <div className="flex flex-col gap-1.5 mt-2">
+              <label className="text-sm font-bold text-foreground">Código da Função / ID (ex: BA01, FC01, AV01):</label>
+              <input 
+                type="text"
+                value={registerConclusionId}
+                onChange={e => setRegisterConclusionId(e.target.value.toUpperCase())}
+                placeholder="Ex: BA01, FC01, MON1..."
+                className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground font-semibold uppercase focus:outline-none focus:border-primary/50"
+              />
             </div>
             
             <div className="flex flex-col gap-1.5 mt-2">
