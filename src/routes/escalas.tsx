@@ -337,21 +337,19 @@ function EscalasPage() {
   };
 
   const handleSubmitJustification = async () => {
-    if (!justifyingSchedule || !justificationReason || !justificationText || !justificationOccurrenceDate) {
-      toast.error("Obrigatório: Preencha o motivo, a data do ocorrido e as observações.");
+    if (!justifyingSchedule || !justificationText || !justificationText.trim()) {
+      toast.error("Obrigatório: Digite o motivo da sua justificativa.");
       return;
     }
-    if (!justificationText.trim() || justificationText.trim().length < 5) {
-      toast.error("Dados mínimos insuficientes: Detalhe o motivo da justificativa com pelo menos 5 caracteres.");
+    if (justificationText.trim().length < 5) {
+      toast.error("Dados mínimos insuficientes: Detalhe o motivo com pelo menos 5 caracteres.");
       return;
     }
     
     await updateSchedule(justifyingSchedule.id, {
       status: "Justificado",
-      justificationReason,
+      justificationReason: justificationText.trim(),
       justificationText: justificationText.trim(),
-      justificationOccurrenceDate,
-      justificationAttachment: justificationAttachment.trim() || undefined,
       justificationDate: new Date().toISOString()
     });
     
@@ -555,51 +553,13 @@ function EscalasPage() {
           </p>
           
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground">Motivo Principal *</label>
-            <select 
-              value={justificationReason} 
-              onChange={e => setJustificationReason(e.target.value)}
-              className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
-            >
-              <option value="">Selecione o motivo...</option>
-              <option value="Problemas Técnicos/Internet">Problemas Técnicos / Internet</option>
-              <option value="Motivos Pessoais/Saúde">Motivos Pessoais / Saúde</option>
-              <option value="Falta de Demanda (Sem membros para fiscalizar)">Falta de Demanda (Sem membros para fiscalizar)</option>
-              <option value="Esquecimento">Esquecimento</option>
-              <option value="Outro">Outro (Especifique nas observações)</option>
-            </select>
-          </div>
-          
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground">Data da Ocorrência *</label>
-            <input 
-              type="date"
-              value={justificationOccurrenceDate}
-              onChange={e => setJustificationOccurrenceDate(e.target.value)}
-              className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground">Observações *</label>
+            <label className="text-sm font-medium text-foreground">Motivo *</label>
             <textarea 
               value={justificationText}
               onChange={e => setJustificationText(e.target.value)}
-              placeholder="Digite os detalhes da sua justificativa aqui..."
-              className="bg-background border border-border rounded-md p-3 min-h-[100px] text-sm text-foreground focus:outline-none focus:border-primary/50"
+              placeholder="Digite o motivo da sua justificativa aqui..."
+              className="bg-background border border-border rounded-md p-3 min-h-[120px] text-sm text-foreground focus:outline-none focus:border-primary/50"
             />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-foreground">Anexo de Prova (Opcional)</label>
-            <input 
-              type="url"
-              value={justificationAttachment}
-              onChange={e => setJustificationAttachment(e.target.value)}
-              placeholder="https://imgur.com/..."
-              className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
-            />
-            <span className="text-xs text-muted-foreground">Insira o link para a imagem ou documento que comprove o motivo (ex: Print de erro).</span>
           </div>
 
           <div className="flex justify-end gap-3 mt-4">
@@ -635,31 +595,17 @@ function EscalasPage() {
                 <div className="grid grid-cols-1 gap-4 mt-2">
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-muted-foreground">Enviado em</span>
-                    <span className="text-sm font-medium text-foreground">{viewSchedule.justificationDate || "-"}</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {viewSchedule.justificationDate ? new Date(viewSchedule.justificationDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "-"}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-2 flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Motivo</span>
-                  <p className="text-sm text-foreground font-medium">{viewSchedule.justificationReason || "-"}</p>
+                  <p className="text-sm text-foreground bg-background p-3 rounded-md border border-border/50 font-medium">
+                    {viewSchedule.justificationText || viewSchedule.justificationReason || "-"}
+                  </p>
                 </div>
-                {viewSchedule.justificationOccurrenceDate && (
-                  <div className="mt-1 flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Data da Ocorrência</span>
-                    <p className="text-sm text-foreground">{viewSchedule.justificationOccurrenceDate}</p>
-                  </div>
-                )}
-                <div className="mt-2 flex flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Observações</span>
-                  <p className="text-sm text-foreground bg-background p-2 rounded border border-border/50">{viewSchedule.justificationText}</p>
-                </div>
-                {viewSchedule.justificationAttachment && (
-                  <div className="mt-2 flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Anexo de Prova</span>
-                    <a href={viewSchedule.justificationAttachment} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm break-all">
-                      Acessar Anexo
-                    </a>
-                  </div>
-                )}
               </div>
             )}
           </div>
