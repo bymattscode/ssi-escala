@@ -28,11 +28,16 @@ function RelatoriosPage() {
 
   useEffect(() => {
     async function fetchData() {
-      setLogs(await getAuditLogs());
-      setMembers(await getMembers());
-      setCases(await getCases());
-      setWarnings(await getWarnings());
-      setSchedules(await getSchedules());
+      const l = await getAuditLogs();
+      const m = await getMembers();
+      const c = await getCases();
+      const w = await getWarnings();
+      const s = await getSchedules();
+      setLogs(Array.isArray(l) ? l : []);
+      setMembers(Array.isArray(m) ? m : []);
+      setCases(Array.isArray(c) ? c : []);
+      setWarnings(Array.isArray(w) ? w : []);
+      setSchedules(Array.isArray(s) ? s : []);
     }
     fetchData();
   }, []);
@@ -206,16 +211,18 @@ function RelatoriosPage() {
                     const user = getMemberDetails(log.userId);
                     return (
                       <tr key={log.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
-                        <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{log.timestamp}</td>
-                        <td className="px-6 py-4 font-medium text-foreground">{user?.nick || "Sistema"}</td>
+                        <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{String(log.date || log.timestamp || "-")}</td>
+                        <td className="px-6 py-4 font-medium text-foreground">{String(user?.nick || "Sistema")}</td>
                         <td className="px-6 py-4">
                           <span className="px-2 py-1 bg-secondary/50 border border-border rounded-md text-xs font-medium text-foreground">
-                            {log.action}
+                            {String(log.action || "-")}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-medium text-muted-foreground">{log.module}</td>
-                        <td className="px-6 py-4 text-muted-foreground truncate max-w-xs" title={log.details}>{log.details}</td>
-                        <td className="px-6 py-4 text-xs font-mono text-muted-foreground">{log.targetId || "-"}</td>
+                        <td className="px-6 py-4 font-medium text-muted-foreground">{String(log.module || "-")}</td>
+                        <td className="px-6 py-4 text-muted-foreground truncate max-w-xs" title={typeof log.details === 'object' ? JSON.stringify(log.details) : String(log.details || "")}>
+                          {typeof log.details === 'object' ? JSON.stringify(log.details) : String(log.details || "-")}
+                        </td>
+                        <td className="px-6 py-4 text-xs font-mono text-muted-foreground">{String(log.targetId || "-")}</td>
                       </tr>
                     );
                   })}
