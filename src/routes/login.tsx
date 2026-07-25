@@ -112,18 +112,32 @@ function Login() {
   const handleValidateHabbo = async () => {
     setIsLoading(true);
     try {
-      let habboData;
-      try {
-        // Tentativa 1: corsproxy.io (Transparente, funciona no browser)
-        const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(`https://www.habbo.com.br/api/public/users?name=${nick}`)}`);
-        if (!res.ok) throw new Error("Proxy 1 falhou");
-        habboData = await res.json();
-      } catch (e) {
-        // Tentativa 2: allorigins (Retorna wrapper)
-        const res2 = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.habbo.com.br/api/public/users?name=${nick}`)}`);
-        if (!res2.ok) throw new Error("Erro na comunicação com a API do Habbo.");
-        const data = await res2.json();
-        habboData = JSON.parse(data.contents);
+      const targetUrl = `https://www.habbo.com.br/api/public/users?name=${nick.trim()}`;
+      const encodedUrl = encodeURIComponent(targetUrl);
+      
+      const proxies = [
+        () => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
+        () => fetch(`https://api.allorigins.win/raw?url=${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
+        () => fetch(`https://corsproxy.io/?${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
+        () => fetch(`https://thingproxy.freeboard.io/fetch/${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
+        () => fetch(`https://api.allorigins.win/get?url=${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }).then(data => JSON.parse(data.contents)),
+      ];
+
+      let habboData: any = null;
+      for (const attempt of proxies) {
+        try {
+          const res = await attempt();
+          if (res && (res.motto !== undefined || res.error || res.name)) {
+            habboData = res;
+            break;
+          }
+        } catch (e) {
+          // tentar o próximo proxy do array
+        }
+      }
+
+      if (!habboData) {
+        throw new Error("Serviços de validação temporariamente fora de alcance. Tente clicar em Validar novamente.");
       }
 
       if (habboData.error) {
@@ -141,7 +155,7 @@ function Login() {
         
         // Salva o código no membro
         const members = await getMembers();
-        const foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase());
+        const foundUser = members.find(u => u.nick?.trim().toLowerCase() === nick.trim().toLowerCase());
         if (foundUser && foundUser.id !== 'admin') {
           await updateMember(foundUser.id, { accessCode: newCode });
           // Subir o código gerado direto para a planilha do Google Sheets
@@ -159,7 +173,7 @@ function Login() {
          const newCode = `SSI-CONTINGENCIA`;
          setGeneratedAccessCode(newCode);
          const members = await getMembers();
-         const foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase());
+         const foundUser = members.find(u => u.nick?.trim().toLowerCase() === nick.trim().toLowerCase());
           if (foundUser && foundUser.id !== 'admin') {
             await updateMember(foundUser.id, { accessCode: newCode });
             syncModule("membros").catch(console.error);
