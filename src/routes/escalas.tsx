@@ -67,7 +67,6 @@ function EscalaTable({
   isAdmin,
   onMemberChange,
   onJustify,
-  onReview,
   onView,
   onRegisterFunction
 }: { 
@@ -77,7 +76,6 @@ function EscalaTable({
   isAdmin: boolean,
   onMemberChange: (scheduleId: string, newMemberId: string) => void,
   onJustify: (schedule: Schedule) => void,
-  onReview: (schedule: Schedule) => void,
   onView: (schedule: Schedule) => void,
   onRegisterFunction: (schedule: Schedule) => void
 }) {
@@ -160,14 +158,6 @@ function EscalaTable({
                     </button>
                   )}
                   
-                  {schedule.status === "Justificado" && isAdmin && (
-                    <button 
-                      onClick={() => onReview(schedule)}
-                      className="text-xs bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 px-2 py-1 rounded-md border border-blue-500/20 transition-colors font-medium flex items-center gap-1"
-                    >
-                      <Gavel className="h-3 w-3" /> Analisar
-                    </button>
-                  )}
                   
                   {schedule.status !== "Não Justificado" && schedule.status !== "Concluído" && schedule.status !== "Justificado" && (
                     <button 
@@ -226,8 +216,6 @@ function EscalasPage() {
   const [justificationOccurrenceDate, setJustificationOccurrenceDate] = useState("");
   const [justificationAttachment, setJustificationAttachment] = useState("");
   
-  const [reviewingSchedule, setReviewingSchedule] = useState<Schedule | null>(null);
-  const [reviewDecision, setReviewDecision] = useState<"Aprovada" | "Recusada">("Aprovada");
   
   const [viewSchedule, setViewSchedule] = useState<Schedule | null>(null);
   
@@ -339,13 +327,12 @@ function EscalasPage() {
       justificationText,
       justificationOccurrenceDate,
       justificationAttachment,
-      justificationStatus: "Pendente",
       justificationDate: new Date().toISOString()
     });
     
     await addAuditLog("1", role, "Envio de Justificativa", "Escalas", `Justificativa enviada para a escala #${justifyingSchedule.id}.`, justifyingSchedule.id);
     
-    toast.success("Justificativa enviada com sucesso! Aguarde a análise da presidência.");
+    toast.success("Justificativa enviada com sucesso!");
     setJustifyingSchedule(null);
     setJustificationReason("");
     setJustificationText("");
@@ -354,23 +341,7 @@ function EscalasPage() {
     fetchSchedules();
   };
   
-  const handleReviewJustification = async () => {
-    if (!reviewingSchedule) return;
-    
-    const nextStatus = reviewDecision === "Aprovada" ? "Concluído" : "Atrasado";
-    
-    await updateSchedule(reviewingSchedule.id, { 
-      status: nextStatus,
-      justificationStatus: reviewDecision,
-      justificationReviewerId: "1"
-    });
-    
-    await addAuditLog("1", role, "Análise de Justificativa", "Escalas", `Justificativa da escala #${reviewingSchedule.id} ${reviewDecision.toLowerCase()}.`, reviewingSchedule.id);
-    
-    toast.success(`Justificativa ${reviewDecision.toLowerCase()}!`);
-    setReviewingSchedule(null);
-    fetchSchedules();
-  };
+
   
   const handleRegisterSubmit = async () => {
     if (!registeringSchedule) return;
@@ -507,7 +478,6 @@ function EscalasPage() {
                isAdmin={isAdmin} 
                onMemberChange={handleMemberChange} 
                onJustify={setJustifyingSchedule}
-               onReview={setReviewingSchedule}
                onView={setViewSchedule}
                onRegisterFunction={setRegisteringSchedule}
              />
@@ -521,7 +491,6 @@ function EscalasPage() {
                isAdmin={isAdmin} 
                onMemberChange={handleMemberChange} 
                onJustify={setJustifyingSchedule}
-               onReview={setReviewingSchedule}
                onView={setViewSchedule}
                onRegisterFunction={setRegisteringSchedule}
              />
@@ -595,71 +564,6 @@ function EscalasPage() {
         </div>
       </Modal>
 
-      {/* MODAL ANALISAR JUSTIFICATIVA */}
-      <Modal isOpen={!!reviewingSchedule} onClose={() => setReviewingSchedule(null)} title="Analisar Justificativa">
-        {reviewingSchedule && (
-          <div className="flex flex-col gap-4">
-            <div className="bg-secondary/30 p-4 rounded-md border border-border/50 text-sm flex flex-col gap-2">
-              <div>
-                <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Membro:</span>
-                <p className="font-medium text-foreground">{getMemberDetails(reviewingSchedule.memberId, members)?.nick}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Justificativa Enviada em:</span>
-                <p className="text-foreground">{reviewingSchedule.justificationDate}</p>
-              </div>
-              {reviewingSchedule.justificationReason && (
-                <div>
-                  <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Motivo Principal:</span>
-                  <p className="text-foreground">{reviewingSchedule.justificationReason}</p>
-                </div>
-              )}
-              {reviewingSchedule.justificationOccurrenceDate && (
-                <div>
-                  <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Data da Ocorrência:</span>
-                  <p className="text-foreground">{reviewingSchedule.justificationOccurrenceDate}</p>
-                </div>
-              )}
-              <div>
-                <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Observações:</span>
-                <p className="text-foreground mt-1 bg-background p-3 rounded border border-border/50">
-                  {reviewingSchedule.justificationText}
-                </p>
-              </div>
-              {reviewingSchedule.justificationAttachment && (
-                <div>
-                  <span className="text-muted-foreground text-xs uppercase font-bold tracking-wider">Anexo:</span>
-                  <a href={reviewingSchedule.justificationAttachment} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center gap-1 mt-1 break-all">
-                    <ExternalLink className="h-3 w-3" />
-                    {reviewingSchedule.justificationAttachment}
-                  </a>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex flex-col gap-2 mt-2">
-              <label className="text-sm font-medium text-foreground">Decisão da Presidente</label>
-              <select 
-                value={reviewDecision} 
-                onChange={e => setReviewDecision(e.target.value as "Aprovada" | "Recusada")} 
-                className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
-              >
-                <option value="Aprovada">Aprovar Justificativa (Status -&gt; Concluído)</option>
-                <option value="Recusada">Recusar Justificativa (Status -&gt; Atrasado)</option>
-              </select>
-            </div>
-            
-            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
-               <button onClick={() => setReviewingSchedule(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors text-sm">
-                 Cancelar
-               </button>
-               <button onClick={handleReviewJustification} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all text-sm">
-                 Confirmar Análise
-               </button>
-            </div>
-          </div>
-        )}
-      </Modal>
 
       {/* MODAL DETALHES DA ESCALA */}
       <Modal isOpen={!!viewSchedule} onClose={() => setViewSchedule(null)} title="Detalhes da Escala">
