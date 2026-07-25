@@ -159,7 +159,23 @@ export const addMember = async (member: Member): Promise<void> => {
 // --- SCHEDULES ---
 export const getSchedules = async (): Promise<Schedule[]> => {
   await delay(200);
-  return getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
+  const schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
+  
+  // Normalizar status antigo "Justificativa Enviada" para "Justificado"
+  let needsSave = false;
+  const normalized = schedules.map(s => {
+    if (s.status === "Justificativa Enviada" as any) {
+      needsSave = true;
+      return { ...s, status: "Justificado" as any };
+    }
+    return s;
+  });
+  
+  if (needsSave && typeof window !== "undefined") {
+    localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(normalized));
+  }
+  
+  return normalized;
 };
 
 export const addSchedules = async (newSchedules: Schedule[]): Promise<void> => {

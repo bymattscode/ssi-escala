@@ -25,7 +25,7 @@ function StatusBadge({ status }: { status: string }) {
     Pendente: { bg: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", icon: Clock },
     Concluído: { bg: "bg-green-500/10 text-green-500 border-green-500/20", icon: CheckCircle2 },
     Atrasado: { bg: "bg-red-500/10 text-red-500 border-red-500/20", icon: Clock },
-    "Justificativa Enviada": { bg: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: AlertTriangle },
+    Justificado: { bg: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: AlertTriangle },
     "Não Justificado": { bg: "bg-red-500 text-white border-red-600", icon: XCircle },
   };
   
@@ -142,7 +142,7 @@ function EscalaTable({
                     </button>
                   )}
                   
-                  {schedule.status === "Justificativa Enviada" && isAdmin && (
+                  {schedule.status === "Justificado" && isAdmin && (
                     <button 
                       onClick={() => onReview(schedule)}
                       className="text-xs bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 px-2 py-1 rounded-md border border-blue-500/20 transition-colors font-medium flex items-center gap-1"
@@ -151,7 +151,7 @@ function EscalaTable({
                     </button>
                   )}
                   
-                  {schedule.status !== "Não Justificado" && schedule.status !== "Concluído" && schedule.status !== "Justificativa Enviada" && (
+                  {schedule.status !== "Não Justificado" && schedule.status !== "Concluído" && schedule.status !== "Justificado" && (
                     <button 
                       onClick={() => onRegisterFunction(schedule)}
                       className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-2 py-1 rounded-md border border-primary/20 transition-colors font-medium flex items-center gap-1 ml-2 whitespace-nowrap"
@@ -276,8 +276,8 @@ function EscalasPage() {
     const nextStatusMap: any = {
       "Pendente": "Concluído",
       "Concluído": "Atrasado",
-      "Atrasado": "Justificativa Enviada",
-      "Justificativa Enviada": "Pendente",
+      "Atrasado": "Justificado",
+      "Justificado": "Pendente",
     };
     const next = nextStatusMap[currentStatus];
     await updateSchedule(id, { status: next });
@@ -302,7 +302,7 @@ function EscalasPage() {
     }
     
     await updateSchedule(justifyingSchedule.id, {
-      status: "Justificativa Enviada",
+      status: "Justificado",
       justificationReason,
       justificationText,
       justificationOccurrenceDate,

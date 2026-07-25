@@ -61,7 +61,7 @@ function Dashboard() {
         openCases: cases.filter(c => c.status === "Aberto").length,
         resolvedCases: cases.filter(c => c.status === "Resolvido").length,
         punishments: warnings.length,
-        pendingJustifications: schedules.filter(s => s.status === "Justificativa Enviada" && s.justificationStatus === "Pendente").length,
+        pendingJustifications: schedules.filter(s => s.status === "Justificado" && s.justificationStatus === "Pendente").length,
         lastBackup: config.lastWrite || "-"
       });
 

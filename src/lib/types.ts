@@ -2,7 +2,7 @@ export type Role = "Presidente" | "Vice-Presidente" | "Diretor" | "Fiscalizador"
 export type UserGroup = "SSI" | "GATE" | "CSI" | "Supremacia" | "Ministério";
 export type ModulePermission = "Dashboard" | "Escala Semanal" | "Listagem de Membros" | "Gestão de Casos" | "Registro de Punições" | "Relatórios e Auditoria" | "Configurações";
 export type CaseStatus = "Aberto" | "Resolvido" | "Cancelado";
-export type ScheduleStatus = "Pendente" | "Concluído" | "Atrasado" | "Justificativa Enviada" | "Não Justificado";
+export type ScheduleStatus = "Pendente" | "Concluído" | "Atrasado" | "Justificado" | "Não Justificado";
 
 export interface Member {
   id: string;

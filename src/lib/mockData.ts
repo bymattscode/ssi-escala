@@ -14,7 +14,7 @@ export const mockSchedules: Schedule[] = [
   { id: "s1", week: "2026-W30", memberId: "4", referenceDay: "Domingo", deadline: "Terça-feira (23:59)", status: "Concluído", responsibleId: "1", type: "Fiscalizador" },
   { id: "s2", week: "2026-W30", memberId: "5", referenceDay: "Terça", deadline: "Quinta-feira (23:59)", status: "Pendente", responsibleId: "1", type: "Fiscalizador" },
   { id: "s3", week: "2026-W30", memberId: "6", referenceDay: "Sexta", deadline: "Domingo (23:59)", status: "Atrasado", responsibleId: "1", type: "Fiscalizador", observations: "Membro ausente sem aviso" },
-  { id: "s4", week: "2026-W30", memberId: "2", referenceDay: "Segunda", deadline: "Quarta-feira (23:59)", status: "Justificativa Enviada", responsibleId: "1", type: "Diretor", observations: "Problemas médicos" },
+  { id: "s4", week: "2026-W30", memberId: "2", referenceDay: "Segunda", deadline: "Quarta-feira (23:59)", status: "Justificado", responsibleId: "1", type: "Diretor", observations: "Problemas médicos" },
   { id: "s5", week: "2026-W30", memberId: "3", referenceDay: "Quinta", deadline: "Sábado (23:59)", status: "Pendente", responsibleId: "1", type: "Diretor" },
 ];
 
