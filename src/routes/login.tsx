@@ -122,61 +122,55 @@ function Login() {
         ]);
 
       const proxies = [
-        // 1: AllOrigins GET wrapper (Extremamente rápido para JSON do Habbo)
-        fetchWithTimeout(() => fetch(`https://api.allorigins.win/get?url=${encodedUrl}`).then(r => r.json()).then(data => {
-          const content = typeof data.contents === 'string' ? JSON.parse(data.contents) : data.contents;
-          if (content && (content.motto !== undefined || content.error || content.name)) return content;
-          throw new Error("Invalid");
-        }), 3000),
-        // 2: AllOrigins RAW
-        fetchWithTimeout(() => fetch(`https://api.allorigins.win/raw?url=${encodedUrl}`).then(r => r.json()).then(res => {
-          if (res && (res.motto !== undefined || res.error || res.name)) return res;
-          throw new Error("Invalid");
-        }), 3000),
-        // 3: Servidor próprio Google Apps Script
+        // 1: Servidor próprio Google Apps Script (Mais confiável)
         fetchWithTimeout(async () => {
           const res = await fetchGoogleSheets({ action: "validateHabbo", nick: nick.trim() });
-          if (res.success && res.data) return res.data;
-          throw new Error("Google Proxy Falhou");
+          if (res.success && res.data && typeof res.data.motto === 'string') return res.data;
+          throw new Error("Google Proxy sem motto");
         }, 3500),
-        // 4: corsproxy.io com url parâmetro
+        // 2: AllOrigins GET wrapper
+        fetchWithTimeout(() => fetch(`https://api.allorigins.win/get?url=${encodedUrl}`).then(r => r.json()).then(data => {
+          const content = typeof data.contents === 'string' ? JSON.parse(data.contents) : data.contents;
+          if (content && typeof content.motto === 'string') return content;
+          throw new Error("Invalid");
+        }), 3000),
+        // 3: AllOrigins RAW
+        fetchWithTimeout(() => fetch(`https://api.allorigins.win/raw?url=${encodedUrl}`).then(r => r.json()).then(res => {
+          if (res && typeof res.motto === 'string') return res;
+          throw new Error("Invalid");
+        }), 3000),
+        // 4: corsproxy.io
         fetchWithTimeout(() => fetch(`https://corsproxy.io/?url=${encodedUrl}`).then(r => r.json()).then(res => {
-          if (res && (res.motto !== undefined || res.error || res.name)) return res;
+          if (res && typeof res.motto === 'string') return res;
           throw new Error("Invalid");
         }), 3500),
         // 5: codetabs
         fetchWithTimeout(() => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`).then(r => r.json()).then(res => {
-          if (res && (res.motto !== undefined || res.error || res.name)) return res;
+          if (res && typeof res.motto === 'string') return res;
           throw new Error("Invalid");
         }), 3500),
         // 6: thingproxy
         fetchWithTimeout(() => fetch(`https://thingproxy.freeboard.io/fetch/${targetUrl}`).then(r => r.json()).then(res => {
-          if (res && (res.motto !== undefined || res.error || res.name)) return res;
+          if (res && typeof res.motto === 'string') return res;
           throw new Error("Invalid");
         }), 4000)
       ];
 
-      // Executa todos os servidores de validação EM PARALELO! O primeiro que responder ganha na hora (menos de 0.5s)!
+      // Executa os servidores de validação EM PARALELO ignorando erros de rede ou CORS
       let habboData: any = null;
       try {
         habboData = await Promise.any(proxies);
       } catch (e) {
-        throw new Error("Serviços de validação temporariamente fora de alcance. Tente clicar em Validar novamente.");
+        throw new Error("Servidores externos oscilando.");
       }
 
-      if (!habboData) {
-        throw new Error("Serviços de validação temporariamente fora de alcance. Tente clicar em Validar novamente.");
-      }
-
-      if (habboData.error) {
-        toast.error("Usuário não encontrado no Habbo.");
-        setIsLoading(false);
-        return;
+      if (!habboData || typeof habboData.motto !== 'string') {
+        throw new Error("Servidor sem retorno do perfil.");
       }
 
       const motto = habboData.motto;
 
-      if (motto === mottoCode) {
+      if (motto === mottoCode || motto.includes(mottoCode)) {
         const newCode = `SSI-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         setGeneratedAccessCode(newCode);
         
@@ -192,21 +186,27 @@ function Login() {
         toast.error("A missão do Habbo não corresponde ao código gerado.");
       }
     } catch (error: any) {
-      console.error(error);
+      console.error("Falha na rede ou proxies:", error);
+      
+      // Se qualquer proxy ou API externa do Habbo oscilar/falhar, se o membro for ATIVO na equipe SSI, o acesso é liberado!
+      const members = await getMembers();
+      const foundUser = members.find(u => 
+        u.nick?.trim().toLowerCase() === nick.trim().toLowerCase() && 
+        u.status?.trim().toLowerCase() === 'ativo'
+      );
+      
       const safeAdmins = ['admin', 'mattscode', 'galocego', 'brunom2a', 'fiscalssi', 'tchaumateu21', 'mateus21deus', 'mateus21', ',raity', 'lgbq1234'];
-      if (safeAdmins.includes(nick.trim().toLowerCase())) {
-         toast.info("Acesso liberado (Modo de contingência ativa).");
+      if (foundUser || safeAdmins.includes(nick.trim().toLowerCase())) {
+         toast.info("Conexão Habbo oscilando: Acesso de segurança liberado (Modo Contingência).", { duration: 4000 });
          const newCode = `SSI-CONTINGENCIA`;
          setGeneratedAccessCode(newCode);
-         const members = await getMembers();
-         const foundUser = members.find(u => u.nick?.trim().toLowerCase() === nick.trim().toLowerCase());
-          if (foundUser && foundUser.id !== 'admin') {
-            await updateMember(foundUser.id, { accessCode: newCode });
-            syncModule("membros").catch(console.error);
-          }
+         if (foundUser && foundUser.id !== 'admin') {
+           await updateMember(foundUser.id, { accessCode: newCode });
+           syncModule("membros").catch(console.error);
+         }
          setStep("show_new_code");
       } else {
-         toast.error(`Erro ao validar missão: ${error.message || "Tente novamente."}`);
+         toast.error("Servidores de validação indisponíveis no momento. Tente novamente.");
       }
     } finally {
       setIsLoading(false);
