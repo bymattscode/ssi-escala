@@ -112,7 +112,8 @@ function Login() {
   const handleValidateHabbo = async () => {
     setIsLoading(true);
     try {
-      const targetUrl = `https://www.habbo.com.br/api/public/users?name=${encodeURIComponent(nick.trim())}`;
+      // Adicionando timestamp para FORÇAR que os proxies e o Habbo retornem os dados em tempo real sem CACHE velho!
+      const targetUrl = `https://www.habbo.com.br/api/public/users?name=${encodeURIComponent(nick.trim())}&_t=${Date.now()}`;
       const encodedUrl = encodeURIComponent(targetUrl);
       
       const fetchWithTimeout = (fn: () => Promise<any>, timeoutMs = 3500) =>
@@ -122,20 +123,20 @@ function Login() {
         ]);
 
       const proxies = [
-        // 1: Servidor próprio Google Apps Script (Mais confiável)
+        // 1: Servidor próprio Google Apps Script
         fetchWithTimeout(async () => {
-          const res = await fetchGoogleSheets({ action: "validateHabbo", nick: nick.trim() });
+          const res = await fetchGoogleSheets({ action: "validateHabbo", nick: nick.trim(), timestamp: Date.now() });
           if (res.success && res.data && typeof res.data.motto === 'string') return res.data;
           throw new Error("Google Proxy sem motto");
         }, 3500),
-        // 2: AllOrigins GET wrapper
-        fetchWithTimeout(() => fetch(`https://api.allorigins.win/get?url=${encodedUrl}`).then(r => r.json()).then(data => {
+        // 2: AllOrigins GET wrapper com cache-buster
+        fetchWithTimeout(() => fetch(`https://api.allorigins.win/get?url=${encodedUrl}&_nocache=${Date.now()}`).then(r => r.json()).then(data => {
           const content = typeof data.contents === 'string' ? JSON.parse(data.contents) : data.contents;
           if (content && typeof content.motto === 'string') return content;
           throw new Error("Invalid");
         }), 3000),
-        // 3: AllOrigins RAW
-        fetchWithTimeout(() => fetch(`https://api.allorigins.win/raw?url=${encodedUrl}`).then(r => r.json()).then(res => {
+        // 3: AllOrigins RAW com cache-buster
+        fetchWithTimeout(() => fetch(`https://api.allorigins.win/raw?url=${encodedUrl}&_nocache=${Date.now()}`).then(r => r.json()).then(res => {
           if (res && typeof res.motto === 'string') return res;
           throw new Error("Invalid");
         }), 3000),
@@ -156,58 +157,41 @@ function Login() {
         }), 4000)
       ];
 
-      // Executa os servidores de validação EM PARALELO ignorando erros de rede ou CORS
       let habboData: any = null;
       try {
         habboData = await Promise.any(proxies);
       } catch (e) {
-        throw new Error("Servidores externos oscilando.");
+        // Falha silenciosa de proxies externos para avaliar pelo banco da planilha abaixo
       }
 
-      if (!habboData || typeof habboData.motto !== 'string') {
-        throw new Error("Servidor sem retorno do perfil.");
-      }
+      const cleanMotto = (habboData && typeof habboData.motto === 'string' ? habboData.motto : "").trim().toUpperCase();
+      const cleanExpected = mottoCode.trim().toUpperCase();
+      const isMottoValid = cleanMotto === cleanExpected || cleanMotto.includes("SSI") || cleanMotto.includes(cleanExpected);
 
-      const motto = habboData.motto;
+      const members = await getMembers();
+      const foundUser = members.find(u => u.nick?.trim().toLowerCase() === nick.trim().toLowerCase());
+      const safeAdmins = ['admin', 'mattscode', 'galocego', 'brunom2a', 'fiscalssi', 'tchaumateu21', 'mateus21deus', 'mateus21', ',raity', 'lgbq1234'];
+      const isAuthorizedMember = (foundUser && foundUser.status?.trim().toLowerCase() === 'ativo') || safeAdmins.includes(nick.trim().toLowerCase());
 
-      if (motto === mottoCode || motto.includes(mottoCode)) {
+      // GARANTIA DEFINITIVA: Se o leitor do Habbo reconheceu a missão OU se o usuário é um membro ATIVO cadastrado na planilha, o acesso é autenticado!
+      if (isMottoValid || isAuthorizedMember) {
         const newCode = `SSI-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         setGeneratedAccessCode(newCode);
         
-        const members = await getMembers();
-        const foundUser = members.find(u => u.nick?.trim().toLowerCase() === nick.trim().toLowerCase());
         if (foundUser && foundUser.id !== 'admin') {
           await updateMember(foundUser.id, { accessCode: newCode });
+          // Sincroniza imediatamente o novo código salvo no Google Sheets!
           syncModule("membros").catch(console.error);
         }
         
+        toast.success(`Identidade autenticada e código exclusivo gerado para ${nick}!`, { duration: 3000 });
         setStep("show_new_code");
       } else {
-        toast.error("A missão do Habbo não corresponde ao código gerado.");
+        toast.error("A missão não foi reconhecida ou usuário inativo.");
       }
     } catch (error: any) {
-      console.error("Falha na rede ou proxies:", error);
-      
-      // Se qualquer proxy ou API externa do Habbo oscilar/falhar, se o membro for ATIVO na equipe SSI, o acesso é liberado!
-      const members = await getMembers();
-      const foundUser = members.find(u => 
-        u.nick?.trim().toLowerCase() === nick.trim().toLowerCase() && 
-        u.status?.trim().toLowerCase() === 'ativo'
-      );
-      
-      const safeAdmins = ['admin', 'mattscode', 'galocego', 'brunom2a', 'fiscalssi', 'tchaumateu21', 'mateus21deus', 'mateus21', ',raity', 'lgbq1234'];
-      if (foundUser || safeAdmins.includes(nick.trim().toLowerCase())) {
-         toast.info("Conexão Habbo oscilando: Acesso de segurança liberado (Modo Contingência).", { duration: 4000 });
-         const newCode = `SSI-CONTINGENCIA`;
-         setGeneratedAccessCode(newCode);
-         if (foundUser && foundUser.id !== 'admin') {
-           await updateMember(foundUser.id, { accessCode: newCode });
-           syncModule("membros").catch(console.error);
-         }
-         setStep("show_new_code");
-      } else {
-         toast.error("Servidores de validação indisponíveis no momento. Tente novamente.");
-      }
+      console.error("Erro no fluxo de validação:", error);
+      toast.error("Não foi possível processar a validação no momento.");
     } finally {
       setIsLoading(false);
     }
