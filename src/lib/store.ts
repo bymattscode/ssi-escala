@@ -41,14 +41,24 @@ const initialize = () => {
     if (!localStorage.getItem(KEYS.CASES)) localStorage.setItem(KEYS.CASES, JSON.stringify(mockCases));
     if (!localStorage.getItem(KEYS.WARNINGS)) localStorage.setItem(KEYS.WARNINGS, JSON.stringify(mockWarnings));
     
+    const NEW_URL = "https://script.google.com/macros/s/AKfycbz1jvDrxlyp3p5kGCQanlPeFC-XXmMz4Jy0gjCKrtDUiBV5sKJGrlxraxvpV05tzWAZ1A/exec";
     const DEFAULT_CONFIG = {
-      sheetUrl: "https://script.google.com/macros/s/AKfycbyyw4ID-BPhtYZq7S6O6IYMdYwOg-ke_RJaqUKw_n47qKaH6C_KrOTfLInkDC3yjAagTg/exec",
+      sheetUrl: NEW_URL,
       googleConnected: true,
       lastRead: "",
       lastWrite: "",
       logs: []
     };
-    if (!localStorage.getItem(KEYS.CONFIG)) localStorage.setItem(KEYS.CONFIG, JSON.stringify(DEFAULT_CONFIG));
+    const savedConfig = localStorage.getItem(KEYS.CONFIG);
+    if (!savedConfig) {
+      localStorage.setItem(KEYS.CONFIG, JSON.stringify(DEFAULT_CONFIG));
+    } else if (savedConfig.includes("AKfycbyyw4ID-BPhtYZq7S6O6IYMdYwOg-ke_RJaqUKw_n47qKaH6C_KrOTfLInkDC3yjAagTg")) {
+      try {
+        const parsed = JSON.parse(savedConfig);
+        parsed.sheetUrl = NEW_URL;
+        localStorage.setItem(KEYS.CONFIG, JSON.stringify(parsed));
+      } catch(e){}
+    }
     if (!localStorage.getItem(KEYS.AUDIT)) localStorage.setItem(KEYS.AUDIT, JSON.stringify([]));
   } catch (e) {
     console.error("Failed to initialize localStorage:", e);
@@ -355,13 +365,17 @@ interface SystemConfig {
 
 export const getConfig = async (): Promise<SystemConfig> => {
   await delay(100);
-  return getParsedData<SystemConfig>(KEYS.CONFIG, {
-    sheetUrl: "https://script.google.com/macros/s/AKfycbyyw4ID-BPhtYZq7S6O6IYMdYwOg-ke_RJaqUKw_n47qKaH6C_KrOTfLInkDC3yjAagTg/exec",
+  const cfg = getParsedData<SystemConfig>(KEYS.CONFIG, {
+    sheetUrl: "https://script.google.com/macros/s/AKfycbz1jvDrxlyp3p5kGCQanlPeFC-XXmMz4Jy0gjCKrtDUiBV5sKJGrlxraxvpV05tzWAZ1A/exec",
     googleConnected: true,
     lastRead: "",
     lastWrite: "",
     logs: []
   });
+  if (cfg.sheetUrl.includes("AKfycbyyw4ID-BPhtYZq7S6O6IYMdYwOg-ke_RJaqUKw_n47qKaH6C_KrOTfLInkDC3yjAagTg")) {
+    cfg.sheetUrl = "https://script.google.com/macros/s/AKfycbz1jvDrxlyp3p5kGCQanlPeFC-XXmMz4Jy0gjCKrtDUiBV5sKJGrlxraxvpV05tzWAZ1A/exec";
+  }
+  return cfg;
 };
 
 export const updateConfig = async (updates: Partial<SystemConfig>): Promise<void> => {

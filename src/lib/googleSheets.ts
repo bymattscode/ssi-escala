@@ -17,7 +17,11 @@ export type SyncResponse = {
 
 export const fetchGoogleSheets = async (payload: SyncPayload): Promise<SyncResponse> => {
   const config = await getConfig();
-  const targetUrl = config.sheetUrl || "https://script.google.com/macros/s/AKfycbyyw4ID-BPhtYZq7S6O6IYMdYwOg-ke_RJaqUKw_n47qKaH6C_KrOTfLInkDC3yjAagTg/exec";
+  let targetUrl = config.sheetUrl || "https://script.google.com/macros/s/AKfycbz1jvDrxlyp3p5kGCQanlPeFC-XXmMz4Jy0gjCKrtDUiBV5sKJGrlxraxvpV05tzWAZ1A/exec";
+  
+  if (targetUrl.includes("AKfycbyyw4ID-BPhtYZq7S6O6IYMdYwOg-ke_RJaqUKw_n47qKaH6C_KrOTfLInkDC3yjAagTg")) {
+    targetUrl = "https://script.google.com/macros/s/AKfycbz1jvDrxlyp3p5kGCQanlPeFC-XXmMz4Jy0gjCKrtDUiBV5sKJGrlxraxvpV05tzWAZ1A/exec";
+  }
   
   if (!targetUrl) {
     return { success: false, error: "Nenhuma URL configurada." };
