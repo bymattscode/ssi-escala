@@ -111,7 +111,8 @@ export const syncModule = async (moduleName: string): Promise<boolean> => {
     // 3. Push merged state
     const payload = {
       action: "sync" as const,
-      payload: { [moduleName]: translateToPortuguese(merged, moduleName as keyof typeof headerMaps) }
+      module: moduleName,
+      payload: translateToPortuguese(merged, moduleName as keyof typeof headerMaps)
     };
     
     const pushResponse = await fetchGoogleSheets(payload);
@@ -172,21 +173,32 @@ export const syncAll = async (): Promise<boolean> => {
       toast.warning(`${totalConflicts} conflito(s) resolvido(s).`);
     }
 
-    // 3. Push all merged data back
-    const payload = {
-      action: "sync" as const,
-      payload: {
-        membros: translateToPortuguese(mMembers.merged, 'membros'),
-        escalas: translateToPortuguese(mSchedules.merged, 'escalas'),
-        casos: translateToPortuguese(mCases.merged, 'casos'),
-        advertencias: translateToPortuguese(mWarnings.merged, 'advertencias'),
-        logs: translateToPortuguese(mLogs.merged, 'logs')
+    // 3. Push all merged data back module by module
+    const modulesToSync = [
+      { name: 'membros', data: mMembers.merged },
+      { name: 'escalas', data: mSchedules.merged },
+      { name: 'casos', data: mCases.merged },
+      { name: 'advertencias', data: mWarnings.merged },
+      { name: 'logs', data: mLogs.merged }
+    ];
+
+    let allSuccess = true;
+    let pushError = "";
+
+    for (const mod of modulesToSync) {
+      const pushResponse = await fetchGoogleSheets({
+        action: "sync" as const,
+        module: mod.name,
+        payload: translateToPortuguese(mod.data, mod.name as keyof typeof headerMaps)
+      });
+      if (!pushResponse.success) {
+        allSuccess = false;
+        pushError = pushResponse.error || "Erro ao sincronizar módulo " + mod.name;
+        break;
       }
-    };
+    }
     
-    const pushResponse = await fetchGoogleSheets(payload);
-    
-    if (pushResponse.success) {
+    if (allSuccess) {
       if (typeof window !== "undefined") {
         localStorage.setItem(KEYS.MEMBERS, JSON.stringify(mMembers.merged.map(i => ({...i, syncStatus: 'synced'}))));
         localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(mSchedules.merged.map(i => ({...i, syncStatus: 'synced'}))));
@@ -200,7 +212,7 @@ export const syncAll = async (): Promise<boolean> => {
       await addSyncLog({ type: "success", message: "Todos os módulos sincronizados com sucesso." });
       return true;
     } else {
-      await addSyncLog({ type: "error", message: `Erro na sincronização total: ${pushResponse.error}` });
+      await addSyncLog({ type: "error", message: `Erro na sincronização total: ${pushError}` });
       return false;
     }
   } catch (error: any) {
