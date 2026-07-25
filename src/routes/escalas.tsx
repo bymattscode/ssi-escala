@@ -224,12 +224,16 @@ function EscalasPage() {
   const weekNumber = format(weekStart, "I"); 
   const selectedWeek = `${format(weekStart, "yyyy")}-W${weekNumber}`;
 
-  const fetchSchedules = async () => {
+  const fetchSchedules = async (skipAutomation = true) => {
+    let data = await getSchedules();
+    setSchedules(data);
+  };
+
+  const runAutomation = async () => {
     let data = await getSchedules();
     const now = new Date();
     let hasUpdates = false;
     
-    // Automação: verificar atrasos
     for (const schedule of data) {
       if (schedule.deadlineDate && (schedule.status === "Pendente" || schedule.status === "Atrasado")) {
         const deadline = new Date(schedule.deadlineDate);
@@ -239,7 +243,6 @@ function EscalasPage() {
           await updateSchedule(schedule.id, { status: "Atrasado" });
           hasUpdates = true;
         } else if (schedule.status === "Atrasado" && diffMs > 24 * 60 * 60 * 1000) {
-          // Passou 24h do prazo
           await updateSchedule(schedule.id, { status: "Não Justificado" });
           hasUpdates = true;
         }
@@ -247,10 +250,8 @@ function EscalasPage() {
     }
     
     if (hasUpdates) {
-      data = await getSchedules(); // fetch fresh data
+      fetchSchedules();
     }
-    
-    setSchedules(data);
   };
 
   const fetchMembers = async () => {
@@ -259,7 +260,9 @@ function EscalasPage() {
   };
 
   useEffect(() => {
-    fetchSchedules();
+    fetchSchedules().then(() => {
+      runAutomation();
+    });
     fetchMembers();
   }, []);
 
