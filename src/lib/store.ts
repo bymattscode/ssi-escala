@@ -3,10 +3,15 @@ import { mockMembers, mockSchedules, mockCases, mockWarnings } from './mockData'
 
 export const AUTHORIZED_USERS: AuthorizedUser[] = [
   { habboNick: 'Admin', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
+  { habboNick: 'tchaumateu21', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
+  { habboNick: 'mateus21deus', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
+  { habboNick: 'mateus21', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
   { habboNick: 'GaloCego', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
   { habboNick: 'Brunom2a', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
   { habboNick: 'mattscode', group: 'SSI', role: 'Diretor', status: 'Ativo', permissions: ['casos', 'escalas'] },
+  { habboNick: ',raity', group: 'SSI', role: 'Diretor', status: 'Ativo', permissions: ['casos', 'escalas'] },
   { habboNick: 'FiscalSSI', group: 'SSI', role: 'Fiscalizador', status: 'Ativo', permissions: ['casos', 'escalas'] },
+  { habboNick: 'lgbq1234', group: 'SSI', role: 'Fiscalizador', status: 'Ativo', permissions: ['casos', 'escalas'] },
   { habboNick: 'Policial123', group: 'GATE', role: 'Convidado', status: 'Ativo', permissions: ['read_only'] },
 ];
 
@@ -36,7 +41,22 @@ const initialize = () => {
   if (typeof window === "undefined") return;
   
   try {
-    if (!localStorage.getItem(KEYS.MEMBERS)) localStorage.setItem(KEYS.MEMBERS, JSON.stringify(mockMembers));
+    if (!localStorage.getItem(KEYS.MEMBERS)) {
+      localStorage.setItem(KEYS.MEMBERS, JSON.stringify(mockMembers));
+    } else {
+      // Garante que líderes fundamentais como tchaumateu21 estejam sempre no cache local caso o cache antigo não os tenha
+      try {
+        const existing: Member[] = JSON.parse(localStorage.getItem(KEYS.MEMBERS) || '[]');
+        let modified = false;
+        for (const mock of mockMembers) {
+          if (!existing.some(m => m.nick.trim().toLowerCase() === mock.nick.trim().toLowerCase())) {
+            existing.push(mock);
+            modified = true;
+          }
+        }
+        if (modified) localStorage.setItem(KEYS.MEMBERS, JSON.stringify(existing));
+      } catch(e) {}
+    }
     if (!localStorage.getItem(KEYS.SCHEDULES)) localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(mockSchedules));
     if (!localStorage.getItem(KEYS.CASES)) localStorage.setItem(KEYS.CASES, JSON.stringify(mockCases));
     if (!localStorage.getItem(KEYS.WARNINGS)) localStorage.setItem(KEYS.WARNINGS, JSON.stringify(mockWarnings));

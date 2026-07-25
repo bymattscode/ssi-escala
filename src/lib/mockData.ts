@@ -2,13 +2,15 @@ import { Member, Schedule, Case, Warning } from './types';
 
 export const mockMembers: Member[] = [
   { id: "1", nick: "Admin", role: "Presidente", status: "Ativo", entryDate: "2024-01-01" },
-  { id: "2", nick: "ViceAdmin", role: "Vice-Presidente", status: "Ativo", entryDate: "2024-03-01", promotionDate: "2025-01-15" },
-  { id: "3", nick: "Alpha", role: "Diretor", status: "Ativo", entryDate: "2025-02-01", promotionDate: "2025-10-10" },
-  { id: "4", nick: "Bravo", role: "Diretor", status: "Inativo", entryDate: "2025-02-15" },
-  { id: "5", nick: "Charlie", role: "Fiscalizador", status: "Ativo", entryDate: "2025-03-10" },
-  { id: "6", nick: "Delta", role: "Fiscalizador", status: "Ativo", entryDate: "2025-03-20" },
-  { id: "7", nick: "Echo", role: "Fiscalizador", status: "Ativo", entryDate: "2025-04-05" },
-  { id: "8", nick: "lgbq1234", role: "Fiscalizador", status: "Ativo", entryDate: "2026-07-25" },
+  { id: "2", nick: "tchaumateu21", role: "Presidente", status: "Ativo", entryDate: "2024-03-01", promotionDate: "2025-01-15" },
+  { id: "3", nick: "mateus21deus", role: "Presidente", status: "Ativo", entryDate: "2024-03-01" },
+  { id: "4", nick: "mateus21", role: "Presidente", status: "Ativo", entryDate: "2024-03-01" },
+  { id: "5", nick: "GaloCego", role: "Presidente", status: "Ativo", entryDate: "2024-03-01" },
+  { id: "6", nick: "Brunom2a", role: "Presidente", status: "Ativo", entryDate: "2024-03-01" },
+  { id: "7", nick: "mattscode", role: "Diretor", status: "Ativo", entryDate: "2025-02-01", promotionDate: "2025-10-10" },
+  { id: "8", nick: ",raity", role: "Diretor", status: "Ativo", entryDate: "2025-02-15" },
+  { id: "9", nick: "FiscalSSI", role: "Fiscalizador", status: "Ativo", entryDate: "2025-03-10" },
+  { id: "10", nick: "lgbq1234", role: "Fiscalizador", status: "Ativo", entryDate: "2026-07-25" },
 ];
 
 export const mockSchedules: Schedule[] = [

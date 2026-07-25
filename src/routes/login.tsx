@@ -11,6 +11,41 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
+const CORE_ADMINS: Record<string, { role: string, accessCode?: string }> = {
+  'admin': { role: 'Presidente', accessCode: 'admin123' },
+  'tchaumateu21': { role: 'Presidente' },
+  'mateus21deus': { role: 'Presidente' },
+  'mateus21': { role: 'Presidente' },
+  'galocego': { role: 'Presidente' },
+  'brunom2a': { role: 'Presidente' },
+  'mattscode': { role: 'Diretor' },
+  ',raity': { role: 'Diretor' },
+  'fiscalssi': { role: 'Fiscalizador' },
+  'lgbq1234': { role: 'Fiscalizador' }
+};
+
+const resolveUser = (members: any[], inputNick: string) => {
+  const clean = inputNick.trim().toLowerCase();
+  const isCore = CORE_ADMINS[clean];
+  const existing = members.find(u => u.nick?.trim().toLowerCase() === clean);
+  
+  if (existing) {
+    if (isCore || !existing.status || existing.status.trim().toLowerCase() === 'ativo') {
+      return existing;
+    }
+  }
+  if (isCore) {
+    return {
+      id: `core-${clean}`,
+      nick: inputNick.trim(),
+      role: isCore.role,
+      status: 'Ativo',
+      accessCode: isCore.accessCode || undefined
+    };
+  }
+  return null;
+};
+
 function Login() {
   const { login } = useAuth();
   const navigate = useNavigate({ from: "/login" });
@@ -51,18 +86,18 @@ function Login() {
     setIsLoading(true);
     try {
       let members = await getMembers();
-      const findUser = (m: any[]) => m.find(u => 
-        u.nick?.trim().toLowerCase() === nick.trim().toLowerCase() && 
-        u.status?.trim().toLowerCase() === 'ativo'
-      ) || (nick === 'Admin' ? { id: 'admin', nick: 'Admin', status: 'Ativo', accessCode: 'admin123' } : null);
-
-      let foundUser = findUser(members);
+      let foundUser = resolveUser(members, nick);
       
+      // Se não encontrou de imediato no local nem é CORE_ADMIN, tenta buscar na planilha remota
       if (!foundUser) {
-        toast.info("Sincronizando banco de dados...", { id: "sync-toast", duration: 1500 });
-        await fetchAllFromRemote();
-        members = await getMembers();
-        foundUser = findUser(members);
+        toast.info("Verificando cadastro no sistema...", { id: "sync-toast", duration: 1500 });
+        try {
+          await fetchAllFromRemote();
+          members = await getMembers();
+          foundUser = resolveUser(members, nick);
+        } catch (err) {
+          console.error("Erro na busca remota do nick:", err);
+        }
         toast.dismiss("sync-toast");
       }
       
@@ -90,12 +125,7 @@ function Login() {
     setIsLoading(true);
     try {
       const members = await getMembers();
-      const findUser = (m: any[]) => m.find(u => 
-        u.nick?.trim().toLowerCase() === nick.trim().toLowerCase() && 
-        u.status?.trim().toLowerCase() === 'ativo'
-      ) || (nick === 'Admin' ? { id: 'admin', nick: 'Admin', status: 'Ativo', accessCode: 'admin123' } : null);
-
-      const foundUser = findUser(members);
+      const foundUser = resolveUser(members, nick);
 
       if (foundUser && foundUser.accessCode === userAccessCode) {
         toast.success(`Bem-vindo de volta, ${nick}!`);
@@ -169,19 +199,24 @@ function Login() {
       const isMottoValid = cleanMotto === cleanExpected || cleanMotto.includes("SSI") || cleanMotto.includes(cleanExpected);
 
       const members = await getMembers();
-      const foundUser = members.find(u => u.nick?.trim().toLowerCase() === nick.trim().toLowerCase());
-      const safeAdmins = ['admin', 'mattscode', 'galocego', 'brunom2a', 'fiscalssi', 'tchaumateu21', 'mateus21deus', 'mateus21', ',raity', 'lgbq1234'];
-      const isAuthorizedMember = (foundUser && foundUser.status?.trim().toLowerCase() === 'ativo') || safeAdmins.includes(nick.trim().toLowerCase());
+      const foundUser = resolveUser(members, nick);
+      const isAuthorizedMember = !!foundUser || Object.keys(CORE_ADMINS).includes(nick.trim().toLowerCase());
 
       // GARANTIA DEFINITIVA: Se o leitor do Habbo reconheceu a missão OU se o usuário é um membro ATIVO cadastrado na planilha, o acesso é autenticado!
       if (isMottoValid || isAuthorizedMember) {
         const newCode = `SSI-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         setGeneratedAccessCode(newCode);
         
-        if (foundUser && foundUser.id !== 'admin') {
+        if (foundUser && !foundUser.id.startsWith('core-') && foundUser.id !== 'admin') {
           await updateMember(foundUser.id, { accessCode: newCode });
           // Sincroniza imediatamente o novo código salvo no Google Sheets!
           syncModule("membros").catch(console.error);
+        } else {
+          const target = members.find(u => u.nick?.trim().toLowerCase() === nick.trim().toLowerCase());
+          if (target && target.id !== 'admin') {
+            await updateMember(target.id, { accessCode: newCode });
+            syncModule("membros").catch(console.error);
+          }
         }
         
         toast.success(`Identidade autenticada e código exclusivo gerado para ${nick}!`, { duration: 3000 });
