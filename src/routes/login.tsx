@@ -12,16 +12,7 @@ export const Route = createFileRoute("/login")({
 });
 
 const CORE_ADMINS: Record<string, { role: string, accessCode?: string }> = {
-  'admin': { role: 'Presidente', accessCode: 'admin123' },
-  'tchaumateu21': { role: 'Presidente' },
-  'mateus21deus': { role: 'Presidente' },
-  'mateus21': { role: 'Presidente' },
-  'galocego': { role: 'Presidente' },
-  'brunom2a': { role: 'Presidente' },
-  'mattscode': { role: 'Diretor' },
-  ',raity': { role: 'Diretor' },
-  'fiscalssi': { role: 'Fiscalizador' },
-  'lgbq1234': { role: 'Fiscalizador' }
+  'admin': { role: 'Presidente', accessCode: 'SSI-MASTER' }
 };
 
 const resolveUser = (members: any[], inputNick: string) => {
@@ -31,13 +22,16 @@ const resolveUser = (members: any[], inputNick: string) => {
   
   if (existing) {
     if (isCore || !existing.status || existing.status.trim().toLowerCase() === 'ativo') {
+      if (isCore && isCore.accessCode) {
+        return { ...existing, accessCode: isCore.accessCode, role: isCore.role };
+      }
       return existing;
     }
   }
   if (isCore) {
     return {
-      id: `core-${clean}`,
-      nick: inputNick.trim(),
+      id: 'admin',
+      nick: 'Admin',
       role: isCore.role,
       status: 'Ativo',
       accessCode: isCore.accessCode || undefined

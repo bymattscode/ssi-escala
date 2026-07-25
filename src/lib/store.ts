@@ -3,16 +3,6 @@ import { mockMembers, mockSchedules, mockCases, mockWarnings } from './mockData'
 
 export const AUTHORIZED_USERS: AuthorizedUser[] = [
   { habboNick: 'Admin', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
-  { habboNick: 'tchaumateu21', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
-  { habboNick: 'mateus21deus', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
-  { habboNick: 'mateus21', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
-  { habboNick: 'GaloCego', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
-  { habboNick: 'Brunom2a', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
-  { habboNick: 'mattscode', group: 'SSI', role: 'Diretor', status: 'Ativo', permissions: ['casos', 'escalas'] },
-  { habboNick: ',raity', group: 'SSI', role: 'Diretor', status: 'Ativo', permissions: ['casos', 'escalas'] },
-  { habboNick: 'FiscalSSI', group: 'SSI', role: 'Fiscalizador', status: 'Ativo', permissions: ['casos', 'escalas'] },
-  { habboNick: 'lgbq1234', group: 'SSI', role: 'Fiscalizador', status: 'Ativo', permissions: ['casos', 'escalas'] },
-  { habboNick: 'Policial123', group: 'GATE', role: 'Convidado', status: 'Ativo', permissions: ['read_only'] },
 ];
 
 export const KEYS = {
@@ -44,18 +34,24 @@ const initialize = () => {
     if (!localStorage.getItem(KEYS.MEMBERS)) {
       localStorage.setItem(KEYS.MEMBERS, JSON.stringify(mockMembers));
     } else {
-      // Garante que líderes fundamentais como tchaumateu21 estejam sempre no cache local caso o cache antigo não os tenha
+      // Limpar automaticamente dados fictícios de testes passados do cache do navegador, se existirem
       try {
-        const existing: Member[] = JSON.parse(localStorage.getItem(KEYS.MEMBERS) || '[]');
-        let modified = false;
-        for (const mock of mockMembers) {
-          if (!existing.some(m => m.nick.trim().toLowerCase() === mock.nick.trim().toLowerCase())) {
-            existing.push(mock);
-            modified = true;
-          }
+        const fictional = ['viceadmin', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'policial123'];
+        let existing: Member[] = JSON.parse(localStorage.getItem(KEYS.MEMBERS) || '[]');
+        const cleanList = existing.filter(m => !m.nick || !fictional.includes(String(m.nick).trim().toLowerCase()));
+        
+        // Garantir que Admin (conta de emergência) esteja sempre ativo e com o código mestre configurado
+        let adminUser = cleanList.find(m => String(m.nick).trim().toLowerCase() === 'admin');
+        if (!adminUser) {
+          cleanList.push({ id: "1", nick: "Admin", role: "Presidente", status: "Ativo", entryDate: "2024-01-01", accessCode: "SSI-MASTER" });
+        } else {
+          adminUser.accessCode = "SSI-MASTER";
         }
-        if (modified) localStorage.setItem(KEYS.MEMBERS, JSON.stringify(existing));
-      } catch(e) {}
+        
+        if (JSON.stringify(cleanList) !== JSON.stringify(existing)) {
+          localStorage.setItem(KEYS.MEMBERS, JSON.stringify(cleanList));
+        }
+      } catch (e) {}
     }
     if (!localStorage.getItem(KEYS.SCHEDULES)) localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(mockSchedules));
     if (!localStorage.getItem(KEYS.CASES)) localStorage.setItem(KEYS.CASES, JSON.stringify(mockCases));
