@@ -7,6 +7,7 @@ import {
   addSyncLog,
   updateConfig,
   getDeletedKeys,
+  sortMembers,
   KEYS
 } from './store';
 import { toast } from 'sonner';
@@ -47,18 +48,41 @@ const headerMaps = {
   }
 };
 
+const cleanTimestampFromDate = (val: any, fieldName: string): any => {
+  if (val === undefined || val === null) return val;
+  const lowerField = fieldName.toLowerCase();
+  const isDateField = lowerField.includes("date") || lowerField.includes("data") || lowerField === "date";
+  
+  if (typeof val === "string") {
+    if ((isDateField || val.endsWith("Z") || val.includes("T00:") || val.includes("T03:")) && val.includes("T")) {
+      return val.split("T")[0];
+    }
+  } else if (val instanceof Date || (typeof val === "object" && typeof val.toISOString === "function")) {
+    return val.toISOString().split("T")[0];
+  }
+  return val;
+};
+
 const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => {
   const map = headerMaps[module];
   if (!map) return data;
-  return data.map(item => {
+  
+  // Se for o módulo de membros, ordenar por hierarquia (Presidente > Vice > Diretor > Fiscalizador) e por data de chegada (mais antigas primeiro)
+  let listToTranslate = [...data];
+  if (module === "membros") {
+    listToTranslate = sortMembers(listToTranslate);
+  }
+
+  return listToTranslate.map(item => {
     const translated: any = {};
     for (const key in item) {
-      if (key === 'syncStatus') continue; // Ignorar campo interno
+      if (key === "syncStatus") continue; // Ignorar campo interno
       const ptKey = map[key as keyof typeof map] || key;
-      let val = item[key];
+      let val = cleanTimestampFromDate(item[key], key);
+      
       if (Array.isArray(val)) {
         val = val.join(", ");
-      } else if (typeof val === 'object' && val !== null) {
+      } else if (typeof val === "object" && val !== null) {
         val = JSON.stringify(val);
       }
       translated[ptKey] = val;
@@ -82,15 +106,17 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
     for (const key in item) {
       const enKey = invertedMap[key] || key;
       let val = item[key];
-      if (enKey === 'permissions' && typeof val === 'string') {
-        if (val.trim().startsWith('[')) {
+      if (enKey === "permissions" && typeof val === "string") {
+        if (val.trim().startsWith("[")) {
           try { val = JSON.parse(val); } catch (e) {}
         } else {
-          val = val.split(',').map((s: string) => s.trim()).filter(Boolean);
+          val = val.split(",").map((s: string) => s.trim()).filter(Boolean);
         }
-      } else if (typeof val === 'string' && ((val.startsWith('[') && val.endsWith(']')) || (val.startsWith('{') && val.endsWith('}')))) {
+      } else if (typeof val === "string" && ((val.startsWith("[") && val.endsWith("]")) || (val.startsWith("{") && val.endsWith("}")))) {
         try { val = JSON.parse(val); } catch (e) {}
       }
+      
+      val = cleanTimestampFromDate(val, enKey);
       translated[enKey] = val;
     }
     return translated;

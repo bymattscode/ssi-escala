@@ -169,6 +169,47 @@ export const removeDeletedKey = (key?: string | number): void => {
   }
 };
 
+// --- HIERARCHY & ARRIVAL DATE SORTING ---
+export const getRoleRank = (role?: string): number => {
+  const r = String(role || "").trim().toLowerCase();
+  if (r.includes("presidente") && !r.includes("vice")) return 1;
+  if (r.includes("vice")) return 2;
+  if (r.includes("diretor")) return 3;
+  if (r.includes("fiscalizador")) return 4;
+  return 5;
+};
+
+const parseDateToTimestamp = (dateStr?: string): number => {
+  if (!dateStr) return Infinity;
+  const clean = String(dateStr).split('T')[0].trim();
+  if (!clean || clean === "-") return Infinity;
+  if (clean.includes('/')) {
+    const parts = clean.split('/');
+    if (parts.length === 3) {
+      return new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}T00:00:00`).getTime();
+    }
+  }
+  const t = new Date(clean + (clean.includes(':') ? '' : 'T00:00:00')).getTime();
+  return isNaN(t) ? Infinity : t;
+};
+
+export const sortMembers = (members: any[]): any[] => {
+  return [...members].sort((a, b) => {
+    // 1º critério: Hierarquia (Presidente > Vice > Diretor > Fiscalizador)
+    const rankA = getRoleRank(a.role);
+    const rankB = getRoleRank(b.role);
+    if (rankA !== rankB) return rankA - rankB;
+    
+    // 2º critério: Ordem de chegada (Data de entrada mais antiga na frente)
+    const timeA = parseDateToTimestamp(a.entryDate);
+    const timeB = parseDateToTimestamp(b.entryDate);
+    if (timeA !== timeB) return timeA - timeB;
+    
+    // 3º critério: Ordem alfabética do nick
+    return String(a.nick || "").localeCompare(String(b.nick || ""), 'pt-BR', { sensitivity: 'base' });
+  });
+};
+
 // --- MEMBERS ---
 export const getMembers = async (): Promise<Member[]> => {
   await delay(200);
@@ -185,8 +226,8 @@ export const getMembers = async (): Promise<Member[]> => {
     // Se foi desligado ou excluído anteriormente, ignorar para sempre!
     if (deletedKeys.includes(cleanId) || deletedKeys.includes(cleanNick)) continue;
 
-    const cleanEntry = m.entryDate ? m.entryDate.toString().split('T')[0] : "";
-    const cleanPromo = m.promotionDate ? m.promotionDate.toString().split('T')[0] : "";
+    const cleanEntry = m.entryDate ? String(m.entryDate).split('T')[0] : "";
+    const cleanPromo = m.promotionDate ? String(m.promotionDate).split('T')[0] : "";
     const cleanedMember: Member = {
       ...m,
       entryDate: cleanEntry,
@@ -214,7 +255,7 @@ export const getMembers = async (): Promise<Member[]> => {
     }
   }
   
-  const members = Array.from(seenMap.values());
+  const members = sortMembers(Array.from(seenMap.values()));
   
   if (members.length !== rawMembers.length || JSON.stringify(members) !== JSON.stringify(rawMembers)) {
     if (typeof window !== "undefined") {
