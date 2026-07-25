@@ -89,7 +89,7 @@ export type AuditAction =
   | "Geração de Escala" | "Regeneração de Escala" | "Envio de Justificativa" | "Análise de Justificativa"
   | "Abertura de Caso" | "Resolução de Caso" | "Cancelamento de Caso"
   | "Registro de Punição" | "Sincronização" | "Backup Executado"
-  | "Retorno de Licença" | "Membro em Licença" | "Desligamento de Membro";
+  | "Retorno de Licença" | "Membro em Licença" | "Desligamento de Membro" | "Revogação de Acesso";
 
 export type AuditModule = "Membros" | "Escalas" | "Casos" | "Punições" | "Sistema";
 
