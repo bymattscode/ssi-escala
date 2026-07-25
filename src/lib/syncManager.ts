@@ -10,6 +10,75 @@ import {
 } from './store';
 import { toast } from 'sonner';
 
+// Mapeamento de chaves (Frontend <-> Google Sheets)
+const headerMaps = {
+  membros: {
+    id: "ID", nick: "Nick", role: "Cargo", status: "Status", entryDate: "Data de Entrada",
+    promotionDate: "Data de Promoção", leaveStartDate: "Início da Licença", leaveEndDate: "Fim da Licença",
+    avatarUrl: "URL do Avatar", group: "Grupo", permissions: "Permissões", accessCode: "Código de Acesso",
+    updatedAt: "Atualizado Em", syncStatus: "Status Sincronização"
+  },
+  escalas: {
+    id: "ID", week: "Semana", memberId: "ID do Membro", referenceDay: "Dia de Referência",
+    deadline: "Prazo", status: "Status", responsibleId: "ID do Responsável", observations: "Observações",
+    type: "Tipo", deadlineDate: "Data do Prazo", conclusionId: "ID de Conclusão", comments: "Comentários",
+    casesLine: "Linha de Casos", justificationReason: "Motivo da Justificativa", justificationText: "Texto da Justificativa",
+    justificationAttachment: "Anexo da Justificativa", justificationOccurrenceDate: "Data da Ocorrência (Just.)",
+    justificationStatus: "Status da Justificativa", justificationDate: "Data da Justificativa",
+    justificationReviewerId: "ID do Revisor (Just.)", updatedAt: "Atualizado Em", syncStatus: "Status Sincronização"
+  },
+  casos: {
+    id: "ID", status: "Status", creatorId: "ID do Criador", offenderNick: "Nick do Infrator",
+    description: "Descrição", creationDate: "Data de Criação", proofAttachment: "Anexo de Prova",
+    orientation: "Orientação", orderNumber: "Número do Pedido", crimeCommitted: "Crime Cometido",
+    resolutionAttachment: "Anexo de Resolução", punishmentApplied: "Punição Aplicada",
+    resolutionDate: "Data de Resolução", resolverId: "ID do Solucionador", cancellationReason: "Motivo de Cancelamento",
+    updatedAt: "Atualizado Em", syncStatus: "Status Sincronização"
+  },
+  advertencias: {
+    id: "ID", date: "Data", offenderNick: "Nick do Infrator", punishmentType: "Tipo de Punição",
+    reason: "Motivo", directorId: "ID do Diretor", caseId: "ID do Caso", notes: "Observações",
+    updatedAt: "Atualizado Em", syncStatus: "Status Sincronização"
+  },
+  logs: {
+    id: "ID", date: "Data", timestamp: "Timestamp", userId: "ID do Usuário", userRole: "Cargo do Usuário",
+    action: "Ação", module: "Módulo", details: "Detalhes", targetId: "ID Alvo"
+  }
+};
+
+const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => {
+  const map = headerMaps[module];
+  if (!map) return data;
+  return data.map(item => {
+    const translated: any = {};
+    for (const key in item) {
+      const ptKey = map[key as keyof typeof map] || key;
+      translated[ptKey] = item[key];
+    }
+    return translated;
+  });
+};
+
+const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
+  const map = headerMaps[module];
+  if (!map) return data;
+  
+  // Invert the map for reading
+  const invertedMap: Record<string, string> = {};
+  for (const [en, pt] of Object.entries(map)) {
+    invertedMap[pt] = en;
+  }
+  
+  return data.map(item => {
+    const translated: any = {};
+    for (const key in item) {
+      const enKey = invertedMap[key] || key;
+      translated[enKey] = item[key];
+    }
+    return translated;
+  });
+};
+
 export const syncModule = async (moduleName: string): Promise<boolean> => {
   try {
     // 1. Pull remote state first
@@ -19,7 +88,8 @@ export const syncModule = async (moduleName: string): Promise<boolean> => {
       return false; // Fallback: Mantém local como pending, usuário pode tentar de novo
     }
 
-    const remoteData = readResponse.data?.[moduleName] || [];
+    const rawRemoteData = readResponse.data?.[moduleName] || [];
+    const remoteData = translateToEnglish(rawRemoteData, moduleName as keyof typeof headerMaps);
     let localData: any[] = [];
     let localKey = "";
 
@@ -40,7 +110,7 @@ export const syncModule = async (moduleName: string): Promise<boolean> => {
     // 3. Push merged state
     const payload = {
       action: "sync" as const,
-      payload: { [moduleName]: merged }
+      payload: { [moduleName]: translateToPortuguese(merged, moduleName as keyof typeof headerMaps) }
     };
     
     const pushResponse = await fetchGoogleSheets(payload);
@@ -71,10 +141,16 @@ export const syncAll = async (): Promise<boolean> => {
     const readResponse = await fetchGoogleSheets({ action: "readAll" });
     if (!readResponse.success) {
       toast.error(`Falha ao obter dados remotos: ${readResponse.error}`);
-      return false;
+      return false; // Retorna false se falhar
     }
 
-    const remoteData = readResponse.data || {};
+    const remoteData = {
+      membros: translateToEnglish(readResponse.data?.['membros'] || [], 'membros'),
+      escalas: translateToEnglish(readResponse.data?.['escalas'] || [], 'escalas'),
+      casos: translateToEnglish(readResponse.data?.['casos'] || [], 'casos'),
+      advertencias: translateToEnglish(readResponse.data?.['advertencias'] || [], 'advertencias'),
+      logs: translateToEnglish(readResponse.data?.['logs'] || [], 'logs')
+    };
     
     const members = await getMembers();
     const schedules = await getSchedules();
@@ -95,14 +171,15 @@ export const syncAll = async (): Promise<boolean> => {
       toast.warning(`${totalConflicts} conflito(s) resolvido(s).`);
     }
 
+    // 3. Push all merged data back
     const payload = {
       action: "sync" as const,
       payload: {
-        membros: mMembers.merged,
-        escalas: mSchedules.merged,
-        casos: mCases.merged,
-        advertencias: mWarnings.merged,
-        logs: mLogs.merged
+        membros: translateToPortuguese(mMembers.merged, 'membros'),
+        escalas: translateToPortuguese(mSchedules.merged, 'escalas'),
+        casos: translateToPortuguese(mCases.merged, 'casos'),
+        advertencias: translateToPortuguese(mWarnings.merged, 'advertencias'),
+        logs: translateToPortuguese(mLogs.merged, 'logs')
       }
     };
     

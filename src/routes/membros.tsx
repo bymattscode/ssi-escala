@@ -180,7 +180,6 @@ function MembrosPage() {
   const [editEntryDate, setEditEntryDate] = useState("");
   const [editPromotionDate, setEditPromotionDate] = useState("");
   const [editGroup, setEditGroup] = useState<UserGroup>("SSI");
-  const [editAccessLevel, setEditAccessLevel] = useState("3");
   const [editPermissions, setEditPermissions] = useState<ModulePermission[]>([]);
 
   const [isAddingMember, setIsAddingMember] = useState(false);
@@ -188,7 +187,6 @@ function MembrosPage() {
   const [newMemberRole, setNewMemberRole] = useState<Role>("Fiscalizador");
   const [newMemberEntryDate, setNewMemberEntryDate] = useState(new Date().toISOString().split("T")[0]);
   const [newMemberGroup, setNewMemberGroup] = useState<UserGroup>("SSI");
-  const [newMemberAccessLevel, setNewMemberAccessLevel] = useState("3");
   const [newMemberPermissions, setNewMemberPermissions] = useState<ModulePermission[]>([]);
 
   const [deactivateMember, setDeactivateMember] = useState<Member | null>(null);
@@ -202,7 +200,6 @@ function MembrosPage() {
     setEditEntryDate(m.entryDate || "");
     setEditPromotionDate(m.promotionDate || "");
     setEditGroup(m.group || "SSI");
-    setEditAccessLevel(m.accessLevel || "3");
     setEditPermissions(m.permissions || []);
   };
 
@@ -246,7 +243,6 @@ function MembrosPage() {
       entryDate: editEntryDate || editMember.entryDate,
       promotionDate: editPromotionDate || undefined,
       group: editGroup,
-      accessLevel: editAccessLevel,
       permissions: editPermissions
     });
     await addAuditLog("1", role, "Edição de Membro", "Membros", `Os dados do membro ${editMember.nick} foram atualizados.`, editMember.id);
@@ -294,7 +290,6 @@ function MembrosPage() {
     setNewMemberRole("Fiscalizador");
     setNewMemberEntryDate(new Date().toISOString().split("T")[0]);
     setNewMemberGroup("SSI");
-    setNewMemberAccessLevel("3");
     setNewMemberPermissions(["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos"]);
     setIsAddingMember(true);
   };
@@ -311,7 +306,6 @@ function MembrosPage() {
       status: "Ativo",
       entryDate: newMemberEntryDate || new Date().toISOString().split("T")[0],
       group: newMemberGroup,
-      accessLevel: newMemberAccessLevel,
       permissions: newMemberPermissions
     };
     await addMember(newMember);
@@ -416,17 +410,15 @@ function MembrosPage() {
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-foreground">Grupo</label>
               <select value={newMemberGroup} onChange={e => setNewMemberGroup(e.target.value as UserGroup)} className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50">
-                <option value="SSI">SSI</option>
-                <option value="GATE">GATE</option>
-                <option value="CSI">CSI</option>
-                <option value="Supremacia">Supremacia</option>
-                <option value="Ministério">Ministério</option>
-              </select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-foreground">Nível Acesso</label>
-              <input type="number" value={newMemberAccessLevel} onChange={e => setNewMemberAccessLevel(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50" placeholder="Ex: 3" />
-            </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">Grupo</label>
+            <select value={newMemberGroup} onChange={e => setNewMemberGroup(e.target.value as UserGroup)} className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50">
+              <option value="SSI">SSI</option>
+              <option value="GATE">GATE</option>
+              <option value="CSI">CSI</option>
+              <option value="Supremacia">Supremacia</option>
+              <option value="Ministério">Ministério</option>
+            </select>
           </div>
 
           <div className="flex flex-col gap-2 mt-2">
@@ -491,21 +483,15 @@ function MembrosPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-foreground">Grupo</label>
-                  <select value={editGroup} onChange={e => setEditGroup(e.target.value as UserGroup)} className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50">
-                    <option value="SSI">SSI</option>
-                    <option value="GATE">GATE</option>
-                    <option value="CSI">CSI</option>
-                    <option value="Supremacia">Supremacia</option>
-                    <option value="Ministério">Ministério</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-foreground">Nível Acesso</label>
-                  <input type="number" value={editAccessLevel} onChange={e => setEditAccessLevel(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50" />
-                </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-foreground">Grupo</label>
+                <select value={editGroup} onChange={e => setEditGroup(e.target.value as UserGroup)} className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50">
+                  <option value="SSI">SSI</option>
+                  <option value="GATE">GATE</option>
+                  <option value="CSI">CSI</option>
+                  <option value="Supremacia">Supremacia</option>
+                  <option value="Ministério">Ministério</option>
+                </select>
               </div>
 
               <div className="flex flex-col gap-2 mt-2">

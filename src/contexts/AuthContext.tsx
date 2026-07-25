@@ -62,7 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           status: 'Ativo', 
           entryDate: new Date().toISOString(),
           group: 'SSI',
-          accessLevel: '1',
           permissions: ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"]
         } as Member : undefined);
       

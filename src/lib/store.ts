@@ -115,9 +115,7 @@ export const getMembers = async (): Promise<Member[]> => {
         updated.permissions = ["Dashboard"];
       }
     }
-    if (!updated.accessLevel) {
-      updated.accessLevel = m.role === "Presidente" || m.role === "Vice-Presidente" ? "1" : m.role === "Diretor" ? "2" : "3";
-    }
+    updated.updatedAt = Date.now();
     return updated;
   });
 };

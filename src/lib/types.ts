@@ -16,7 +16,6 @@ export interface Member {
   leaveEndDate?: string;
   avatarUrl?: string;
   group?: UserGroup;
-  accessLevel?: string;
   permissions?: ModulePermission[];
   accessCode?: string;
   updatedAt?: number;
