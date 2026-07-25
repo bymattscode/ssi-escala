@@ -737,7 +737,7 @@ function EscalasPage() {
               <textarea 
                 value={registerComments} 
                 onChange={e => setRegisterComments(e.target.value)} 
-                placeholder={registerStatus === "Concluído" ? "Informe comentários relevantes da realização ou link do print..." : "Justifique o motivo de não realizar a fiscalização..."} 
+                placeholder={registerStatus === "Concluído" ? "Print da função realizada..." : "Justifique o motivo de não realizar a fiscalização..."} 
                 className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 min-h-[100px] resize-y"
               />
             </div>
