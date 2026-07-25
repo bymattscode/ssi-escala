@@ -32,7 +32,7 @@ function StatusBadge({ status }: { status: string }) {
   const Icon = styles[status]?.icon || Clock;
   
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1.5 w-fit ${styles[status]?.bg}`}>
+    <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1.5 w-fit whitespace-nowrap ${styles[status]?.bg}`}>
       <Icon className="h-3.5 w-3.5" />
       {status}
     </span>
@@ -118,9 +118,9 @@ function EscalaTable({
                     <span className="truncate">{member?.nick || "Desconhecido"}</span>
                   )}
                 </td>
-                <td className="px-6 py-4 text-muted-foreground">{schedule.type}</td>
-                <td className="px-6 py-4 text-foreground font-medium">{schedule.referenceDay}</td>
-                <td className="px-6 py-4 text-muted-foreground">{schedule.deadline}</td>
+                <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{schedule.type}</td>
+                <td className="px-6 py-4 text-foreground font-medium whitespace-nowrap">{schedule.referenceDay}</td>
+                <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{schedule.deadline}</td>
                 <td className="px-6 py-4">
                   <StatusBadge status={schedule.status} />
                 </td>
