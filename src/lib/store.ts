@@ -23,28 +23,37 @@ const KEYS = {
 // Helper for localStorage
 const getParsedData = <T,>(key: string, defaultValue: T): T => {
   if (typeof window === "undefined") return defaultValue;
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : defaultValue;
+  try {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : defaultValue;
+  } catch (e) {
+    console.error(`Error parsing data for key ${key}:`, e);
+    return defaultValue;
+  }
 };
 
 // Initialize localStorage with mockData if empty
 const initialize = () => {
   if (typeof window === "undefined") return;
   
-  if (!localStorage.getItem(KEYS.MEMBERS)) localStorage.setItem(KEYS.MEMBERS, JSON.stringify(mockMembers));
-  if (!localStorage.getItem(KEYS.SCHEDULES)) localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(mockSchedules));
-  if (!localStorage.getItem(KEYS.CASES)) localStorage.setItem(KEYS.CASES, JSON.stringify(mockCases));
-  if (!localStorage.getItem(KEYS.WARNINGS)) localStorage.setItem(KEYS.WARNINGS, JSON.stringify(mockWarnings));
-  
-  const DEFAULT_CONFIG = {
-    sheetUrl: "",
-    googleConnected: false,
-    lastRead: "",
-    lastWrite: "",
-    logs: []
-  };
-  if (!localStorage.getItem(KEYS.CONFIG)) localStorage.setItem(KEYS.CONFIG, JSON.stringify(DEFAULT_CONFIG));
-  if (!localStorage.getItem(KEYS.AUDIT)) localStorage.setItem(KEYS.AUDIT, JSON.stringify([]));
+  try {
+    if (!localStorage.getItem(KEYS.MEMBERS)) localStorage.setItem(KEYS.MEMBERS, JSON.stringify(mockMembers));
+    if (!localStorage.getItem(KEYS.SCHEDULES)) localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(mockSchedules));
+    if (!localStorage.getItem(KEYS.CASES)) localStorage.setItem(KEYS.CASES, JSON.stringify(mockCases));
+    if (!localStorage.getItem(KEYS.WARNINGS)) localStorage.setItem(KEYS.WARNINGS, JSON.stringify(mockWarnings));
+    
+    const DEFAULT_CONFIG = {
+      sheetUrl: "",
+      googleConnected: false,
+      lastRead: "",
+      lastWrite: "",
+      logs: []
+    };
+    if (!localStorage.getItem(KEYS.CONFIG)) localStorage.setItem(KEYS.CONFIG, JSON.stringify(DEFAULT_CONFIG));
+    if (!localStorage.getItem(KEYS.AUDIT)) localStorage.setItem(KEYS.AUDIT, JSON.stringify([]));
+  } catch (e) {
+    console.error("Failed to initialize localStorage:", e);
+  }
 };
 
 initialize();
