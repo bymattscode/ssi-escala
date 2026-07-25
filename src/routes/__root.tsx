@@ -160,9 +160,9 @@ function AppLayout() {
 
   const requiredPermission = routePermissions[location.pathname];
   if (requiredPermission && user && user.permissions) {
-    const hasPerm = user.permissions.includes(requiredPermission as any) || user.permissions.includes('all');
+    const hasPerm = (user.permissions as string[]).includes(requiredPermission) || (user.permissions as string[]).includes('all');
     if (!hasPerm && user.role !== "Presidente" && user.role !== "Vice-Presidente") {
-      setTimeout(() => toast.error(`Acesso restrito: Seu cargo (${user.role}) não possui permissão para acessar o módulo ${requiredPermission}.`), 100);
+      setTimeout(() => console.warn(`Acesso restrito ao módulo ${requiredPermission}`), 100);
       return <Navigate to="/" />;
     }
   }
