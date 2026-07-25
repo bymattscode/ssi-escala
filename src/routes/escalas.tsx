@@ -290,7 +290,7 @@ function EscalasPage() {
       "Justificado": "Não Justificado",
       "Não Justificado": "Pendente",
     };
-    const next = nextStatusMap[currentStatus];
+    const next = nextStatusMap[currentStatus] || "Pendente";
     await updateSchedule(id, { status: next });
     
     await addAuditLog("1", role, "Alteração de Status", "Escalas", `Status da escala #${id} alterado para ${next}.`, id);

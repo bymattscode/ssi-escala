@@ -168,6 +168,10 @@ export const getSchedules = async (): Promise<Schedule[]> => {
       needsSave = true;
       return { ...s, status: "Justificado" as any };
     }
+    if (!s.status || s.status === "undefined" as any) {
+      needsSave = true;
+      return { ...s, status: "Pendente" as any };
+    }
     return s;
   });
   
