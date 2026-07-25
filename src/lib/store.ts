@@ -334,13 +334,18 @@ interface SystemConfig {
 
 export const getConfig = async (): Promise<SystemConfig> => {
   await delay(100);
-  return getParsedData<SystemConfig>(KEYS.CONFIG, {
-    sheetUrl: "",
-    googleConnected: false,
+  const config = getParsedData<SystemConfig>(KEYS.CONFIG, {
+    sheetUrl: "https://script.google.com/macros/s/AKfycbyyw4ID-BPhtYZq7S6O6IYMdYwOg-ke_RJaqUKw_n47qKaH6C_KrOTfLInkDC3yjAagTg/exec",
+    googleConnected: true,
     lastRead: "",
     lastWrite: "",
     logs: []
   });
+  if (!config.sheetUrl) {
+    config.sheetUrl = "https://script.google.com/macros/s/AKfycbyyw4ID-BPhtYZq7S6O6IYMdYwOg-ke_RJaqUKw_n47qKaH6C_KrOTfLInkDC3yjAagTg/exec";
+    config.googleConnected = true;
+  }
+  return config;
 };
 
 export const updateConfig = async (updates: Partial<SystemConfig>): Promise<void> => {

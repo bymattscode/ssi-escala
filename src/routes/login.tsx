@@ -50,16 +50,19 @@ function Login() {
     setIsLoading(true);
     setTimeout(async () => {
       let members = await getMembers();
-      let foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.status === 'Ativo') 
-                        || (nick === 'Admin' ? { id: 'admin', nick: 'Admin', status: 'Ativo', accessCode: 'admin123' } : null);
+      const findUser = (m: any[]) => m.find(u => 
+        u.nick?.trim().toLowerCase() === nick.trim().toLowerCase() && 
+        u.status?.trim().toLowerCase() === 'ativo'
+      ) || (nick === 'Admin' ? { id: 'admin', nick: 'Admin', status: 'Ativo', accessCode: 'admin123' } : null);
+
+      let foundUser = findUser(members);
       
       if (!foundUser) {
         // Fallback: Tentar puxar da nuvem caso seja o primeiro acesso neste dispositivo
         toast.info("Sincronizando banco de dados...", { id: "sync-toast" });
         await fetchAllFromRemote();
         members = await getMembers();
-        foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.status === 'Ativo') 
-                        || (nick === 'Admin' ? { id: 'admin', nick: 'Admin', status: 'Ativo', accessCode: 'admin123' } : null);
+        foundUser = findUser(members);
         toast.dismiss("sync-toast");
       }
       
@@ -88,8 +91,12 @@ function Login() {
     setIsLoading(true);
     setTimeout(async () => {
       const members = await getMembers();
-      const foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.status === 'Ativo')
-                        || (nick === 'Admin' ? { id: 'admin', nick: 'Admin', status: 'Ativo', accessCode: 'admin123' } : null);
+      const findUser = (m: any[]) => m.find(u => 
+        u.nick?.trim().toLowerCase() === nick.trim().toLowerCase() && 
+        u.status?.trim().toLowerCase() === 'ativo'
+      ) || (nick === 'Admin' ? { id: 'admin', nick: 'Admin', status: 'Ativo', accessCode: 'admin123' } : null);
+
+      const foundUser = findUser(members);
 
       if (foundUser && foundUser.accessCode === userAccessCode) {
         toast.success(`Bem-vindo de volta, ${nick}!`);
