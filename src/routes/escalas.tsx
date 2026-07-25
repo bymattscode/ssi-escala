@@ -204,7 +204,6 @@ function EscalasPage() {
   const [viewSchedule, setViewSchedule] = useState<Schedule | null>(null);
   
   const [registeringSchedule, setRegisteringSchedule] = useState<Schedule | null>(null);
-  const [registerStatus, setRegisterStatus] = useState<"Concluído" | "Justificativa Enviada">("Concluído");
   const [registerComments, setRegisterComments] = useState("");
   
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 }); // Sunday
@@ -344,23 +343,16 @@ function EscalasPage() {
   const handleRegisterSubmit = async () => {
     if (!registeringSchedule) return;
     
-    const isJustification = registerStatus === "Justificativa Enviada";
-    
     await updateSchedule(registeringSchedule.id, {
-      status: registerStatus,
+      status: "Concluído",
       comments: registerComments,
-      ...(isJustification ? {
-        justificationStatus: "Pendente",
-        justificationDate: new Date().toISOString()
-      } : {})
     });
     
-    await addAuditLog("1", role, "Alteração de Status", "Escalas", `Função registrada como ${registerStatus} na escala #${registeringSchedule.id}.`, registeringSchedule.id);
+    await addAuditLog("1", role, "Alteração de Status", "Escalas", `Função registrada como Concluído na escala #${registeringSchedule.id}.`, registeringSchedule.id);
     
     toast.success("Registro de função enviado com sucesso!");
     setRegisteringSchedule(null);
     setRegisterComments("");
-    setRegisterStatus("Concluído");
     fetchSchedules();
   };
   
@@ -714,30 +706,12 @@ function EscalasPage() {
               </div>
             </div>
             
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-bold text-foreground">Status:</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  onClick={() => setRegisterStatus("Concluído")}
-                  className={`py-2 rounded-md font-bold text-sm transition-all shadow-sm ${registerStatus === "Concluído" ? "bg-blue-600 text-white border-2 border-blue-700" : "bg-blue-600/20 text-blue-600 border border-blue-600/30 hover:bg-blue-600/30"}`}
-                >
-                  REALIZADO
-                </button>
-                <button 
-                  onClick={() => setRegisterStatus("Justificativa Enviada")}
-                  className={`py-2 rounded-md font-bold text-sm transition-all shadow-sm ${registerStatus === "Justificativa Enviada" ? "bg-orange-500 text-white border-2 border-orange-600" : "bg-orange-500/20 text-orange-500 border border-orange-500/30 hover:bg-orange-500/30"}`}
-                >
-                  JUSTIFICATIVA
-                </button>
-              </div>
-            </div>
-            
             <div className="flex flex-col gap-1.5 mt-2">
-              <label className="text-sm font-bold text-foreground">{registerStatus === "Concluído" ? "Print da função:" : "Comentários:"}</label>
+              <label className="text-sm font-bold text-foreground">Print da função:</label>
               <textarea 
                 value={registerComments} 
                 onChange={e => setRegisterComments(e.target.value)} 
-                placeholder={registerStatus === "Concluído" ? "Print da função realizada..." : "Justifique o motivo de não realizar a fiscalização..."} 
+                placeholder="Print da função realizada..." 
                 className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 min-h-[100px] resize-y"
               />
             </div>
