@@ -214,22 +214,29 @@ export const fetchAllFromRemote = async (): Promise<boolean> => {
   
   if (response.success && response.data) {
     const { membros, escalas, casos, advertencias, logs } = response.data;
+    const remoteData = {
+      membros: translateToEnglish(membros || [], 'membros'),
+      escalas: translateToEnglish(escalas || [], 'escalas'),
+      casos: translateToEnglish(casos || [], 'casos'),
+      advertencias: translateToEnglish(advertencias || [], 'advertencias'),
+      logs: translateToEnglish(logs || [], 'logs')
+    };
     
     // Fallback merge to avoid overwriting pending offline changes
     const localMembers = await getMembers();
-    const mMembers = mergeArrays(localMembers, membros || []);
+    const mMembers = mergeArrays(localMembers, remoteData.membros);
     
     const localSchedules = await getSchedules();
-    const mSchedules = mergeArrays(localSchedules, escalas || []);
+    const mSchedules = mergeArrays(localSchedules, remoteData.escalas);
 
     const localCases = await getCases();
-    const mCases = mergeArrays(localCases, casos || []);
+    const mCases = mergeArrays(localCases, remoteData.casos);
 
     const localWarnings = await getWarnings();
-    const mWarnings = mergeArrays(localWarnings, advertencias || []);
+    const mWarnings = mergeArrays(localWarnings, remoteData.advertencias);
 
     const localLogs = getParsedDataLocally(KEYS.AUDIT, []);
-    const mLogs = mergeArrays(localLogs, logs || []);
+    const mLogs = mergeArrays(localLogs, remoteData.logs);
     
     // Save to local storage without overriding syncStatus='pending' on items that were NOT resolved by remote
     if (typeof window !== "undefined") {

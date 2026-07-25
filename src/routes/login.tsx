@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 import { ShieldCheck, UserCircle, Loader2, Key, Copy, CheckCircle2, ArrowRight } from "lucide-react";
 import { getMembers, updateMember } from "../lib/store";
+import { fetchAllFromRemote } from "../lib/syncManager";
 
 export const Route = createFileRoute("/login")({
   component: Login,
@@ -25,6 +26,11 @@ function Login() {
   const [avatarError, setAvatarError] = useState(false);
   
   const [copied, setCopied] = useState(false);
+  
+  // Warm up local cache by fetching remote members if not present
+  useEffect(() => {
+    fetchAllFromRemote().catch(console.error);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -43,9 +49,19 @@ function Login() {
 
     setIsLoading(true);
     setTimeout(async () => {
-      const members = await getMembers();
-      const foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.status === 'Ativo') 
+      let members = await getMembers();
+      let foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.status === 'Ativo') 
                         || (nick === 'Admin' ? { id: 'admin', nick: 'Admin', status: 'Ativo', accessCode: 'admin123' } : null);
+      
+      if (!foundUser) {
+        // Fallback: Tentar puxar da nuvem caso seja o primeiro acesso neste dispositivo
+        toast.info("Sincronizando banco de dados...", { id: "sync-toast" });
+        await fetchAllFromRemote();
+        members = await getMembers();
+        foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.status === 'Ativo') 
+                        || (nick === 'Admin' ? { id: 'admin', nick: 'Admin', status: 'Ativo', accessCode: 'admin123' } : null);
+        toast.dismiss("sync-toast");
+      }
       
       if (foundUser) {
         setAvatarUrl(`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${nick}&action=std&direction=2&head_direction=2&gesture=sml&size=l`);

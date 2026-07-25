@@ -42,8 +42,8 @@ const initialize = () => {
     if (!localStorage.getItem(KEYS.WARNINGS)) localStorage.setItem(KEYS.WARNINGS, JSON.stringify(mockWarnings));
     
     const DEFAULT_CONFIG = {
-      sheetUrl: "",
-      googleConnected: false,
+      sheetUrl: "https://script.google.com/macros/s/AKfycbyyw4ID-BPhtYZq7S6O6IYMdYwOg-ke_RJaqUKw_n47qKaH6C_KrOTfLInkDC3yjAagTg/exec",
+      googleConnected: true,
       lastRead: "",
       lastWrite: "",
       logs: []
