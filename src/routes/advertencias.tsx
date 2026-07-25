@@ -90,7 +90,7 @@ function AdvertenciasPage() {
     }
     
     const newWarning: Warning = {
-      id: `w${Date.now()}`,
+      id: `SSI-PUN-${Date.now().toString(36).toUpperCase()}`,
       date: new Date().toLocaleDateString('pt-BR'),
       offenderNick: newOffender,
       punishmentType: newType,

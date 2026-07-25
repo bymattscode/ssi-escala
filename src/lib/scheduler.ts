@@ -34,7 +34,7 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
     const deadlineFormatted = `${format(deadlineDay, "EEEE", { locale: ptBR })} (23:59)`;
     
     const newSchedule: Schedule = {
-      id: `sch-${Date.now()}-${i}-${type}`,
+      id: `SSI-ESC-${Date.now().toString(36).toUpperCase()}-${i}-${type.substring(0,3).toUpperCase()}`,
       week: weekId,
       memberId: member.id,
       referenceDay: DAYS_OF_WEEK[i],

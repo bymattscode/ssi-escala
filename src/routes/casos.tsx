@@ -94,7 +94,7 @@ function CasosPage() {
   const handleCreate = async () => {
     if (!newOffender || !newDesc) return;
     const newCase: Case = {
-      id: `c${Date.now()}`,
+      id: `SSI-CASO-${Date.now().toString(36).toUpperCase()}`,
       status: "Aberto",
       creatorId: "1", // Mock ID of logged user
       offenderNick: newOffender,

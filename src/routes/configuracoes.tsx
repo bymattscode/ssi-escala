@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Settings, Database, HardDrive, RefreshCw, CheckCircle2, AlertCircle, FileSpreadsheet, Key, History, Users, Calendar, ShieldAlert, Ban, Save } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { getConfig, updateConfig, addSyncLog, SyncLog, getPendingCount } from "../lib/store";
+import { getConfig, updateConfig, addSyncLog, SyncLog, getPendingCount, wipeAllData } from "../lib/store";
 import { syncModule, syncAll, fetchAllFromRemote, backupToRemote } from "../lib/syncManager";
 
 export const Route = createFileRoute("/configuracoes")({
@@ -122,6 +122,12 @@ function ConfiguracoesPage() {
     await loadConfig();
     setSheetUrlInput("");
     toast.info("Conexão removida.");
+  };
+
+  const handleWipeData = () => {
+    if (confirm("Tem certeza ABSOLUTA que deseja ZERAR TODOS OS DADOS LOCAIS? Essa ação é irreversível.")) {
+      wipeAllData();
+    }
   };
 
   return (
@@ -298,11 +304,38 @@ function ConfiguracoesPage() {
             <button 
               onClick={handleBackup}
               disabled={isSyncing || !config.googleConnected}
-              className="col-span-2 flex flex-row items-center justify-center gap-2 p-3 bg-green-500/10 text-green-600 border border-green-500/30 rounded-lg hover:bg-green-500/20 transition-colors disabled:opacity-50 mt-2"
+              className="flex items-center justify-center gap-2 p-4 col-span-2 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors disabled:opacity-50"
             >
-              <Save className="h-5 w-5" />
-              <span className="text-sm font-bold">Fazer Backup Completo (Logs)</span>
+              <Save className={`h-5 w-5 ${isSyncing && !syncingModule ? 'animate-bounce' : ''}`} />
+              <span className="font-medium">Fazer Backup de Segurança</span>
             </button>
+          </div>
+        </div>
+
+        {/* Danger Zone */}
+        <div className="bg-red-500/5 border border-red-500/20 rounded-xl shadow-sm flex flex-col overflow-hidden lg:col-span-2 mt-4">
+          <div className="px-6 py-4 border-b border-red-500/20 bg-red-500/10 flex items-center gap-3">
+            <div className="h-10 w-10 bg-red-500/20 border border-red-500/30 rounded-md flex items-center justify-center text-red-500">
+              <ShieldAlert className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-red-500">Zona de Perigo</h2>
+              <p className="text-xs text-red-500/80">Ações irreversíveis no sistema.</p>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-foreground">Zerar Sistema</h3>
+                <p className="text-sm text-muted-foreground mt-1">Isso apagará permanentemente todos os dados armazenados localmente neste navegador.</p>
+              </div>
+              <button 
+                onClick={handleWipeData}
+                className="bg-red-500 text-white px-4 py-2 rounded-md font-medium hover:bg-red-600 transition-colors shadow-sm whitespace-nowrap"
+              >
+                Apagar Todos os Dados
+              </button>
+            </div>
           </div>
         </div>
       </div>

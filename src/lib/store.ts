@@ -57,6 +57,18 @@ const initialize = () => {
 
 initialize();
 
+// Zerar todo o sistema (hard reset)
+export const wipeAllData = () => {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.MEMBERS, "[]");
+    localStorage.setItem(KEYS.SCHEDULES, "[]");
+    localStorage.setItem(KEYS.CASES, "[]");
+    localStorage.setItem(KEYS.WARNINGS, "[]");
+    localStorage.setItem(KEYS.AUDIT, "[]");
+    window.location.reload();
+  }
+};
+
 // Simulating network delay
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -77,7 +89,7 @@ export const addAuditLog = async (
   const logs = getParsedData<AuditLog[]>(KEYS.AUDIT, []);
   
   const newLog: AuditLog = {
-    id: `audit-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    id: `SSI-LOG-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`,
     date: new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" }),
     timestamp: Date.now(),
     userId,
@@ -344,7 +356,7 @@ export const addSyncLog = async (logData: Omit<SyncLog, "id" | "date">): Promise
   const config = await getConfig();
   const newLog: SyncLog = {
     ...logData,
-    id: `log-${Date.now()}`,
+    id: `SSI-SYNC-${Date.now().toString(36).toUpperCase()}`,
     date: new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })
   };
   

@@ -300,7 +300,7 @@ function MembrosPage() {
       return;
     }
     const newMember: Member = {
-      id: `m${Date.now()}`,
+      id: `SSI-MEM-${Date.now().toString(36).toUpperCase()}`,
       nick: newMemberNick.trim(),
       role: newMemberRole,
       status: "Ativo",
