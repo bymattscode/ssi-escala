@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getConfig, updateConfig, addSyncLog, SyncLog, getPendingCount, wipeAllData } from "../lib/store";
 import { syncModule, syncAll, fetchAllFromRemote, backupToRemote } from "../lib/syncManager";
+import { ConfirmModal, EmptyState } from "../components/ui/ux";
 
 export const Route = createFileRoute("/configuracoes")({
   component: ConfiguracoesPage,
@@ -21,6 +22,7 @@ function ConfiguracoesPage() {
   });
   const [sheetUrlInput, setSheetUrlInput] = useState("");
   const [pendingCount, setPendingCount] = useState(0);
+  const [showConfirmWipe, setShowConfirmWipe] = useState(false);
 
   const loadConfig = async () => {
     const data = await getConfig();
@@ -36,84 +38,96 @@ function ConfiguracoesPage() {
 
   const handleSyncAll = async () => {
     if (!config.googleConnected) {
-      toast.error("É necessário conectar a planilha primeiro.");
+      toast.error("Atenção: É necessário conectar a planilha do Google Sheets primeiro.");
       return;
     }
     setIsSyncing(true);
-    toast.info("Iniciando sincronização total com banco de dados...");
+    toast.info("Iniciando sincronização total com o Google Sheets...");
     
     const success = await syncAll();
     
     await loadConfig();
     setIsSyncing(false);
     if (success) {
-      toast.success("Dados sincronizados com sucesso!");
+      toast.success("Todos os dados foram sincronizados com sucesso!");
+    } else {
+      toast.error("Falha na sincronização. Verifique se o Web App Script está ativo e sua conexão.");
     }
   };
 
   const handleSyncModule = async (module: string) => {
     if (!config.googleConnected) {
-      toast.error("É necessário conectar a planilha primeiro.");
+      toast.error("Atenção: É necessário conectar a planilha do Google Sheets primeiro.");
       return;
     }
     setSyncingModule(module);
-    toast.info(`Sincronizando ${module}...`);
+    toast.info(`Sincronizando o módulo ${module}...`);
     
     const success = await syncModule(module);
     
     await loadConfig();
     setSyncingModule(null);
     if (success) {
-      toast.success(`${module} sincronizado!`);
+      toast.success(`Módulo ${module} sincronizado com sucesso!`);
+    } else {
+      toast.error(`Erro ao sincronizar o módulo ${module}. Tente novamente mais tarde.`);
     }
   };
   
   const handleFetchAll = async () => {
     if (!config.googleConnected) {
-      toast.error("É necessário conectar a planilha primeiro.");
+      toast.error("Atenção: É necessário conectar a planilha do Google Sheets primeiro.");
       return;
     }
     setIsSyncing(true);
-    toast.info("Puxando todos os dados da planilha...");
+    toast.info("Carregando todos os dados remotos da planilha...");
     
     const success = await fetchAllFromRemote();
     
     await loadConfig();
     setIsSyncing(false);
     if (success) {
-      toast.success("Dados puxados com sucesso! Atualize a página se necessário.");
+      toast.success("Dados carregados da nuvem com sucesso!");
+    } else {
+      toast.error("Não foi possível carregar os dados da nuvem. Verifique o link nas configurações.");
     }
   };
 
   const handleBackup = async () => {
     if (!config.googleConnected) {
-      toast.error("É necessário conectar a planilha primeiro.");
+      toast.error("Atenção: É necessário conectar a planilha do Google Sheets primeiro.");
       return;
     }
     setIsSyncing(true);
-    toast.info("Iniciando backup total...");
+    toast.info("Iniciando backup total para o Google Sheets...");
     
     const success = await backupToRemote();
     
     await loadConfig();
     setIsSyncing(false);
     if (success) {
-      toast.success("Backup realizado com sucesso!");
+      toast.success("Backup total realizado e salvo na planilha com sucesso!");
+    } else {
+      toast.error("Erro ao realizar backup na nuvem. Verifique as permissões de gravação no App Script.");
     }
   };
 
   const handleConnectGoogle = async () => {
-    if (!sheetUrlInput) {
-      toast.error("Por favor, insira a URL do Web App do Google Apps Script.");
+    if (!sheetUrlInput || !sheetUrlInput.trim()) {
+      toast.error("Obrigatório: Insira a URL do Web App do Google Apps Script.");
       return;
     }
-    toast.info("Conectando...");
+    if (!sheetUrlInput.trim().startsWith("https://")) {
+      toast.error("URL Inválida: O link do Google Apps Script deve começar com https://...");
+      return;
+    }
+    toast.info("Conectando e verificando parâmetros da planilha...");
     
-    await updateConfig({ googleConnected: true, sheetUrl: sheetUrlInput });
+    await updateConfig({ googleConnected: true, sheetUrl: sheetUrlInput.trim() });
     await addSyncLog({ type: "success", message: "Planilha conectada e autenticada com sucesso." });
     
     await loadConfig();
-    toast.success("Conectado! Recomendamos puxar os dados iniciais.");
+    toast.success("Planilha vinculada com sucesso! Orientação: Clique em 'Puxar Planilha' se desejar sincronizar com a nuvem.");
   };
 
   const handleDisconnectGoogle = async () => {
@@ -125,9 +139,8 @@ function ConfiguracoesPage() {
   };
 
   const handleWipeData = () => {
-    if (confirm("Tem certeza ABSOLUTA que deseja ZERAR TODOS OS DADOS LOCAIS? Essa ação é irreversível.")) {
-      wipeAllData();
-    }
+    wipeAllData();
+    setShowConfirmWipe(false);
   };
 
   return (
@@ -330,7 +343,7 @@ function ConfiguracoesPage() {
                 <p className="text-sm text-muted-foreground mt-1">Isso apagará permanentemente todos os dados armazenados localmente neste navegador.</p>
               </div>
               <button 
-                onClick={handleWipeData}
+                onClick={() => setShowConfirmWipe(true)}
                 className="bg-red-500 text-white px-4 py-2 rounded-md font-medium hover:bg-red-600 transition-colors shadow-sm whitespace-nowrap"
               >
                 Apagar Todos os Dados
@@ -370,13 +383,27 @@ function ConfiguracoesPage() {
             ))}
             
             {config.logs.length === 0 && (
-              <div className="p-8 text-center text-muted-foreground text-sm">
-                Nenhum log registrado ainda.
+              <div className="py-8">
+                <EmptyState
+                  icon={History}
+                  title="Nenhum log registrado ainda"
+                  description="As ações do sistema, de exportação e sincronização com Google Sheets aparecerão aqui."
+                />
               </div>
             )}
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirmWipe}
+        title="Zerar Sistema e Apagar Todos os Dados?"
+        description="Esta ação removerá TODOS OS DADOS ARMAZENADOS LOCALMENTE neste navegador. Esta operação é totalmente irreversível e retornará o sistema ao estado inicial."
+        confirmText="Apagar Tudo"
+        variant="danger"
+        onConfirm={handleWipeData}
+        onClose={() => setShowConfirmWipe(false)}
+      />
     </div>
   );
 }

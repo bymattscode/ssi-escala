@@ -126,16 +126,49 @@ export const addAuditLog = async (
   }
 };
 
+// --- DELETION BLACKLIST (TOMBSTONES) ---
+export const getDeletedKeys = (): string[] => {
+  return getParsedData<string[]>("SSI_DELETED_KEYS", []);
+};
+
+export const addDeletedKey = (key?: string): void => {
+  if (!key) return;
+  const list = getDeletedKeys();
+  const clean = key.trim().toLowerCase();
+  if (!list.includes(clean)) {
+    list.push(clean);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("SSI_DELETED_KEYS", JSON.stringify(list));
+    }
+  }
+};
+
+export const removeDeletedKey = (key?: string): void => {
+  if (!key) return;
+  const list = getDeletedKeys();
+  const clean = key.trim().toLowerCase();
+  const next = list.filter(k => k !== clean);
+  if (typeof window !== "undefined") {
+    localStorage.setItem("SSI_DELETED_KEYS", JSON.stringify(next));
+  }
+};
+
 // --- MEMBERS ---
 export const getMembers = async (): Promise<Member[]> => {
   await delay(200);
   const rawMembers = getParsedData<Member[]>(KEYS.MEMBERS, []);
+  const deletedKeys = getDeletedKeys();
   
-  // Deduplicação automática pelo nick (case-insensitive) para eliminar duplicatas da sincronização ou mock
+  // Deduplicação automática pelo nick e exclusão definitiva de itens deletados (Tombstones)
   const seenMap = new Map<string, Member>();
   for (const m of rawMembers) {
     if (!m || !m.nick) continue;
     const cleanNick = m.nick.trim().toLowerCase();
+    const cleanId = (m.id || "").trim().toLowerCase();
+    
+    // Se foi desligado ou excluído anteriormente, ignorar para sempre!
+    if (deletedKeys.includes(cleanId) || deletedKeys.includes(cleanNick)) continue;
+
     const cleanEntry = m.entryDate ? m.entryDate.toString().split('T')[0] : "";
     const cleanPromo = m.promotionDate ? m.promotionDate.toString().split('T')[0] : "";
     const cleanedMember: Member = {
@@ -167,7 +200,6 @@ export const getMembers = async (): Promise<Member[]> => {
   
   const members = Array.from(seenMap.values());
   
-  // Se removeu duplicatas ou limpou datas ISO, salvar estado limpo no localStorage
   if (members.length !== rawMembers.length || JSON.stringify(members) !== JSON.stringify(rawMembers)) {
     if (typeof window !== "undefined") {
       localStorage.setItem(KEYS.MEMBERS, JSON.stringify(members));
@@ -208,6 +240,11 @@ export const updateMember = async (id: string, data: Partial<Member>): Promise<v
 export const deleteMember = async (id: string): Promise<void> => {
   await delay(200);
   const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
+  const target = members.find(m => m.id === id);
+  if (target) {
+    addDeletedKey(target.id);
+    if (target.nick) addDeletedKey(target.nick);
+  }
   const newMembers = members.filter(m => m.id !== id);
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.MEMBERS, JSON.stringify(newMembers));
@@ -217,6 +254,8 @@ export const deleteMember = async (id: string): Promise<void> => {
 
 export const addMember = async (member: Member): Promise<void> => {
   await delay(200);
+  if (member.id) removeDeletedKey(member.id);
+  if (member.nick) removeDeletedKey(member.nick);
   const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
   members.push({ ...member, updatedAt: Date.now(), syncStatus: "pending" });
   if (typeof window !== "undefined") {

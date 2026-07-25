@@ -125,7 +125,7 @@ import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 
 function AppLayout() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
@@ -135,7 +135,7 @@ function AppLayout() {
         <div className="h-16 w-16 bg-primary/10 border border-primary/30 rounded-2xl flex items-center justify-center overflow-hidden p-2 mb-4 animate-pulse">
           <img src="/logo.png" alt="SSI Logo" className="h-full w-full object-contain" />
         </div>
-        <p className="text-muted-foreground animate-pulse">Verificando acesso...</p>
+        <p className="text-muted-foreground animate-pulse font-medium">Verificando credenciais e acesso seguro...</p>
       </div>
     );
   }
@@ -146,6 +146,25 @@ function AppLayout() {
 
   if (location.pathname === '/login') {
     return <Outlet />;
+  }
+
+  // --- SEGURANÇA DE FLUXO BY perfil: Bloqueio contra navegação direta indevida via URL ---
+  const routePermissions: Record<string, string> = {
+    '/escalas': 'Escala Semanal',
+    '/membros': 'Listagem de Membros',
+    '/casos': 'Gestão de Casos',
+    '/advertencias': 'Registro de Punições',
+    '/relatorios': 'Relatórios e Auditoria',
+    '/configuracoes': 'Configurações'
+  };
+
+  const requiredPermission = routePermissions[location.pathname];
+  if (requiredPermission && user && user.permissions) {
+    const hasPerm = user.permissions.includes(requiredPermission as any) || user.permissions.includes('all');
+    if (!hasPerm && user.role !== "Presidente" && user.role !== "Vice-Presidente") {
+      setTimeout(() => toast.error(`Acesso restrito: Seu cargo (${user.role}) não possui permissão para acessar o módulo ${requiredPermission}.`), 100);
+      return <Navigate to="/" />;
+    }
   }
 
   return (

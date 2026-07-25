@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Case, CaseStatus, Member } from "@/lib/types";
-import { Search, Plus, Filter, AlertCircle, CheckCircle2, Clock, XCircle, MoreVertical, FileText, Gavel, X } from "lucide-react";
+import { Search, Plus, Filter, AlertCircle, CheckCircle2, Clock, XCircle, MoreVertical, FileText, Gavel, X, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getCases, getMembers, addCase, updateCase, addAuditLog } from "../lib/store";
 import { toast } from "sonner";
+import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
 
 export const Route = createFileRoute("/casos")({
   component: CasosPage,
@@ -56,6 +57,7 @@ function CasosPage() {
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
   const [cases, setCases] = useState<Case[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const { role } = useAuth();
   const isFiscalizador = role === "Fiscalizador";
@@ -79,12 +81,15 @@ function CasosPage() {
   const [resDecision, setResDecision] = useState("Resolver");
   const [resAttachment, setResAttachment] = useState("");
   const [resCancelReason, setResCancelReason] = useState("");
+  const [showConfirmResolve, setShowConfirmResolve] = useState(false);
 
   const fetchData = async () => {
+    setIsLoading(true);
     const c = await getCases();
     const m = await getMembers();
     setCases(c);
     setMembers(m);
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -92,7 +97,18 @@ function CasosPage() {
   }, []);
 
   const handleCreate = async () => {
-    if (!newOffender || !newDesc) return;
+    if (!newOffender.trim() || !newDesc.trim()) {
+      toast.error("Obrigatório: Preencha o nick do infrator e a descrição do caso.");
+      return;
+    }
+    if (newOffender.trim().length < 2) {
+      toast.error("Erro no formulário: O nick do infrator deve conter pelo menos 2 caracteres.");
+      return;
+    }
+    if (newDesc.trim().length < 5) {
+      toast.error("Dados mínimos insuficientes: Detalhe adequadamente a descrição da infração (mínimo 5 caracteres).");
+      return;
+    }
     const newCase: Case = {
       id: `SSI-CASO-${Date.now().toString(36).toUpperCase()}`,
       status: "Aberto",
@@ -116,23 +132,34 @@ function CasosPage() {
     setNewProof("");
   };
 
-  const handleResolve = async () => {
+  const validateAndPromptResolve = () => {
     if (!resolveCase) return;
     
-    if (resDecision === "Cancelar" && !resCancelReason) {
-      toast.error("Por favor, preencha o motivo do cancelamento.");
+    if (resDecision === "Cancelar" && (!resCancelReason || !resCancelReason.trim())) {
+      toast.error("Obrigatório: Para cancelar um caso, informe o motivo do cancelamento.");
       return;
     }
+    if (resDecision === "Resolver" && (!resCrime || !resCrime.trim())) {
+      toast.error("Obrigatório: Para resolver e julgar o caso, você deve especificar o campo 'Crime Cometido'.");
+      return;
+    }
+
+    setShowConfirmResolve(true);
+  };
+
+  const handleResolve = async () => {
+    if (!resolveCase) return;
+    setShowConfirmResolve(false);
     
     await updateCase(resolveCase.id, {
       status: resDecision === "Resolver" ? "Resolvido" : "Cancelado",
       resolverId: "1",
       resolutionDate: new Date().toISOString().replace('T', ' ').slice(0, 16),
       punishmentApplied: resDecision === "Resolver" ? resPunishment : undefined,
-      crimeCommitted: resDecision === "Resolver" ? resCrime : undefined,
+      crimeCommitted: resDecision === "Resolver" ? resCrime.trim() : undefined,
       orderNumber: resDecision === "Resolver" ? resOrder : undefined,
       resolutionAttachment: resAttachment || undefined,
-      cancellationReason: resDecision === "Cancelar" ? resCancelReason : undefined
+      cancellationReason: resDecision === "Cancelar" ? resCancelReason.trim() : undefined
     });
     
     await addAuditLog(
@@ -145,7 +172,7 @@ function CasosPage() {
     );
     
     setResolveCase(null);
-    toast.success(`Caso ${resDecision === "Resolver" ? "resolvido" : "cancelado"}.`);
+    toast.success(resDecision === "Resolver" ? "Análise concluída: Caso julgado e resolvido com sucesso!" : "Caso cancelado e arquivado no histórico.");
     fetchData();
     
     // Reset
@@ -217,62 +244,68 @@ function CasosPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs text-muted-foreground uppercase bg-secondary/30 border-b border-border">
-              <tr>
-                <th className="px-6 py-4 font-medium">ID</th>
-                <th className="px-6 py-4 font-medium">Data / Hora</th>
-                <th className="px-6 py-4 font-medium">Infrator</th>
-                <th className="px-6 py-4 font-medium">Fiscalizador</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium">Responsável</th>
-                <th className="px-6 py-4 font-medium text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCases.map((c) => {
-                const creator = getMemberDetails(c.creatorId, members);
-                const resolver = c.resolverId ? getMemberDetails(c.resolverId, members) : null;
-                return (
-                  <tr key={c.id} className="border-b border-border hover:bg-secondary/20 transition-colors group">
-                    <td className="px-6 py-4 font-medium text-foreground">#{String(c.id).toUpperCase()}</td>
-                    <td className="px-6 py-4 text-muted-foreground">{c.creationDate}</td>
-                    <td className="px-6 py-4 font-bold text-foreground">{c.offenderNick}</td>
-                    <td className="px-6 py-4 text-muted-foreground">{creator?.nick || "-"}</td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={c.status} />
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground">{resolver?.nick || "-"}</td>
-                    <td className="px-6 py-4 text-right flex items-center justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => setViewCase(c)}
-                        className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors" 
-                        title="Ver Histórico"
-                      >
-                        <FileText className="h-4 w-4" />
-                      </button>
-                      {(c.status === "Aberto" && !isFiscalizador) && (
-                        <button 
-                          onClick={() => setResolveCase(c)}
-                          className="p-1.5 text-muted-foreground hover:text-green-500 bg-background rounded-md border border-border hover:border-green-500/30 transition-colors" 
-                          title="Resolver Caso (Diretores)"
-                        >
-                          <Gavel className="h-4 w-4" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-              {filteredCases.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
-                    Nenhum caso encontrado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          {isLoading ? <SkeletonTable rows={5} /> : (
+           <table className="w-full text-sm text-left">
+             <thead className="text-xs text-muted-foreground uppercase bg-secondary/30 border-b border-border">
+               <tr>
+                 <th className="px-6 py-4 font-medium">ID</th>
+                 <th className="px-6 py-4 font-medium">Data / Hora</th>
+                 <th className="px-6 py-4 font-medium">Infrator</th>
+                 <th className="px-6 py-4 font-medium">Fiscalizador</th>
+                 <th className="px-6 py-4 font-medium">Status</th>
+                 <th className="px-6 py-4 font-medium">Responsável</th>
+                 <th className="px-6 py-4 font-medium text-right">Ações</th>
+               </tr>
+             </thead>
+             <tbody>
+               {filteredCases.map((c) => {
+                 const creator = getMemberDetails(c.creatorId, members);
+                 const resolver = c.resolverId ? getMemberDetails(c.resolverId, members) : null;
+                 return (
+                   <tr key={c.id} className="border-b border-border hover:bg-secondary/20 transition-colors group">
+                     <td className="px-6 py-4 font-medium text-foreground">#{String(c.id).toUpperCase()}</td>
+                     <td className="px-6 py-4 text-muted-foreground">{c.creationDate}</td>
+                     <td className="px-6 py-4 font-bold text-foreground">{c.offenderNick}</td>
+                     <td className="px-6 py-4 text-muted-foreground">{creator?.nick || "-"}</td>
+                     <td className="px-6 py-4">
+                       <StatusBadge status={c.status} />
+                     </td>
+                     <td className="px-6 py-4 text-muted-foreground">{resolver?.nick || "-"}</td>
+                     <td className="px-6 py-4 text-right flex items-center justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                       <button 
+                         onClick={() => setViewCase(c)}
+                         className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors" 
+                         title="Ver Histórico"
+                       >
+                         <FileText className="h-4 w-4" />
+                       </button>
+                       {(c.status === "Aberto" && !isFiscalizador) && (
+                         <button 
+                           onClick={() => setResolveCase(c)}
+                           className="p-1.5 text-muted-foreground hover:text-green-500 bg-background rounded-md border border-border hover:border-green-500/30 transition-colors" 
+                           title="Resolver Caso (Diretores)"
+                         >
+                           <Gavel className="h-4 w-4" />
+                         </button>
+                       )}
+                     </td>
+                   </tr>
+                 );
+               })}
+               {filteredCases.length === 0 && (
+                 <tr>
+                   <td colSpan={7} className="px-6 py-8">
+                     <EmptyState 
+                       icon={AlertCircle} 
+                       title="Nenhum caso registrado" 
+                       description="Não encontramos nenhum caso aberto, resolvido ou correspondente ao filtro atual." 
+                     />
+                   </td>
+                 </tr>
+               )}
+             </tbody>
+           </table>
+          )}
         </div>
       </div>
 
@@ -370,7 +403,7 @@ function CasosPage() {
              <button onClick={() => setResolveCase(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors">
                Voltar
              </button>
-             <button onClick={handleResolve} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all ">
+             <button onClick={validateAndPromptResolve} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all ">
                Concluir Análise
              </button>
            </div>
@@ -458,6 +491,20 @@ function CasosPage() {
           </div>
         )}
       </Modal>
+
+      <ConfirmModal
+        isOpen={showConfirmResolve}
+        title={resDecision === "Resolver" ? "Confirmar Resolução de Caso?" : "Confirmar Cancelamento de Caso?"}
+        description={
+          resDecision === "Resolver" 
+            ? `Deseja encerrar este caso aplicando a decisão: "${resCrime}" com punição "${resPunishment}" para ${resolveCase?.offenderNick}?` 
+            : `Deseja cancelar e invalidar este caso? Esta ação será registrada no histórico de auditoria.`
+        }
+        confirmText={resDecision === "Resolver" ? "Confirmar Decisão" : "Confirmar Cancelamento"}
+        variant={resDecision === "Resolver" ? "warning" : "danger"}
+        onConfirm={handleResolve}
+        onClose={() => setShowConfirmResolve(false)}
+      />
 
     </div>
   );

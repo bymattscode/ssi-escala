@@ -5,12 +5,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarDays, Search, RotateCcw, AlertTriangle, CheckCircle2, Clock, XCircle, CalendarIcon, FileText, Gavel, X, ExternalLink } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getSchedules, getMembers, updateSchedule, addAuditLog } from "../lib/store";
 import { Schedule, Member } from "../lib/types";
 import { generateWeeklySchedule } from "../lib/scheduler";
 import { toast } from "sonner";
+import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
 
 export const Route = createFileRoute("/escalas")({
   component: EscalasPage,
@@ -192,8 +193,12 @@ function EscalaTable({
           })}
           {schedules.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                Nenhuma escala encontrada para este período.
+              <td colSpan={6} className="px-4 py-8">
+                <EmptyState
+                  icon={CalendarDays}
+                  title="Nenhuma escala registrada"
+                  description="Ainda não existem escalas geradas ou correspondentes a este período ou filtro de busca."
+                />
               </td>
             </tr>
           )}
@@ -207,7 +212,9 @@ function EscalasPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showConfirmGenerate, setShowConfirmGenerate] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { role, userName } = useAuth();
   const isAdmin = role === "Presidente" || role === "Vice-Presidente";
@@ -233,8 +240,10 @@ function EscalasPage() {
   const selectedWeek = `${format(weekStart, "yyyy")}-W${weekNumber}`;
 
   const fetchSchedules = async (skipAutomation = true) => {
+    setIsLoading(true);
     let data = await getSchedules();
     setSchedules(data);
+    setIsLoading(false);
   };
 
   const runAutomation = async () => {
@@ -291,14 +300,16 @@ function EscalasPage() {
       toast.error(e.message);
     } finally {
       setIsGenerating(false);
+      setShowConfirmGenerate(false);
     }
   };
 
   const handleStatusUpdate = async (id: string, currentStatus: string) => {
+    // Evitar status Justificado por clique direto: justificativa requer preenchimento de formulário auditável
     const nextStatusMap: any = {
       "Pendente": "Concluído",
       "Concluído": "Atrasado",
-      "Atrasado": "Justificado",
+      "Atrasado": "Não Justificado",
       "Justificado": "Não Justificado",
       "Não Justificado": "Pendente",
     };
@@ -307,7 +318,7 @@ function EscalasPage() {
     
     await addAuditLog("1", role, "Alteração de Status", "Escalas", `Status da escala #${id} alterado para ${next}.`, id);
     
-    toast.success(`Status atualizado para ${next}`);
+    toast.success(`Status da escala atualizado para: ${next}`);
     fetchSchedules();
   };
 
@@ -320,22 +331,26 @@ function EscalasPage() {
 
   const handleSubmitJustification = async () => {
     if (!justifyingSchedule || !justificationReason || !justificationText || !justificationOccurrenceDate) {
-      toast.error("Por favor, preencha o motivo, a data e as observações.");
+      toast.error("Obrigatório: Preencha o motivo, a data do ocorrido e as observações.");
+      return;
+    }
+    if (!justificationText.trim() || justificationText.trim().length < 5) {
+      toast.error("Dados mínimos insuficientes: Detalhe o motivo da justificativa com pelo menos 5 caracteres.");
       return;
     }
     
     await updateSchedule(justifyingSchedule.id, {
       status: "Justificado",
       justificationReason,
-      justificationText,
+      justificationText: justificationText.trim(),
       justificationOccurrenceDate,
-      justificationAttachment,
+      justificationAttachment: justificationAttachment.trim() || undefined,
       justificationDate: new Date().toISOString()
     });
     
     await addAuditLog("1", role, "Envio de Justificativa", "Escalas", `Justificativa enviada para a escala #${justifyingSchedule.id}.`, justifyingSchedule.id);
     
-    toast.success("Justificativa enviada com sucesso!");
+    toast.success("Justificativa registrada com sucesso! Status da escala atualizado para Justificado.");
     setJustifyingSchedule(null);
     setJustificationReason("");
     setJustificationText("");
@@ -343,20 +358,22 @@ function EscalasPage() {
     setJustificationAttachment("");
     fetchSchedules();
   };
-  
 
-  
   const handleRegisterSubmit = async () => {
     if (!registeringSchedule) return;
+    if (!registerComments || !registerComments.trim() || registerComments.trim().length < 5) {
+      toast.error("Obrigatório: Insira o link do print ou descrição detalhada comprovando a realização da função (mínimo 5 caracteres).");
+      return;
+    }
     
     await updateSchedule(registeringSchedule.id, {
       status: "Concluído",
-      comments: registerComments,
+      comments: registerComments.trim(),
     });
     
     await addAuditLog("1", role, "Alteração de Status", "Escalas", `Função registrada como Concluído na escala #${registeringSchedule.id}.`, registeringSchedule.id);
     
-    toast.success("Registro de função enviado com sucesso!");
+    toast.success("Registro operacional enviado e validado! Status atualizado para Concluído.");
     setRegisteringSchedule(null);
     setRegisterComments("");
     fetchSchedules();
@@ -386,11 +403,11 @@ function EscalasPage() {
         </div>
         {isAdmin && (
           <div className="flex gap-3">
-            <button onClick={handleGenerate} disabled={isGenerating} className="flex items-center gap-2 bg-secondary text-foreground hover:bg-secondary/80 px-4 py-2 rounded-md font-medium transition-colors border border-border shadow-sm">
+            <button onClick={() => setShowConfirmGenerate(true)} disabled={isGenerating} className="flex items-center gap-2 bg-secondary text-foreground hover:bg-secondary/80 px-4 py-2 rounded-md font-medium transition-colors border border-border shadow-sm">
               <RotateCcw className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
               Regerar Escala
             </button>
-            <button onClick={handleGenerate} disabled={isGenerating} className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all ">
+            <button onClick={() => setShowConfirmGenerate(true)} disabled={isGenerating} className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all shadow-md">
               <CalendarDays className="h-4 w-4" />
               Gerar Automática
             </button>
@@ -474,6 +491,7 @@ function EscalasPage() {
           </div>
 
           <TabsContent value="fiscalizadores" className="p-0 m-0 border-none outline-none">
+            {isLoading ? <SkeletonTable rows={5} /> : (
              <EscalaTable 
                schedules={fiscalizadoresSchedules} 
                members={members} 
@@ -484,9 +502,11 @@ function EscalasPage() {
                onView={setViewSchedule}
                onRegisterFunction={setRegisteringSchedule}
              />
+            )}
            </TabsContent>
- 
+  
            <TabsContent value="diretores" className="p-0 m-0 border-none outline-none">
+            {isLoading ? <SkeletonTable rows={5} /> : (
              <EscalaTable 
                schedules={diretoresSchedules} 
                members={members} 
@@ -497,9 +517,21 @@ function EscalasPage() {
                onView={setViewSchedule}
                onRegisterFunction={setRegisteringSchedule}
              />
+            )}
            </TabsContent>
          </Tabs>
       </div>
+
+      <ConfirmModal
+        isOpen={showConfirmGenerate}
+        title="Gerar/Regerar Escalas da Semana?"
+        description="Esta ação analisará a equipe ativa e distribuirá automaticamente as novas funções operacionais desta semana para Fiscalizadores e Diretores."
+        confirmText="Gerar Escalas"
+        variant="info"
+        isLoading={isGenerating}
+        onConfirm={handleGenerate}
+        onClose={() => setShowConfirmGenerate(false)}
+      />
 
       {/* MODAL ENVIAR JUSTIFICATIVA */}
       <Modal isOpen={!!justifyingSchedule} onClose={() => setJustifyingSchedule(null)} title="Justificar Atraso/Ausência">

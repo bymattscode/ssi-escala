@@ -6,6 +6,7 @@ import {
   getWarnings, 
   addSyncLog,
   updateConfig,
+  getDeletedKeys,
   KEYS
 } from './store';
 import { toast } from 'sonner';
@@ -329,16 +330,25 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
 ): { merged: T[]; conflictCount: number } {
   let conflictCount = 0;
   const mergedMap = new Map<string, T>();
+  const deletedKeys = getDeletedKeys();
   
   // Usar Nick (se for membro/usuário) ou ID para evitar duplicação em sincronização cruzada
   const getUniqueKey = (item: T) => item.nick ? item.nick.trim().toLowerCase() : item.id;
+  
+  const isDeleted = (item: T) => {
+    if (item.id && deletedKeys.includes(item.id.trim().toLowerCase())) return true;
+    if (item.nick && deletedKeys.includes(item.nick.trim().toLowerCase())) return true;
+    return false;
+  };
 
   for (const r of remote) {
+    if (isDeleted(r)) continue;
     const key = getUniqueKey(r);
     mergedMap.set(key, { ...r, syncStatus: 'synced' });
   }
   
   for (const l of local) {
+    if (isDeleted(l)) continue;
     const key = getUniqueKey(l);
     const r = mergedMap.get(key);
     if (!r) {

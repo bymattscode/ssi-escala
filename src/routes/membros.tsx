@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Member, Role, UserGroup, ModulePermission } from "../lib/types";
-import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, ShieldCheck, ShieldAlert, X, Key } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, ShieldCheck, ShieldAlert, X, Key, Users } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getMembers, updateMemberStatus, updateMember, deleteMember, addMember, addAuditLog } from "../lib/store";
 import { toast } from "sonner";
+import { EmptyState, SkeletonCard, ConfirmModal, FormField } from "../components/ui/ux";
 
 export const Route = createFileRoute("/membros")({
   component: MembrosPage,
@@ -12,8 +13,13 @@ export const Route = createFileRoute("/membros")({
 
 function StatusBadge({ status }: { status: string }) {
   const isActive = status === "Ativo";
+  const isLicenca = status === "Licença";
   return (
-    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center w-fit gap-1 ${isActive ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-muted text-muted-foreground border border-border"}`}>
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center w-fit gap-1 shadow-sm ${
+      isActive ? "bg-green-500/15 text-green-400 border border-green-500/30" : 
+      isLicenca ? "bg-amber-500/15 text-amber-400 border border-amber-500/30" : 
+      "bg-red-500/15 text-red-400 border border-red-500/30"
+    }`}>
       {status}
     </span>
   );
@@ -162,13 +168,17 @@ function RoleSection({ title, icon: Icon, members, isAdmin, onEdit, onDeactivate
 function MembrosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [revokeTarget, setRevokeTarget] = useState<Member | null>(null);
   const { role } = useAuth();
   
   const isAdmin = role === "Presidente" || role === "Vice-Presidente";
 
   const fetchMembers = async () => {
+    setIsLoading(true);
     const data = await getMembers();
     setMembers(data);
+    setIsLoading(false);
   };
 
   const ALL_PERMISSIONS: ModulePermission[] = ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"];
@@ -203,6 +213,7 @@ function MembrosPage() {
   const [deactivateType, setDeactivateType] = useState<"Inativo" | "Licença">("Inativo");
   const [leaveStart, setLeaveStart] = useState("");
   const [leaveEnd, setLeaveEnd] = useState("");
+  const [showConfirmDeactivate, setShowConfirmDeactivate] = useState(false);
 
   const handleEdit = (m: Member) => {
     setEditMember(m);
@@ -228,14 +239,18 @@ function MembrosPage() {
     fetchMembers();
   };
 
-  const handleRevokeAccess = async (m: Member) => {
+  const handleRevokeAccess = (m: Member) => {
     if (!isAdmin) return;
-    if (confirm(`Tem certeza que deseja revogar o código de acesso de ${m.nick}? Isso forçará uma nova validação pelo Habbo.`)) {
-      await updateMember(m.id, { accessCode: "" }); // Remove accessCode via vazio
-      await addAuditLog("1", role, "Revogação de Acesso", "Membros", `O código de acesso de ${m.nick} foi revogado.`, m.id);
-      toast.success("Código de acesso revogado!");
-      fetchMembers();
-    }
+    setRevokeTarget(m);
+  };
+
+  const confirmRevokeAccess = async () => {
+    if (!revokeTarget || !isAdmin) return;
+    await updateMember(revokeTarget.id, { accessCode: "" });
+    await addAuditLog("1", role, "Revogação de Acesso", "Membros", `O código de acesso de ${revokeTarget.nick} foi revogado.`, revokeTarget.id);
+    toast.success("Código de acesso revogado com sucesso!");
+    setRevokeTarget(null);
+    fetchMembers();
   };
 
   const submitEditRole = async () => {
@@ -261,13 +276,27 @@ function MembrosPage() {
     fetchMembers();
   };
 
-  const submitDeactivate = async () => {
+  const validateAndPromptDeactivate = () => {
     if (!deactivateMember) return;
     
-    if (deactivateType === "Licença" && (!leaveStart || !leaveEnd)) {
-      toast.error("Preencha a data de início e fim da licença.");
-      return;
+    if (deactivateType === "Licença") {
+      if (!leaveStart || !leaveEnd) {
+        toast.error("Obrigatório: Preencha a data de início e fim da licença.");
+        return;
+      }
+      if (new Date(leaveStart) > new Date(leaveEnd)) {
+        toast.error("Datas inválidas: A data de término da licença não pode ser anterior à data de início.");
+        return;
+      }
+      submitDeactivate();
+    } else {
+      setShowConfirmDeactivate(true);
     }
+  };
+
+  const submitDeactivate = async () => {
+    if (!deactivateMember) return;
+    setShowConfirmDeactivate(false);
     
     if (deactivateType === "Licença") {
       await updateMember(deactivateMember.id, { 
@@ -276,11 +305,11 @@ function MembrosPage() {
         leaveEndDate: leaveEnd
       });
       await addAuditLog("1", role, "Membro em Licença", "Membros", `O membro ${deactivateMember.nick} entrou em licença de ${leaveStart} até ${leaveEnd}.`, deactivateMember.id);
-      toast.success("Membro colocado em licença!");
+      toast.success("Status atualizado: Membro colocado em licença com sucesso!");
     } else {
       await deleteMember(deactivateMember.id);
       await addAuditLog("1", role, "Desligamento de Membro", "Membros", `O membro ${deactivateMember.nick} foi desligado do setor.`, deactivateMember.id);
-      toast.success("Membro desligado do setor!");
+      toast.success("Membro desligado do setor e removido da listagem ativa.");
     }
     setDeactivateMember(null);
     fetchMembers();
@@ -306,7 +335,16 @@ function MembrosPage() {
 
   const submitAddMember = async () => {
     if (!newMemberNick.trim()) {
-      toast.error("Preencha o nick do membro.");
+      toast.error("Obrigatório: Preencha o nick do membro.");
+      return;
+    }
+    if (newMemberNick.trim().length < 2) {
+      toast.error("O nick precisa conter pelo menos 2 caracteres.");
+      return;
+    }
+    const alreadyExists = members.some(m => m.nick.trim().toLowerCase() === newMemberNick.trim().toLowerCase());
+    if (alreadyExists) {
+      toast.error("Erro: Já existe um membro cadastrado com este nick!");
       return;
     }
     const newMember: Member = {
@@ -320,20 +358,25 @@ function MembrosPage() {
     };
     await addMember(newMember);
     await addAuditLog("1", role, "Criação de Membro", "Membros", `O membro ${newMember.nick} foi adicionado como ${newMemberRole}.`, newMember.id);
-    toast.success("Membro adicionado!");
+    toast.success("Membro adicionado e sincronizado!");
     setIsAddingMember(false);
     fetchMembers();
   };
 
-  const filteredMembers = members.filter(m => 
-    m.nick.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const presidencia = filteredMembers.filter(m => m.role === "Presidente");
-  const vice = filteredMembers.filter(m => m.role === "Vice-Presidente");
-  const diretores = filteredMembers.filter(m => m.role === "Diretor");
-  const fiscalizadores = filteredMembers.filter(m => m.role === "Fiscalizador");
+  // Otimização de performance no filtro e agrupamento
+  const { presidencia, vice, diretores, fiscalizadores, filteredCount } = useMemo(() => {
+    const filtered = members.filter(m => 
+      m.nick.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.role.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    return {
+      presidencia: filtered.filter(m => m.role === "Presidente"),
+      vice: filtered.filter(m => m.role === "Vice-Presidente"),
+      diretores: filtered.filter(m => m.role === "Diretor"),
+      fiscalizadores: filtered.filter(m => m.role === "Fiscalizador"),
+      filteredCount: filtered.length
+    };
+  }, [members, searchTerm]);
 
   return (
     <div className="flex flex-col gap-8 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
@@ -369,16 +412,38 @@ function MembrosPage() {
       </div>
 
       <div className="flex flex-col gap-10">
-        <RoleSection title="Presidente" icon={Crown} members={presidencia} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
-        <RoleSection title="Vice-Presidente" icon={Star} members={vice} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
-        <RoleSection title="Diretores" icon={ShieldCheck} members={diretores} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
-        <RoleSection title="Fiscalizadores" icon={ShieldAlert} members={fiscalizadores} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
-        {filteredMembers.length === 0 && (
-          <div className="py-12 text-center text-muted-foreground bg-card border border-border border-dashed rounded-xl">
-            Nenhum membro encontrado com os filtros atuais.
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, idx) => <SkeletonCard key={idx} />)}
           </div>
+        ) : (
+          <>
+            <RoleSection title="Presidente" icon={Crown} members={presidencia} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
+            <RoleSection title="Vice-Presidente" icon={Star} members={vice} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
+            <RoleSection title="Diretores" icon={ShieldCheck} members={diretores} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
+            <RoleSection title="Fiscalizadores" icon={ShieldAlert} members={fiscalizadores} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
+            {filteredCount === 0 && (
+              <EmptyState 
+                icon={Users}
+                title="Nenhum membro encontrado"
+                description={searchTerm ? `Nenhum resultado correspondeu à busca "${searchTerm}". Tente pesquisar outro nick ou cargo.` : "Nenhum membro cadastrado neste setor."}
+                actionText={searchTerm ? "Limpar filtro" : undefined}
+                onAction={() => setSearchTerm("")}
+              />
+            )}
+          </>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!revokeTarget}
+        title="Revogar Código de Acesso?"
+        description={`Ao revogar o código de acesso de ${revokeTarget?.nick}, ele precisará validar sua missão e identidade novamente ao fazer login no portal.`}
+        confirmText="Revogar Acesso"
+        variant="warning"
+        onConfirm={confirmRevokeAccess}
+        onClose={() => setRevokeTarget(null)}
+      />
 
       <Modal isOpen={isAddingMember} onClose={() => setIsAddingMember(false)} title="Cadastrar Novo Membro">
         <div className="flex flex-col gap-4">
@@ -567,13 +632,23 @@ function MembrosPage() {
                <button onClick={() => setDeactivateMember(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors text-sm">
                  Cancelar
                </button>
-               <button onClick={submitDeactivate} className="px-4 py-2 rounded-md font-medium bg-red-600 text-white hover:bg-red-700 transition-all text-sm">
+               <button onClick={validateAndPromptDeactivate} className="px-4 py-2 rounded-md font-medium bg-red-600 text-white hover:bg-red-700 transition-all text-sm">
                  Confirmar
                </button>
             </div>
           </div>
         )}
       </Modal>
+
+      <ConfirmModal
+        isOpen={showConfirmDeactivate}
+        title="Confirmar Desligamento do Setor?"
+        description={`Tem certeza absoluta que deseja DESLIGAR do setor e apagar o membro "${deactivateMember?.nick}" (${deactivateMember?.role})? Essa alteração repercutirá em suas permissões de acesso e relatórios no Google Sheets.`}
+        confirmText="Confirmar Desligamento"
+        variant="danger"
+        onConfirm={submitDeactivate}
+        onClose={() => setShowConfirmDeactivate(false)}
+      />
     </div>
   );
 }

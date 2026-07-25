@@ -5,6 +5,7 @@ import { useState, useMemo, useEffect } from "react";
 import { getWarnings, getMembers, addWarning, addAuditLog } from "../lib/store";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
+import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
 
 export const Route = createFileRoute("/advertencias")({
   component: AdvertenciasPage,
@@ -68,41 +69,58 @@ function AdvertenciasPage() {
   const [newReason, setNewReason] = useState("");
   const [newNotes, setNewNotes] = useState("");
   const [newCaseId, setNewCaseId] = useState("");
+  const [showConfirmCreate, setShowConfirmCreate] = useState(false);
 
   const [warnings, setWarnings] = useState<Warning[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { role } = useAuth();
   const isAdminOrDir = role !== "Fiscalizador";
 
   const fetchData = async () => {
+    setIsLoading(true);
     setWarnings(await getWarnings());
     setMembers(await getMembers());
+    setIsLoading(false);
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const handleCreate = async () => {
-    if (!newOffender || !newReason) {
-      toast.error("Preencha os campos obrigatórios (Infrator e Motivo).");
+  const validateAndPromptCreate = () => {
+    if (!newOffender.trim() || !newReason.trim()) {
+      toast.error("Obrigatório: Preencha os campos de Infrator e Motivo da punição.");
       return;
     }
+    if (newOffender.trim().length < 2) {
+      toast.error("Dados mínimos insuficientes: O nick do infrator deve ter no mínimo 2 caracteres.");
+      return;
+    }
+    if (newReason.trim().length < 5) {
+      toast.error("Dados mínimos insuficientes: Detalhe o motivo da punição adequadamente (mínimo 5 caracteres).");
+      return;
+    }
+    setShowConfirmCreate(true);
+  };
+
+  const handleCreate = async () => {
+    setShowConfirmCreate(false);
     
     const newWarning: Warning = {
       id: `SSI-PUN-${Date.now().toString(36).toUpperCase()}`,
       date: new Date().toLocaleDateString('pt-BR'),
-      offenderNick: newOffender,
+      offenderNick: newOffender.trim(),
       punishmentType: newType,
-      reason: newReason,
+      reason: newReason.trim(),
       directorId: "1", // Mock current user
-      caseId: newCaseId || undefined,
-      notes: newNotes || undefined
+      caseId: newCaseId ? newCaseId.trim() : undefined,
+      notes: newNotes ? newNotes.trim() : undefined
     };
 
     await addWarning(newWarning);
     await addAuditLog("1", role, "Registro de Punição", "Punições", `Punição (${newType}) registrada para ${newOffender}.`, newWarning.id);
-    toast.success("Advertência registrada com sucesso!");
+    toast.success("Punição disciplinar registrada no histórico com sucesso!");
     setIsCreateOpen(false);
     fetchData();
     
@@ -238,54 +256,60 @@ function AdvertenciasPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs text-muted-foreground uppercase bg-secondary/30 border-b border-border">
-              <tr>
-                <th className="px-6 py-4 font-medium">ID</th>
-                <th className="px-6 py-4 font-medium">Data</th>
-                <th className="px-6 py-4 font-medium">Infrator</th>
-                <th className="px-6 py-4 font-medium">Punição</th>
-                <th className="px-6 py-4 font-medium">Motivo</th>
-                <th className="px-6 py-4 font-medium">Responsável</th>
-                <th className="px-6 py-4 font-medium text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredWarnings.map((w) => {
-                 const director = getMemberDetails(w.directorId, members);
-                 return (
-                  <tr key={w.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
-                    <td className="px-6 py-4 font-medium text-foreground">#{String(w.id).toUpperCase()}</td>
-                    <td className="px-6 py-4 text-muted-foreground">{w.date}</td>
-                    <td className="px-6 py-4 font-bold text-foreground">{w.offenderNick}</td>
-                    <td className="px-6 py-4">
-                      <PunishmentBadge type={w.punishmentType} />
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground truncate max-w-[200px]" title={w.reason}>
-                      {w.reason}
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground">{director?.nick || "-"}</td>
-                    <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={() => setViewWarning(w)}
-                        className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors inline-flex" 
-                        title="Ver Detalhes"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {filteredWarnings.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
-                    Nenhuma advertência encontrada.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          {isLoading ? <SkeletonTable rows={5} /> : (
+           <table className="w-full text-sm text-left">
+             <thead className="text-xs text-muted-foreground uppercase bg-secondary/30 border-b border-border">
+               <tr>
+                 <th className="px-6 py-4 font-medium">ID</th>
+                 <th className="px-6 py-4 font-medium">Data</th>
+                 <th className="px-6 py-4 font-medium">Infrator</th>
+                 <th className="px-6 py-4 font-medium">Punição</th>
+                 <th className="px-6 py-4 font-medium">Motivo</th>
+                 <th className="px-6 py-4 font-medium">Responsável</th>
+                 <th className="px-6 py-4 font-medium text-right">Ações</th>
+               </tr>
+             </thead>
+             <tbody>
+               {filteredWarnings.map((w) => {
+                  const director = getMemberDetails(w.directorId, members);
+                  return (
+                   <tr key={w.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
+                     <td className="px-6 py-4 font-medium text-foreground">#{String(w.id).toUpperCase()}</td>
+                     <td className="px-6 py-4 text-muted-foreground">{w.date}</td>
+                     <td className="px-6 py-4 font-bold text-foreground">{w.offenderNick}</td>
+                     <td className="px-6 py-4">
+                       <PunishmentBadge type={w.punishmentType} />
+                     </td>
+                     <td className="px-6 py-4 text-muted-foreground truncate max-w-[200px]" title={w.reason}>
+                       {w.reason}
+                     </td>
+                     <td className="px-6 py-4 text-muted-foreground">{director?.nick || "-"}</td>
+                     <td className="px-6 py-4 text-right">
+                       <button 
+                         onClick={() => setViewWarning(w)}
+                         className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors inline-flex" 
+                         title="Ver Detalhes"
+                       >
+                         <Eye className="h-4 w-4" />
+                       </button>
+                     </td>
+                   </tr>
+                 );
+               })}
+               {filteredWarnings.length === 0 && (
+                 <tr>
+                   <td colSpan={7} className="px-6 py-8">
+                     <EmptyState 
+                       icon={FileWarning}
+                       title="Nenhuma punição registrada"
+                       description="Nenhuma advertência ou punição encontrada para este filtro no momento."
+                     />
+                   </td>
+                 </tr>
+               )}
+             </tbody>
+           </table>
+          )}
         </div>
       </div>
 
@@ -337,8 +361,8 @@ function AdvertenciasPage() {
             <button onClick={() => setIsCreateOpen(false)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors">
               Cancelar
             </button>
-            <button onClick={handleCreate} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all ">
-              Registrar
+            <button onClick={validateAndPromptCreate} className="px-4 py-2 rounded-md font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all ">
+              Registrar Punição
             </button>
           </div>
         </div>
@@ -386,6 +410,16 @@ function AdvertenciasPage() {
           </div>
         )}
       </Modal>
+
+      <ConfirmModal
+        isOpen={showConfirmCreate}
+        title="Confirmar Registro de Punição?"
+        description={`Tem certeza que deseja registrar a punição "${newType}" para o membro "${newOffender}" com o motivo: "${newReason}"?`}
+        confirmText="Confirmar Registro"
+        variant="warning"
+        onConfirm={handleCreate}
+        onClose={() => setShowConfirmCreate(false)}
+      />
 
     </div>
   );
