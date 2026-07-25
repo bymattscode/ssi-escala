@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 import { ShieldCheck, UserCircle, Loader2, Key, Copy, CheckCircle2, ArrowRight } from "lucide-react";
 import { getMembers, updateMember } from "../lib/store";
-import { fetchAllFromRemote } from "../lib/syncManager";
+import { fetchAllFromRemote, syncModule } from "../lib/syncManager";
 
 export const Route = createFileRoute("/login")({
   component: Login,
@@ -144,6 +144,8 @@ function Login() {
         const foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase());
         if (foundUser && foundUser.id !== 'admin') {
           await updateMember(foundUser.id, { accessCode: newCode });
+          // Subir o código gerado direto para a planilha do Google Sheets
+          syncModule("membros").catch(console.error);
         }
         
         setStep("show_new_code");
@@ -158,9 +160,10 @@ function Login() {
          setGeneratedAccessCode(newCode);
          const members = await getMembers();
          const foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase());
-         if (foundUser && foundUser.id !== 'admin') {
-           await updateMember(foundUser.id, { accessCode: newCode });
-         }
+          if (foundUser && foundUser.id !== 'admin') {
+            await updateMember(foundUser.id, { accessCode: newCode });
+            syncModule("membros").catch(console.error);
+          }
          setStep("show_new_code");
       } else {
          toast.error(`Erro ao validar missão: ${error.message || "Tente novamente."}`);
