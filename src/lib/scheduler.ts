@@ -50,8 +50,46 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
     schedules.push(newSchedule);
   }
 
+  if (type === "Fiscalizador") {
+    const tuesday = addDays(startDate, 2);
+    tuesday.setHours(23, 59, 59, 999);
+
+    const memberAval = activeMembers[memberIndex % activeMembers.length];
+    memberIndex++;
+    const memberCap = activeMembers[memberIndex % activeMembers.length];
+    memberIndex++;
+
+    schedules.push({
+      id: `SSI-ESC-${Date.now().toString(36).toUpperCase()}-AVAL-FIS`,
+      week: weekId,
+      memberId: memberAval.id,
+      referenceDay: "Semanal",
+      deadline: "Terça-feira (23:59)",
+      deadlineDate: tuesday.toISOString(),
+      status: "Pendente",
+      responsibleId,
+      type: "Fiscalização dos Avaliadores" as any
+    });
+
+    schedules.push({
+      id: `SSI-ESC-${Date.now().toString(36).toUpperCase()}-CAP-FIS`,
+      week: weekId,
+      memberId: memberCap.id,
+      referenceDay: "Semanal",
+      deadline: "Terça-feira (23:59)",
+      deadlineDate: tuesday.toISOString(),
+      status: "Pendente",
+      responsibleId,
+      type: "Fiscalização dos Capacitadores" as any
+    });
+  }
+
   // Deleta as existentes desta semana para esse tipo e adiciona as novas
   await deleteSchedulesForWeekAndType(weekId, type as any);
+  if (type === "Fiscalizador") {
+    await deleteSchedulesForWeekAndType(weekId, "Fiscalização dos Avaliadores");
+    await deleteSchedulesForWeekAndType(weekId, "Fiscalização dos Capacitadores");
+  }
   await addSchedules(schedules);
   
   return weekId;

@@ -334,11 +334,6 @@ export const getSchedules = async (): Promise<Schedule[]> => {
   
   const filtered = schedules.filter(s => {
     if (s.id && deletedKeys.includes(String(s.id).trim().toLowerCase())) return false;
-    if (s.type === "Fiscalização de Avaliadores" || s.type === "Fiscalização de Capacitadores") {
-      addDeletedKey(s.id);
-      needsSave = true;
-      return false;
-    }
     // Remove escalas vinculadas aos antigos IDs numéricos de teste que não existem mais na base
     if (s.memberId && s.memberId.length <= 3 && !memberIdSet.has(s.memberId)) {
       addDeletedKey(s.id);
@@ -384,7 +379,7 @@ export const getSchedules = async (): Promise<Schedule[]> => {
     return updated;
   });
   
-  // Ordenar de Domingo a Sábado para apresentação impecável e sem bugs na ordem dos dias
+  // Ordenar de Domingo a Sábado para apresentação impecável, colocando funções semanais extras no final
   const dayOrder: Record<string, number> = {
     "Domingo": 0,
     "Segunda": 1, "Segunda-feira": 1,
@@ -392,9 +387,20 @@ export const getSchedules = async (): Promise<Schedule[]> => {
     "Quarta": 3, "Quarta-feira": 3,
     "Quinta": 4, "Quinta-feira": 4,
     "Sexta": 5, "Sexta-feira": 5,
-    "Sábado": 6
+    "Sábado": 6,
+    "Semanal": 7
   };
-  normalized.sort((a, b) => (dayOrder[a.referenceDay] ?? 7) - (dayOrder[b.referenceDay] ?? 7));
+  const typeOrder: Record<string, number> = {
+    "Fiscalizador": 0,
+    "Diretor": 0,
+    "Fiscalização dos Avaliadores": 1,
+    "Fiscalização dos Capacitadores": 2
+  };
+  normalized.sort((a, b) => {
+    const dayDiff = (dayOrder[a.referenceDay] ?? 7) - (dayOrder[b.referenceDay] ?? 7);
+    if (dayDiff !== 0) return dayDiff;
+    return (typeOrder[a.type || ""] ?? 0) - (typeOrder[b.type || ""] ?? 0);
+  });
   
   if (needsSave && typeof window !== "undefined") {
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(normalized));
