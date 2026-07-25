@@ -90,11 +90,19 @@ function Login() {
   const handleValidateHabbo = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.habbo.com.br/api/public/users?name=${nick}`)}`);
-      if (!res.ok) throw new Error("Erro na comunicação com a API do Habbo.");
-
-      const data = await res.json();
-      const habboData = JSON.parse(data.contents);
+      let habboData;
+      try {
+        // Tentativa 1: corsproxy.io (Transparente, funciona no browser)
+        const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(`https://www.habbo.com.br/api/public/users?name=${nick}`)}`);
+        if (!res.ok) throw new Error("Proxy 1 falhou");
+        habboData = await res.json();
+      } catch (e) {
+        // Tentativa 2: allorigins (Retorna wrapper)
+        const res2 = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.habbo.com.br/api/public/users?name=${nick}`)}`);
+        if (!res2.ok) throw new Error("Erro na comunicação com a API do Habbo.");
+        const data = await res2.json();
+        habboData = JSON.parse(data.contents);
+      }
 
       if (habboData.error) {
         toast.error("Usuário não encontrado no Habbo.");
