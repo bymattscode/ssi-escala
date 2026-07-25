@@ -135,16 +135,8 @@ function EscalaTable({
                     <span className="truncate">{member?.nick || "Desconhecido"}</span>
                   )}
                   </div>
-                <td className="px-4 py-4 text-muted-foreground whitespace-nowrap">
-                  {schedule.type === "Fiscalização dos Avaliadores" || schedule.type === "Fiscalização dos Capacitadores" ? (
-                    <div className="flex flex-col items-start leading-tight">
-                      <span className="font-semibold text-foreground">{schedule.type}</span>
-                      <span className="text-xs text-primary font-medium mt-0.5">Função Extra (Fiscalizadores)</span>
-                    </div>
-                  ) : (
-                    schedule.type
-                  )}
                 </td>
+                <td className="px-4 py-4 text-muted-foreground whitespace-nowrap">{schedule.type}</td>
                 <td className="px-4 py-4 text-foreground font-medium whitespace-nowrap">{schedule.referenceDay}</td>
                 <td className="px-4 py-4 text-muted-foreground whitespace-nowrap">
                   <div className="flex flex-col items-start leading-tight">
