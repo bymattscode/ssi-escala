@@ -79,8 +79,8 @@ export const wipeAllData = () => {
   }
 };
 
-// Simulating network delay
-const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+// Zero latency for snappy interface
+const delay = (_ms: number) => Promise.resolve();
 
 // Automate sync to cloud whenever local state changes
 const triggerAutoSync = (module: string) => {

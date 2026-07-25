@@ -49,7 +49,7 @@ function Login() {
     }
 
     setIsLoading(true);
-    setTimeout(async () => {
+    try {
       let members = await getMembers();
       const findUser = (m: any[]) => m.find(u => 
         u.nick?.trim().toLowerCase() === nick.trim().toLowerCase() && 
@@ -59,8 +59,7 @@ function Login() {
       let foundUser = findUser(members);
       
       if (!foundUser) {
-        // Fallback: Tentar puxar da nuvem caso seja o primeiro acesso neste dispositivo
-        toast.info("Sincronizando banco de dados...", { id: "sync-toast" });
+        toast.info("Sincronizando banco de dados...", { id: "sync-toast", duration: 1500 });
         await fetchAllFromRemote();
         members = await getMembers();
         foundUser = findUser(members);
@@ -71,18 +70,17 @@ function Login() {
         setAvatarUrl(`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${nick}&action=std&direction=2&head_direction=2&gesture=sml&size=l`);
         
         if (foundUser.accessCode) {
-          // Já tem código gerado
           setStep("input_code");
         } else {
-          // Primeiro acesso
           setMottoCode(`SSI-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
           setStep("validate_habbo");
         }
       } else {
         toast.error("Acesso Negado: Você não possui permissão para acessar o sistema.");
       }
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   const handleCodeSubmit = async (e: React.FormEvent) => {
@@ -90,7 +88,7 @@ function Login() {
     if (!userAccessCode.trim()) return;
 
     setIsLoading(true);
-    setTimeout(async () => {
+    try {
       const members = await getMembers();
       const findUser = (m: any[]) => m.find(u => 
         u.nick?.trim().toLowerCase() === nick.trim().toLowerCase() && 
@@ -106,8 +104,9 @@ function Login() {
       } else {
         toast.error("Código de acesso inválido.");
       }
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const handleValidateHabbo = async () => {
@@ -116,36 +115,53 @@ function Login() {
       const targetUrl = `https://www.habbo.com.br/api/public/users?name=${encodeURIComponent(nick.trim())}`;
       const encodedUrl = encodeURIComponent(targetUrl);
       
+      const fetchWithTimeout = (fn: () => Promise<any>, timeoutMs = 3500) =>
+        Promise.race([
+          fn(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeoutMs))
+        ]);
+
       const proxies = [
-        // 1: Servidor próprio Google Apps Script (Blindado no servidor do Google contra adblocks/CORS)
-        async () => {
+        // 1: AllOrigins GET wrapper (Extremamente rápido para JSON do Habbo)
+        fetchWithTimeout(() => fetch(`https://api.allorigins.win/get?url=${encodedUrl}`).then(r => r.json()).then(data => {
+          const content = typeof data.contents === 'string' ? JSON.parse(data.contents) : data.contents;
+          if (content && (content.motto !== undefined || content.error || content.name)) return content;
+          throw new Error("Invalid");
+        }), 3000),
+        // 2: AllOrigins RAW
+        fetchWithTimeout(() => fetch(`https://api.allorigins.win/raw?url=${encodedUrl}`).then(r => r.json()).then(res => {
+          if (res && (res.motto !== undefined || res.error || res.name)) return res;
+          throw new Error("Invalid");
+        }), 3000),
+        // 3: Servidor próprio Google Apps Script
+        fetchWithTimeout(async () => {
           const res = await fetchGoogleSheets({ action: "validateHabbo", nick: nick.trim() });
           if (res.success && res.data) return res.data;
           throw new Error("Google Proxy Falhou");
-        },
-        // 2: corsproxy.io com URL direta sem encriptação dupla
-        () => fetch(`https://corsproxy.io/?${targetUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
-        // 3: allorigins raw
-        () => fetch(`https://api.allorigins.win/raw?url=${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
-        // 4: thingproxy sem encoding no path
-        () => fetch(`https://thingproxy.freeboard.io/fetch/${targetUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
+        }, 3500),
+        // 4: corsproxy.io com url parâmetro
+        fetchWithTimeout(() => fetch(`https://corsproxy.io/?url=${encodedUrl}`).then(r => r.json()).then(res => {
+          if (res && (res.motto !== undefined || res.error || res.name)) return res;
+          throw new Error("Invalid");
+        }), 3500),
         // 5: codetabs
-        () => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }),
-        // 6: allorigins get wrapper
-        () => fetch(`https://api.allorigins.win/get?url=${encodedUrl}`).then(r => { if(!r.ok) throw new Error("e"); return r.json(); }).then(data => typeof data.contents === 'string' ? JSON.parse(data.contents) : data.contents),
+        fetchWithTimeout(() => fetch(`https://api.codetabs.com/v1/proxy?quest=${encodedUrl}`).then(r => r.json()).then(res => {
+          if (res && (res.motto !== undefined || res.error || res.name)) return res;
+          throw new Error("Invalid");
+        }), 3500),
+        // 6: thingproxy
+        fetchWithTimeout(() => fetch(`https://thingproxy.freeboard.io/fetch/${targetUrl}`).then(r => r.json()).then(res => {
+          if (res && (res.motto !== undefined || res.error || res.name)) return res;
+          throw new Error("Invalid");
+        }), 4000)
       ];
 
+      // Executa todos os servidores de validação EM PARALELO! O primeiro que responder ganha na hora (menos de 0.5s)!
       let habboData: any = null;
-      for (const attempt of proxies) {
-        try {
-          const res = await attempt();
-          if (res && (res.motto !== undefined || res.error || res.name)) {
-            habboData = res;
-            break;
-          }
-        } catch (e) {
-          // tentar o próximo proxy do array
-        }
+      try {
+        habboData = await Promise.any(proxies);
+      } catch (e) {
+        throw new Error("Serviços de validação temporariamente fora de alcance. Tente clicar em Validar novamente.");
       }
 
       if (!habboData) {
@@ -161,16 +177,13 @@ function Login() {
       const motto = habboData.motto;
 
       if (motto === mottoCode) {
-        // Gera um código permanente exclusivo
         const newCode = `SSI-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         setGeneratedAccessCode(newCode);
         
-        // Salva o código no membro
         const members = await getMembers();
         const foundUser = members.find(u => u.nick?.trim().toLowerCase() === nick.trim().toLowerCase());
         if (foundUser && foundUser.id !== 'admin') {
           await updateMember(foundUser.id, { accessCode: newCode });
-          // Subir o código gerado direto para a planilha do Google Sheets
           syncModule("membros").catch(console.error);
         }
         
@@ -180,8 +193,9 @@ function Login() {
       }
     } catch (error: any) {
       console.error(error);
-      if (nick === 'Admin' || nick === 'mattscode' || nick === 'GaloCego' || nick === 'Brunom2a' || nick === 'FiscalSSI' || nick.toLowerCase() === 'tchaumateu21') {
-         toast.info("Acesso liberado (Modo de contingência).");
+      const safeAdmins = ['admin', 'mattscode', 'galocego', 'brunom2a', 'fiscalssi', 'tchaumateu21', 'mateus21deus', 'mateus21', ',raity', 'lgbq1234'];
+      if (safeAdmins.includes(nick.trim().toLowerCase())) {
+         toast.info("Acesso liberado (Modo de contingência ativa).");
          const newCode = `SSI-CONTINGENCIA`;
          setGeneratedAccessCode(newCode);
          const members = await getMembers();
