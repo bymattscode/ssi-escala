@@ -102,8 +102,25 @@ function EscalaTable({
               <tr key={schedule.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                 <td className="px-4 py-4 font-medium text-foreground">
                   <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                    {member?.nick?.charAt(0) || "?"}
+                  <div className="h-8 w-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-xs overflow-hidden shrink-0">
+                    {member ? (
+                      <>
+                        <img 
+                          src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${member.nick}&action=std&direction=2&head_direction=2&gesture=sml&size=m`} 
+                          alt={member.nick} 
+                          className="h-[2.5rem] w-[2.5rem] max-w-none object-cover mt-1.5"
+                          onError={(e) => { 
+                            e.currentTarget.style.display = 'none'; 
+                            if (e.currentTarget.nextElementSibling) {
+                              (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'block'; 
+                            }
+                          }} 
+                        />
+                        <span className="hidden">{member.nick.charAt(0)}</span>
+                      </>
+                    ) : (
+                      "?"
+                    )}
                   </div>
                   {isAdmin ? (
                     <select
