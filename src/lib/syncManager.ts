@@ -16,7 +16,7 @@ const headerMaps = {
     id: "ID", nick: "Nick", role: "Cargo", status: "Status", entryDate: "Data de Entrada",
     promotionDate: "Data de Promoção", leaveStartDate: "Início da Licença", leaveEndDate: "Fim da Licença",
     avatarUrl: "URL do Avatar", group: "Grupo", permissions: "Permissões", accessCode: "Código de Acesso",
-    updatedAt: "Atualizado Em", syncStatus: "Status Sincronização"
+    updatedAt: "Atualizado Em"
   },
   escalas: {
     id: "ID", week: "Semana", memberId: "ID do Membro", referenceDay: "Dia de Referência",
@@ -25,7 +25,7 @@ const headerMaps = {
     casesLine: "Linha de Casos", justificationReason: "Motivo da Justificativa", justificationText: "Texto da Justificativa",
     justificationAttachment: "Anexo da Justificativa", justificationOccurrenceDate: "Data da Ocorrência (Just.)",
     justificationStatus: "Status da Justificativa", justificationDate: "Data da Justificativa",
-    justificationReviewerId: "ID do Revisor (Just.)", updatedAt: "Atualizado Em", syncStatus: "Status Sincronização"
+    justificationReviewerId: "ID do Revisor (Just.)", updatedAt: "Atualizado Em"
   },
   casos: {
     id: "ID", status: "Status", creatorId: "ID do Criador", offenderNick: "Nick do Infrator",
@@ -33,12 +33,12 @@ const headerMaps = {
     orientation: "Orientação", orderNumber: "Número do Pedido", crimeCommitted: "Crime Cometido",
     resolutionAttachment: "Anexo de Resolução", punishmentApplied: "Punição Aplicada",
     resolutionDate: "Data de Resolução", resolverId: "ID do Solucionador", cancellationReason: "Motivo de Cancelamento",
-    updatedAt: "Atualizado Em", syncStatus: "Status Sincronização"
+    updatedAt: "Atualizado Em"
   },
   advertencias: {
     id: "ID", date: "Data", offenderNick: "Nick do Infrator", punishmentType: "Tipo de Punição",
     reason: "Motivo", directorId: "ID do Diretor", caseId: "ID do Caso", notes: "Observações",
-    updatedAt: "Atualizado Em", syncStatus: "Status Sincronização"
+    updatedAt: "Atualizado Em"
   },
   logs: {
     id: "ID", date: "Data", timestamp: "Timestamp", userId: "ID do Usuário", userRole: "Cargo do Usuário",
@@ -52,6 +52,7 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
   return data.map(item => {
     const translated: any = {};
     for (const key in item) {
+      if (key === 'syncStatus') continue; // Ignorar campo interno
       const ptKey = map[key as keyof typeof map] || key;
       translated[ptKey] = item[key];
     }
