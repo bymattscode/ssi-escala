@@ -334,6 +334,11 @@ export const getSchedules = async (): Promise<Schedule[]> => {
   
   const filtered = schedules.filter(s => {
     if (s.id && deletedKeys.includes(String(s.id).trim().toLowerCase())) return false;
+    if (s.type === "Fiscalização de Avaliadores" || s.type === "Fiscalização de Capacitadores") {
+      addDeletedKey(s.id);
+      needsSave = true;
+      return false;
+    }
     // Remove escalas vinculadas aos antigos IDs numéricos de teste que não existem mais na base
     if (s.memberId && s.memberId.length <= 3 && !memberIdSet.has(s.memberId)) {
       addDeletedKey(s.id);

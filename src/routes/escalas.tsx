@@ -96,9 +96,7 @@ function EscalaTable({
         <tbody>
           {schedules.map((schedule) => {
             const member = getMemberDetails(schedule.memberId, members);
-            const isSpecial = schedule.type === "Fiscalização de Avaliadores" || schedule.type === "Fiscalização de Capacitadores";
-            const fiscMembers = members.filter(m => m.role === "Fiscalizador" && m.status === "Ativo");
-            const roleMembers = (isSpecial && fiscMembers.length > 0) ? fiscMembers : members.filter(m => m.status === "Ativo");
+            const roleMembers = members.filter(m => m.status === "Ativo");
             return (
               <tr key={schedule.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                 <td className="px-4 py-4 font-medium text-foreground">
@@ -300,8 +298,6 @@ function EscalasPage() {
     try {
       await generateWeeklySchedule(weekStart, members, "Fiscalizador", "1");
       await generateWeeklySchedule(weekStart, members, "Diretor", "1");
-      await generateWeeklySchedule(weekStart, members, "Fiscalização de Avaliadores", "1");
-      await generateWeeklySchedule(weekStart, members, "Fiscalização de Capacitadores", "1");
       
       await addAuditLog("1", role, "Geração de Escala", "Escalas", `Escalas automáticas geradas para a semana ${selectedWeek}.`);
       
@@ -402,8 +398,6 @@ function EscalasPage() {
   
   const fiscalizadoresSchedules = filteredSchedules.filter(s => s.type === "Fiscalizador" || (!s.type && s.id.includes("FIS")));
   const diretoresSchedules = filteredSchedules.filter(s => s.type === "Diretor");
-  const avaliadoresSchedules = filteredSchedules.filter(s => s.type === "Fiscalização de Avaliadores");
-  const capacitadoresSchedules = filteredSchedules.filter(s => s.type === "Fiscalização de Capacitadores");
   
   const pendentes = filteredSchedules.filter(s => s.status === "Pendente").length;
   const concluidos = filteredSchedules.filter(s => s.status === "Concluído").length;
@@ -535,74 +529,6 @@ function EscalasPage() {
             )}
            </TabsContent>
          </Tabs>
-      </div>
-
-      {/* SEÇÃO DE FISCALIZAÇÃO ESPECIAL ABAIXO DA TABELA PRINCIPAL */}
-      <div className="flex flex-col gap-4 mt-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-3 gap-2">
-          <div>
-            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-              📌 Fiscalizações Operacionais Especiais
-            </h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Funções de monitoramento supervisionadas exclusivamente por <strong className="text-foreground">Fiscalizadores</strong>. Prazo para conclusão: <strong className="text-primary">Terça-feira (23:59)</strong>.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* Fiscalização de Avaliadores */}
-          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
-            <div className="bg-secondary/20 px-4 py-3 border-b border-border font-bold text-sm text-foreground flex items-center justify-between">
-              <span className="flex items-center gap-2 text-primary">
-                🔍 Fiscalização de Avaliadores
-              </span>
-              <span className="text-xs bg-primary/10 border border-primary/20 text-primary px-2.5 py-0.5 rounded-full font-semibold">
-                Prazo: Terça (23:59)
-              </span>
-            </div>
-            <div className="p-0 overflow-x-auto flex-1">
-              {isLoading ? <SkeletonTable rows={1} /> : (
-                <EscalaTable 
-                  schedules={avaliadoresSchedules} 
-                  members={members} 
-                  onStatusUpdate={handleStatusUpdate} 
-                  isAdmin={isAdmin} 
-                  onMemberChange={handleMemberChange} 
-                  onJustify={setJustifyingSchedule}
-                  onView={setViewSchedule}
-                  onRegisterFunction={handleOpenRegister}
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Fiscalização de Capacitadores */}
-          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
-            <div className="bg-secondary/20 px-4 py-3 border-b border-border font-bold text-sm text-foreground flex items-center justify-between">
-              <span className="flex items-center gap-2 text-primary">
-                📚 Fiscalização de Capacitadores
-              </span>
-              <span className="text-xs bg-primary/10 border border-primary/20 text-primary px-2.5 py-0.5 rounded-full font-semibold">
-                Prazo: Terça (23:59)
-              </span>
-            </div>
-            <div className="p-0 overflow-x-auto flex-1">
-              {isLoading ? <SkeletonTable rows={1} /> : (
-                <EscalaTable 
-                  schedules={capacitadoresSchedules} 
-                  members={members} 
-                  onStatusUpdate={handleStatusUpdate} 
-                  isAdmin={isAdmin} 
-                  onMemberChange={handleMemberChange} 
-                  onJustify={setJustifyingSchedule}
-                  onView={setViewSchedule}
-                  onRegisterFunction={handleOpenRegister}
-                />
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       <ConfirmModal
