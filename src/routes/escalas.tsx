@@ -374,7 +374,7 @@ function EscalasPage() {
     await updateSchedule(registeringSchedule.id, {
       status: "Concluído",
       comments: registerComments.trim(),
-      conclusionId: registerConclusionId.trim() || undefined,
+      conclusionId: registeringSchedule.referenceDay || undefined,
     });
     
     await addAuditLog("1", role, "Alteração de Status", "Escalas", `Função registrada como Concluído na escala #${registeringSchedule.id}.`, registeringSchedule.id);
@@ -631,17 +631,6 @@ function EscalasPage() {
                   {getMemberDetails(registeringSchedule.memberId, members)?.nick || "Desconhecido"}
                 </div>
               </div>
-            </div>
-            
-            <div className="flex flex-col gap-1.5 mt-2">
-              <label className="text-sm font-bold text-foreground">Código da Função / ID (ex: BA01, FC01, AV01):</label>
-              <input 
-                type="text"
-                value={registerConclusionId}
-                onChange={e => setRegisterConclusionId(e.target.value.toUpperCase())}
-                placeholder="Ex: BA01, FC01, MON1..."
-                className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground font-semibold uppercase focus:outline-none focus:border-primary/50"
-              />
             </div>
             
             <div className="flex flex-col gap-1.5 mt-2">
