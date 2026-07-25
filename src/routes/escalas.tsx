@@ -100,7 +100,8 @@ function EscalaTable({
             const roleMembers = members.filter(m => m.role === schedule.type && m.status === "Ativo");
             return (
               <tr key={schedule.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
-                <td className="px-6 py-4 font-medium text-foreground flex items-center gap-3">
+                <td className="px-6 py-4 font-medium text-foreground">
+                  <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
                     {member?.nick?.charAt(0) || "?"}
                   </div>
@@ -117,6 +118,7 @@ function EscalaTable({
                   ) : (
                     <span className="truncate">{member?.nick || "Desconhecido"}</span>
                   )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{schedule.type}</td>
                 <td className="px-6 py-4 text-foreground font-medium whitespace-nowrap">{schedule.referenceDay}</td>
@@ -130,7 +132,7 @@ function EscalaTable({
                   <StatusBadge status={schedule.status} />
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex flex-wrap items-center justify-end gap-2 w-full min-w-max md:min-w-0">
+                  <div className="flex items-center justify-end gap-2">
                   
                   {schedule.status === "Atrasado" && (
                     <button 
@@ -285,7 +287,8 @@ function EscalasPage() {
       "Pendente": "Concluído",
       "Concluído": "Atrasado",
       "Atrasado": "Justificado",
-      "Justificado": "Pendente",
+      "Justificado": "Não Justificado",
+      "Não Justificado": "Pendente",
     };
     const next = nextStatusMap[currentStatus];
     await updateSchedule(id, { status: next });
