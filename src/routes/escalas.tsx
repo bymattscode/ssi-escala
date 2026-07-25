@@ -46,7 +46,7 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card border border-border shadow-2xl rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-secondary/30">
+        <div className="flex items-center justify-between px-4 py-4 border-b border-border bg-secondary/30">
           <h2 className="text-lg font-bold text-foreground">{title}</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <X className="h-5 w-5" />
@@ -86,12 +86,12 @@ function EscalaTable({
       <table className="w-full text-sm text-left">
         <thead className="text-xs text-muted-foreground uppercase bg-secondary/30 border-b border-border">
           <tr>
-            <th className="px-6 py-4 font-medium">Membro</th>
-            <th className="px-6 py-4 font-medium">Cargo</th>
-            <th className="px-6 py-4 font-medium">Dia Ref.</th>
-            <th className="px-6 py-4 font-medium">Prazo</th>
-            <th className="px-6 py-4 font-medium">Status</th>
-            <th className="px-6 py-4 font-medium text-right">Ações</th>
+            <th className="px-4 py-4 font-medium">Membro</th>
+            <th className="px-4 py-4 font-medium">Cargo</th>
+            <th className="px-4 py-4 font-medium">Dia Ref.</th>
+            <th className="px-4 py-4 font-medium">Prazo</th>
+            <th className="px-4 py-4 font-medium">Status</th>
+            <th className="px-4 py-4 font-medium text-right">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -100,7 +100,7 @@ function EscalaTable({
             const roleMembers = members.filter(m => m.role === schedule.type && m.status === "Ativo");
             return (
               <tr key={schedule.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
-                <td className="px-6 py-4 font-medium text-foreground">
+                <td className="px-4 py-4 font-medium text-foreground">
                   <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
                     {member?.nick?.charAt(0) || "?"}
@@ -120,18 +120,18 @@ function EscalaTable({
                   )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{schedule.type}</td>
-                <td className="px-6 py-4 text-foreground font-medium whitespace-nowrap">{schedule.referenceDay}</td>
-                <td className="px-6 py-4 text-muted-foreground">
+                <td className="px-4 py-4 text-muted-foreground whitespace-nowrap">{schedule.type}</td>
+                <td className="px-4 py-4 text-foreground font-medium whitespace-nowrap">{schedule.referenceDay}</td>
+                <td className="px-4 py-4 text-muted-foreground">
                   <div className="flex flex-col">
                     <span className="whitespace-nowrap">{schedule.deadline.split(' ')[0]}</span>
                     <span className="whitespace-nowrap">{schedule.deadline.split(' ')[1]}</span>
                   </div>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-4">
                   <StatusBadge status={schedule.status} />
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-4">
                   <div className="flex items-center justify-end gap-2">
                   
                   {schedule.status === "Atrasado" && (
@@ -162,8 +162,9 @@ function EscalaTable({
                   )}
                   
                   {isAdmin && (
-                    <button onClick={() => onStatusUpdate(schedule.id, schedule.status)} className="text-xs text-primary hover:text-primary/80 font-medium transition-colors ml-2 whitespace-nowrap">
-                      Ciclar Status
+                    <button onClick={() => onStatusUpdate(schedule.id, schedule.status)} className="text-[10px] text-primary hover:text-primary/80 font-medium transition-colors ml-2 flex flex-col items-center leading-none gap-0.5 border border-primary/20 rounded px-2 py-1 bg-primary/5">
+                      <span>Ciclar</span>
+                      <span>Status</span>
                     </button>
                   )}
                   
@@ -181,7 +182,7 @@ function EscalaTable({
           })}
           {schedules.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+              <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
                 Nenhuma escala encontrada para este período.
               </td>
             </tr>
