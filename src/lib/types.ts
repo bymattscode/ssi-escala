@@ -2,7 +2,7 @@ export type Role = "Presidente" | "Vice-Presidente" | "Diretor" | "Fiscalizador"
 export type UserGroup = "SSI" | "GATE" | "CSI" | "Supremacia" | "Ministério";
 export type ModulePermission = "Dashboard" | "Escala Semanal" | "Listagem de Membros" | "Gestão de Casos" | "Registro de Punições" | "Relatórios e Auditoria" | "Configurações";
 export type CaseStatus = "Aberto" | "Resolvido" | "Cancelado";
-export type ScheduleStatus = "Pendente" | "Concluído" | "Atrasado" | "Justificativa Enviada";
+export type ScheduleStatus = "Pendente" | "Concluído" | "Atrasado" | "Justificativa Enviada" | "Não Justificado";
 
 export interface Member {
   id: string;
@@ -38,6 +38,11 @@ export interface Schedule {
   responsibleId?: string; // Presidente que gerou
   observations?: string;
   type: "Fiscalizador" | "Diretor";
+  
+  deadlineDate?: string; // ISO date format for automation
+  conclusionId?: string; // BA01 / AV01 etc
+  comments?: string; // Observações ou link do print
+  casesLine?: string; // Linha dos casos
   
   // Justificativas
   justificationReason?: string;

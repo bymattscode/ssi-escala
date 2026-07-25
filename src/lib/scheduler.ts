@@ -24,6 +24,8 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
   for (let i = 0; i < 7; i++) {
     const currentDay = addDays(startDate, i);
     const deadlineDay = addDays(currentDay, 2);
+    // Definir para 23:59:59
+    deadlineDay.setHours(23, 59, 59, 999);
     
     // Escolhe o membro
     const member = activeMembers[memberIndex % activeMembers.length];
@@ -37,6 +39,7 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
       memberId: member.id,
       referenceDay: DAYS_OF_WEEK[i],
       deadline: deadlineFormatted.charAt(0).toUpperCase() + deadlineFormatted.slice(1),
+      deadlineDate: deadlineDay.toISOString(),
       status: "Pendente",
       responsibleId,
       type

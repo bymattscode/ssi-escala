@@ -24,8 +24,9 @@ function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, { bg: string, icon: any }> = {
     Pendente: { bg: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", icon: Clock },
     Concluído: { bg: "bg-green-500/10 text-green-500 border-green-500/20", icon: CheckCircle2 },
-    Atrasado: { bg: "bg-red-500/10 text-red-500 border-red-500/20", icon: XCircle },
+    Atrasado: { bg: "bg-red-500/10 text-red-500 border-red-500/20", icon: Clock },
     "Justificativa Enviada": { bg: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: AlertTriangle },
+    "Não Justificado": { bg: "bg-red-500 text-white border-red-600", icon: XCircle },
   };
   
   const Icon = styles[status]?.icon || Clock;
@@ -67,7 +68,8 @@ function EscalaTable({
   onMemberChange,
   onJustify,
   onReview,
-  onView
+  onView,
+  onRegisterFunction
 }: { 
   schedules: Schedule[], 
   members: Member[], 
@@ -76,7 +78,8 @@ function EscalaTable({
   onMemberChange: (scheduleId: string, newMemberId: string) => void,
   onJustify: (schedule: Schedule) => void,
   onReview: (schedule: Schedule) => void,
-  onView: (schedule: Schedule) => void
+  onView: (schedule: Schedule) => void,
+  onRegisterFunction: (schedule: Schedule) => void
 }) {
   return (
     <div className="overflow-x-auto">
@@ -148,6 +151,15 @@ function EscalaTable({
                     </button>
                   )}
                   
+                  {schedule.status !== "Não Justificado" && schedule.status !== "Concluído" && schedule.status !== "Justificativa Enviada" && (
+                    <button 
+                      onClick={() => onRegisterFunction(schedule)}
+                      className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-2 py-1 rounded-md border border-primary/20 transition-colors font-medium flex items-center gap-1 ml-2"
+                    >
+                      <FileText className="h-3 w-3" /> Registrar Função
+                    </button>
+                  )}
+                  
                   {isAdmin && (
                     <button onClick={() => onStatusUpdate(schedule.id, schedule.status)} className="text-xs text-primary hover:text-primary/80 font-medium transition-colors ml-2">
                       Ciclar Status
@@ -191,6 +203,12 @@ function EscalasPage() {
   
   const [viewSchedule, setViewSchedule] = useState<Schedule | null>(null);
   
+  const [registeringSchedule, setRegisteringSchedule] = useState<Schedule | null>(null);
+  const [registerStatus, setRegisterStatus] = useState<"Concluído" | "Justificativa Enviada">("Concluído");
+  const [registerId, setRegisterId] = useState("");
+  const [registerComments, setRegisterComments] = useState("");
+  const [registerCasesLine, setRegisterCasesLine] = useState("");
+  
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 }); // Sunday
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 }); // Saturday
   const weekDisplay = `Semana: Dom ${format(weekStart, "dd/MM")} a Sáb ${format(weekEnd, "dd/MM")}`;
@@ -199,7 +217,31 @@ function EscalasPage() {
   const selectedWeek = `${format(weekStart, "yyyy")}-W${weekNumber}`;
 
   const fetchSchedules = async () => {
-    const data = await getSchedules();
+    let data = await getSchedules();
+    const now = new Date();
+    let hasUpdates = false;
+    
+    // Automação: verificar atrasos
+    for (const schedule of data) {
+      if (schedule.deadlineDate && (schedule.status === "Pendente" || schedule.status === "Atrasado")) {
+        const deadline = new Date(schedule.deadlineDate);
+        const diffMs = now.getTime() - deadline.getTime();
+        
+        if (schedule.status === "Pendente" && diffMs > 0) {
+          await updateSchedule(schedule.id, { status: "Atrasado" });
+          hasUpdates = true;
+        } else if (schedule.status === "Atrasado" && diffMs > 24 * 60 * 60 * 1000) {
+          // Passou 24h do prazo
+          await updateSchedule(schedule.id, { status: "Não Justificado" });
+          hasUpdates = true;
+        }
+      }
+    }
+    
+    if (hasUpdates) {
+      data = await getSchedules(); // fetch fresh data
+    }
+    
     setSchedules(data);
   };
 
@@ -298,6 +340,37 @@ function EscalasPage() {
     
     toast.success(`Justificativa ${reviewDecision.toLowerCase()}!`);
     setReviewingSchedule(null);
+    fetchSchedules();
+  };
+  
+  const handleRegisterSubmit = async () => {
+    if (!registeringSchedule) return;
+    if (!registerId) {
+      toast.error("Por favor, preencha o ID.");
+      return;
+    }
+    
+    const isJustification = registerStatus === "Justificativa Enviada";
+    
+    await updateSchedule(registeringSchedule.id, {
+      status: registerStatus,
+      conclusionId: registerId,
+      comments: registerComments,
+      casesLine: registerCasesLine,
+      ...(isJustification ? {
+        justificationStatus: "Pendente",
+        justificationDate: new Date().toISOString()
+      } : {})
+    });
+    
+    await addAuditLog("1", role, "Alteração de Status", "Escalas", `Função registrada como ${registerStatus} na escala #${registeringSchedule.id}.`, registeringSchedule.id);
+    
+    toast.success("Registro de função enviado com sucesso!");
+    setRegisteringSchedule(null);
+    setRegisterId("");
+    setRegisterComments("");
+    setRegisterCasesLine("");
+    setRegisterStatus("Concluído");
     fetchSchedules();
   };
   
@@ -422,6 +495,7 @@ function EscalasPage() {
                onJustify={setJustifyingSchedule}
                onReview={setReviewingSchedule}
                onView={setViewSchedule}
+               onRegisterFunction={setRegisteringSchedule}
              />
            </TabsContent>
  
@@ -435,6 +509,7 @@ function EscalasPage() {
                onJustify={setJustifyingSchedule}
                onReview={setReviewingSchedule}
                onView={setViewSchedule}
+               onRegisterFunction={setRegisteringSchedule}
              />
            </TabsContent>
          </Tabs>
@@ -624,6 +699,84 @@ function EscalasPage() {
                 )}
               </div>
             )}
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL REGISTRAR FUNÇÃO */}
+      <Modal isOpen={!!registeringSchedule} onClose={() => setRegisteringSchedule(null)} title="REGISTRAR ESCALA">
+        {registeringSchedule && (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground mb-2 text-center">Selecione o status e informe os dados exatamente como aparecem na escala.</p>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-foreground">Cargo:</label>
+                <div className="bg-secondary/20 border border-border rounded-md px-3 py-2 text-sm text-muted-foreground flex items-center justify-between">
+                  {registeringSchedule.type}
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-bold text-foreground">Nick:</label>
+                <div className="bg-secondary/20 border border-border rounded-md px-3 py-2 text-sm text-muted-foreground">
+                  {getMemberDetails(registeringSchedule.memberId, members)?.nick}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-foreground">ID:</label>
+              <input 
+                type="text" 
+                value={registerId} 
+                onChange={e => setRegisterId(e.target.value)} 
+                placeholder="Ex: (BA01 / AV01)" 
+                className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+              />
+            </div>
+            
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold text-foreground">Status:</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => setRegisterStatus("Concluído")}
+                  className={`py-2 rounded-md font-bold text-sm transition-all shadow-sm ${registerStatus === "Concluído" ? "bg-blue-600 text-white border-2 border-blue-700" : "bg-blue-600/20 text-blue-600 border border-blue-600/30 hover:bg-blue-600/30"}`}
+                >
+                  REALIZADO
+                </button>
+                <button 
+                  onClick={() => setRegisterStatus("Justificativa Enviada")}
+                  className={`py-2 rounded-md font-bold text-sm transition-all shadow-sm ${registerStatus === "Justificativa Enviada" ? "bg-amber-300 text-amber-900 border-2 border-amber-400" : "bg-amber-300/30 text-amber-600 border border-amber-300/50 hover:bg-amber-300/40"}`}
+                >
+                  JUSTIFICATIVA
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-1.5 mt-2">
+              <label className="text-sm font-bold text-foreground">Comentários{registerStatus === "Concluído" ? " ou Print" : ""}:</label>
+              <textarea 
+                value={registerComments} 
+                onChange={e => setRegisterComments(e.target.value)} 
+                placeholder={registerStatus === "Concluído" ? "Informe comentários relevantes da realização ou link do print..." : "Justifique o motivo do não comparecimento..."} 
+                className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 min-h-[100px] resize-y"
+              />
+            </div>
+            
+            <div className="flex flex-col gap-1.5 mt-2">
+              <label className="text-sm font-bold text-foreground">Linha dos casos:</label>
+              <input 
+                type="text" 
+                value={registerCasesLine} 
+                onChange={e => setRegisterCasesLine(e.target.value)} 
+                placeholder="Ex: linhas/identificadores de casos..." 
+                className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
+              />
+            </div>
+            
+            <button onClick={handleRegisterSubmit} className="w-full mt-4 py-3 rounded-xl font-bold bg-[#1a2b4c] text-white hover:bg-[#1a2b4c]/90 transition-all shadow-md">
+              ENVIAR REGISTRO
+            </button>
           </div>
         )}
       </Modal>
