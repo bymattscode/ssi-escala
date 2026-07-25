@@ -120,18 +120,17 @@ function EscalaTable({
                 </td>
                 <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{schedule.type}</td>
                 <td className="px-6 py-4 text-foreground font-medium whitespace-nowrap">{schedule.referenceDay}</td>
-                <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{schedule.deadline}</td>
+                <td className="px-6 py-4 text-muted-foreground">
+                  <div className="flex flex-col">
+                    <span className="whitespace-nowrap">{schedule.deadline.split(' ')[0]}</span>
+                    <span className="whitespace-nowrap">{schedule.deadline.split(' ')[1]}</span>
+                  </div>
+                </td>
                 <td className="px-6 py-4">
                   <StatusBadge status={schedule.status} />
                 </td>
-                <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                  <button 
-                    onClick={() => onView(schedule)}
-                    className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors" 
-                    title="Ver Detalhes/Histórico"
-                  >
-                    <FileText className="h-4 w-4" />
-                  </button>
+                <td className="px-6 py-4">
+                  <div className="flex flex-wrap items-center justify-end gap-2 w-full min-w-max md:min-w-0">
                   
                   {schedule.status === "Atrasado" && (
                     <button 
@@ -161,10 +160,19 @@ function EscalaTable({
                   )}
                   
                   {isAdmin && (
-                    <button onClick={() => onStatusUpdate(schedule.id, schedule.status)} className="text-xs text-primary hover:text-primary/80 font-medium transition-colors ml-2">
+                    <button onClick={() => onStatusUpdate(schedule.id, schedule.status)} className="text-xs text-primary hover:text-primary/80 font-medium transition-colors ml-2 whitespace-nowrap">
                       Ciclar Status
                     </button>
                   )}
+                  
+                  <button 
+                    onClick={() => onView(schedule)}
+                    className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors shrink-0" 
+                    title="Ver Detalhes/Histórico"
+                  >
+                    <FileText className="h-4 w-4" />
+                  </button>
+                  </div>
                 </td>
               </tr>
             );
