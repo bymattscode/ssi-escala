@@ -332,12 +332,17 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
   const mergedMap = new Map<string, T>();
   const deletedKeys = getDeletedKeys();
   
-  // Usar Nick (se for membro/usuário) ou ID para evitar duplicação em sincronização cruzada
-  const getUniqueKey = (item: T) => item.nick ? item.nick.trim().toLowerCase() : item.id;
+  // Usar Nick (se for membro/usuário) ou ID para evitar duplicação em sincronização cruzada (garantindo conversão para string)
+  const getUniqueKey = (item: T) => {
+    if (item.nick !== undefined && item.nick !== null && String(item.nick).trim() !== "") {
+      return String(item.nick).trim().toLowerCase();
+    }
+    return item.id !== undefined && item.id !== null ? String(item.id).trim().toLowerCase() : Math.random().toString(36);
+  };
   
   const isDeleted = (item: T) => {
-    if (item.id && deletedKeys.includes(item.id.trim().toLowerCase())) return true;
-    if (item.nick && deletedKeys.includes(item.nick.trim().toLowerCase())) return true;
+    if (item.id !== undefined && item.id !== null && deletedKeys.includes(String(item.id).trim().toLowerCase())) return true;
+    if (item.nick !== undefined && item.nick !== null && deletedKeys.includes(String(item.nick).trim().toLowerCase())) return true;
     return false;
   };
 

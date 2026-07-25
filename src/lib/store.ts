@@ -151,10 +151,10 @@ export const getDeletedKeys = (): string[] => {
   return getParsedData<string[]>("SSI_DELETED_KEYS", []);
 };
 
-export const addDeletedKey = (key?: string): void => {
-  if (!key) return;
+export const addDeletedKey = (key?: string | number): void => {
+  if (key === undefined || key === null) return;
   const list = getDeletedKeys();
-  const clean = key.trim().toLowerCase();
+  const clean = String(key).trim().toLowerCase();
   if (!list.includes(clean)) {
     list.push(clean);
     if (typeof window !== "undefined") {
@@ -163,10 +163,10 @@ export const addDeletedKey = (key?: string): void => {
   }
 };
 
-export const removeDeletedKey = (key?: string): void => {
-  if (!key) return;
+export const removeDeletedKey = (key?: string | number): void => {
+  if (key === undefined || key === null) return;
   const list = getDeletedKeys();
-  const clean = key.trim().toLowerCase();
+  const clean = String(key).trim().toLowerCase();
   const next = list.filter(k => k !== clean);
   if (typeof window !== "undefined") {
     localStorage.setItem("SSI_DELETED_KEYS", JSON.stringify(next));
@@ -183,8 +183,8 @@ export const getMembers = async (): Promise<Member[]> => {
   const seenMap = new Map<string, Member>();
   for (const m of rawMembers) {
     if (!m || !m.nick) continue;
-    const cleanNick = m.nick.trim().toLowerCase();
-    const cleanId = (m.id || "").trim().toLowerCase();
+    const cleanNick = String(m.nick).trim().toLowerCase();
+    const cleanId = m.id !== undefined && m.id !== null ? String(m.id).trim().toLowerCase() : "";
     
     // Se foi desligado ou excluído anteriormente, ignorar para sempre!
     if (deletedKeys.includes(cleanId) || deletedKeys.includes(cleanNick)) continue;
