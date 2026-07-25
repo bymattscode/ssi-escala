@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Member, Role, UserGroup, ModulePermission } from "../lib/types";
-import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, ShieldCheck, ShieldAlert, X } from "lucide-react";
+import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, ShieldCheck, ShieldAlert, X, Key } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getMembers, updateMemberStatus, updateMember, deleteMember, addMember, addAuditLog } from "../lib/store";
