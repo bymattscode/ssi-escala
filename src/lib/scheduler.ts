@@ -63,24 +63,24 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
       id: `SSI-ESC-${Date.now().toString(36).toUpperCase()}-AVAL-FIS`,
       week: weekId,
       memberId: memberAval.id,
-      referenceDay: "Semanal",
+      referenceDay: "Avaliadores",
       deadline: "Terça-feira (23:59)",
       deadlineDate: tuesday.toISOString(),
       status: "Pendente",
       responsibleId,
-      type: "Fiscalização dos Avaliadores" as any
+      type: "Fiscalizador" as any
     });
 
     schedules.push({
       id: `SSI-ESC-${Date.now().toString(36).toUpperCase()}-CAP-FIS`,
       week: weekId,
       memberId: memberCap.id,
-      referenceDay: "Semanal",
+      referenceDay: "Capacitadores",
       deadline: "Terça-feira (23:59)",
       deadlineDate: tuesday.toISOString(),
       status: "Pendente",
       responsibleId,
-      type: "Fiscalização dos Capacitadores" as any
+      type: "Fiscalizador" as any
     });
   }
 

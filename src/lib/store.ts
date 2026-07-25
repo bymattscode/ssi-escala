@@ -356,6 +356,20 @@ export const getSchedules = async (): Promise<Schedule[]> => {
       updated.status = "Pendente";
     }
     
+    // Normalizar nomenclaturas das funções extras de fiscalização
+    if (updated.type === "Fiscalização dos Avaliadores" || (updated.referenceDay === "Semanal" && updated.id.includes("AVAL"))) {
+      needsSave = true;
+      updated.type = "Fiscalizador" as any;
+      updated.referenceDay = "Avaliadores";
+      updated.deadline = "Terça-feira (23:59)";
+    }
+    if (updated.type === "Fiscalização dos Capacitadores" || (updated.referenceDay === "Semanal" && updated.id.includes("CAP"))) {
+      needsSave = true;
+      updated.type = "Fiscalizador" as any;
+      updated.referenceDay = "Capacitadores";
+      updated.deadline = "Terça-feira (23:59)";
+    }
+
     // Automação: Atualizar status de escalas vencidas
     if (updated.status === "Pendente" && updated.deadlineDate) {
       const deadlineDate = new Date(updated.deadlineDate);
@@ -388,16 +402,16 @@ export const getSchedules = async (): Promise<Schedule[]> => {
     "Quinta": 4, "Quinta-feira": 4,
     "Sexta": 5, "Sexta-feira": 5,
     "Sábado": 6,
-    "Semanal": 7
+    "Avaliadores": 7,
+    "Capacitadores": 8,
+    "Semanal": 9
   };
   const typeOrder: Record<string, number> = {
     "Fiscalizador": 0,
-    "Diretor": 0,
-    "Fiscalização dos Avaliadores": 1,
-    "Fiscalização dos Capacitadores": 2
+    "Diretor": 0
   };
   normalized.sort((a, b) => {
-    const dayDiff = (dayOrder[a.referenceDay] ?? 7) - (dayOrder[b.referenceDay] ?? 7);
+    const dayDiff = (dayOrder[a.referenceDay] ?? 10) - (dayOrder[b.referenceDay] ?? 10);
     if (dayDiff !== 0) return dayDiff;
     return (typeOrder[a.type || ""] ?? 0) - (typeOrder[b.type || ""] ?? 0);
   });
