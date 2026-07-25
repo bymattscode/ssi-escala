@@ -154,7 +154,7 @@ function EscalaTable({
                   {schedule.status !== "Não Justificado" && schedule.status !== "Concluído" && schedule.status !== "Justificativa Enviada" && (
                     <button 
                       onClick={() => onRegisterFunction(schedule)}
-                      className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-2 py-1 rounded-md border border-primary/20 transition-colors font-medium flex items-center gap-1 ml-2"
+                      className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-2 py-1 rounded-md border border-primary/20 transition-colors font-medium flex items-center gap-1 ml-2 whitespace-nowrap"
                     >
                       <FileText className="h-3 w-3" /> Registrar Função
                     </button>
