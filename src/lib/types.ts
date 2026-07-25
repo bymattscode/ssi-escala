@@ -17,6 +17,7 @@ export interface Member {
   group?: UserGroup;
   accessLevel?: string;
   permissions?: ModulePermission[];
+  accessCode?: string;
 }
 
 export interface AuthorizedUser {

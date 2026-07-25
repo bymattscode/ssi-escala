@@ -40,7 +40,14 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
   );
 }
 
-function MemberCard({ member, isAdmin, onEdit, onDeactivate, onReactivate }: { member: Member, isAdmin: boolean, onEdit: (m: Member) => void, onDeactivate: (m: Member) => void, onReactivate: (m: Member) => void }) {
+function MemberCard({ member, isAdmin, onEdit, onDeactivate, onReactivate, onRevokeAccess }: { 
+  member: Member; 
+  isAdmin: boolean; 
+  onEdit: (m: Member) => void;
+  onDeactivate: (m: Member) => void;
+  onReactivate: (m: Member) => void;
+  onRevokeAccess?: (m: Member) => void;
+}) {
   return (
     <div className={`bg-card/50 border ${member.status === "Ativo" ? "border-border" : "border-border/50 opacity-70"} rounded-xl p-4 flex flex-col hover:border-primary/40 hover:bg-secondary/40 transition-all duration-300 shadow-sm relative group`}>
       <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -53,6 +60,11 @@ function MemberCard({ member, isAdmin, onEdit, onDeactivate, onReactivate }: { m
              <button onClick={() => onEdit(member)} className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors" title="Editar Cargo">
                <Edit className="h-4 w-4" />
              </button>
+             {member.accessCode && onRevokeAccess && (
+               <button onClick={() => onRevokeAccess(member)} className="p-1.5 text-muted-foreground hover:text-orange-500 bg-background rounded-md border border-border hover:border-orange-500/30 transition-colors" title="Revogar Código de Acesso">
+                 <Key className="h-4 w-4" />
+               </button>
+             )}
              {member.status === "Ativo" ? (
                <button onClick={() => onDeactivate(member)} className="p-1.5 bg-background rounded-md border border-border transition-colors text-muted-foreground hover:text-destructive hover:border-destructive/30" title="Inativar ou Licença">
                  <PowerOff className="h-4 w-4" />
@@ -116,7 +128,7 @@ function MemberCard({ member, isAdmin, onEdit, onDeactivate, onReactivate }: { m
   );
 }
 
-function RoleSection({ title, icon: Icon, members, isAdmin, onEdit, onDeactivate, onReactivate }: { title: string, icon: any, members: Member[], isAdmin: boolean, onEdit: (m: Member) => void, onDeactivate: (m: Member) => void, onReactivate: (m: Member) => void }) {
+function RoleSection({ title, icon: Icon, members, isAdmin, onEdit, onDeactivate, onReactivate, onRevokeAccess }: { title: string, icon: any, members: Member[], isAdmin: boolean, onEdit: (m: Member) => void, onDeactivate: (m: Member) => void, onReactivate: (m: Member) => void, onRevokeAccess?: (m: Member) => void }) {
   if (members.length === 0) return null;
   
   return (
@@ -131,7 +143,7 @@ function RoleSection({ title, icon: Icon, members, isAdmin, onEdit, onDeactivate
         </span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {members.map(m => <MemberCard key={m.id} member={m} isAdmin={isAdmin} onEdit={onEdit} onDeactivate={onDeactivate} onReactivate={onReactivate} />)}
+        {members.map(m => <MemberCard key={m.id} member={m} isAdmin={isAdmin} onEdit={onEdit} onDeactivate={onDeactivate} onReactivate={onReactivate} onRevokeAccess={onRevokeAccess} />)}
       </div>
     </div>
   );
@@ -207,6 +219,16 @@ function MembrosPage() {
     await addAuditLog("1", role, "Retorno de Licença", "Membros", `O membro ${m.nick} retornou da licença.`, m.id);
     toast.success("Membro reativado com sucesso!");
     fetchMembers();
+  };
+
+  const handleRevokeAccess = async (m: Member) => {
+    if (!isAdmin) return;
+    if (confirm(`Tem certeza que deseja revogar o código de acesso de ${m.nick}? Isso forçará uma nova validação pelo Habbo.`)) {
+      await updateMember(m.id, { accessCode: "" }); // Remove accessCode via vazio
+      await addAuditLog("1", role, "Revogação de Acesso", "Membros", `O código de acesso de ${m.nick} foi revogado.`, m.id);
+      toast.success("Código de acesso revogado!");
+      fetchMembers();
+    }
   };
 
   const submitEditRole = async () => {
@@ -343,10 +365,10 @@ function MembrosPage() {
       </div>
 
       <div className="flex flex-col gap-10">
-        <RoleSection title="Presidente" icon={Crown} members={presidencia} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} />
-        <RoleSection title="Vice-Presidente" icon={Star} members={vice} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} />
-        <RoleSection title="Diretores" icon={ShieldCheck} members={diretores} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} />
-        <RoleSection title="Fiscalizadores" icon={ShieldAlert} members={fiscalizadores} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} />
+        <RoleSection title="Presidente" icon={Crown} members={presidencia} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
+        <RoleSection title="Vice-Presidente" icon={Star} members={vice} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
+        <RoleSection title="Diretores" icon={ShieldCheck} members={diretores} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
+        <RoleSection title="Fiscalizadores" icon={ShieldAlert} members={fiscalizadores} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
         {filteredMembers.length === 0 && (
           <div className="py-12 text-center text-muted-foreground bg-card border border-border border-dashed rounded-xl">
             Nenhum membro encontrado com os filtros atuais.
