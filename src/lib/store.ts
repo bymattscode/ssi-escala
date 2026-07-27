@@ -164,7 +164,8 @@ export const addAuditLog = async (
 
 // --- DELETION BLACKLIST (TOMBSTONES) ---
 export const getDeletedKeys = (): string[] => {
-  return getParsedData<string[]>("SSI_DELETED_KEYS", []);
+  const list = getParsedData<string[]>("SSI_DELETED_KEYS", []);
+  return list.filter(k => !String(k).toLowerCase().includes("esc") && !String(k).toLowerCase().includes("teste"));
 };
 
 export const addDeletedKey = (key?: string | number): void => {
@@ -352,20 +353,15 @@ export const getSchedules = async (): Promise<Schedule[]> => {
   const validMembers = getParsedData<Member[]>(KEYS.MEMBERS, []);
   const memberIdSet = new Set(validMembers.map(m => m.id));
   
-  // Identificar a semana ativa (a mais recente cadastrada ou atual) para expurgar semanas antigas (ex: 2026-W29) que causam duplicatas e falso status Não Justificado
-  const allWeeks = Array.from(new Set(schedules.map(s => s.week).filter(Boolean))).sort();
-  const latestWeek = allWeeks.length > 0 ? allWeeks[allWeeks.length - 1] : undefined;
-
   const filtered = schedules.filter(s => {
-    if (s.id && deletedKeys.includes(String(s.id).trim().toLowerCase())) return false;
-    // Remove escalas vinculadas aos antigos IDs numéricos de teste que não existem mais na base
-    if (s.memberId && s.memberId.length <= 3 && !memberIdSet.has(s.memberId)) {
-      addDeletedKey(s.id);
-      needsSave = true;
+    if (!s || !s.id) return false;
+    // Ignorar e remover imediatamente qualquer item simulado ou de teste do sistema
+    if (String(s.id).toUpperCase().includes("TESTE") || String(s.memberId).toUpperCase().includes("TESTE")) {
       return false;
     }
-    // Remove escalas de semanas passadas/antigas (ex: 2026-W29) que geram duplicação e status Não Justificado na planilha
-    if (latestWeek && s.week && s.week < latestWeek) {
+    if (deletedKeys.includes(String(s.id).trim().toLowerCase())) return false;
+    // Remove escalas vinculadas aos antigos IDs numéricos de teste que não existem mais na base
+    if (s.memberId && s.memberId.length <= 3 && !memberIdSet.has(s.memberId)) {
       addDeletedKey(s.id);
       needsSave = true;
       return false;

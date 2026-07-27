@@ -480,14 +480,13 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
 
 function cleanEscalasData(items: any[]): any[] {
   if (!items || !Array.isArray(items) || items.length === 0) return items;
-  const allWeeks = Array.from(new Set(items.map(s => s && s.week).filter(Boolean))).sort() as string[];
-  const latestWeek = allWeeks.length > 0 ? allWeeks[allWeeks.length - 1] : undefined;
   const deduplicationMap = new Map<string, any>();
 
   for (const item of items) {
     if (!item) continue;
-    // Ignorar escalas de semanas anteriores na mesclagem e sincronização
-    if (latestWeek && item.week && item.week < latestWeek) continue;
+    if (String(item.id || "").toUpperCase().includes("TESTE") || String(item.memberId || "").toUpperCase().includes("TESTE") || String(item["ID Interno"] || "").toUpperCase().includes("TESTE")) {
+      continue;
+    }
 
     const key = `${item.week || ""}-${item.type || ""}-${item.referenceDay || ""}`.toLowerCase();
     const existing = deduplicationMap.get(key);
@@ -771,14 +770,22 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
     return false;
   };
 
+  const isTestItem = (item: any) => {
+    if (!item) return true;
+    const strId = String(item.id || "").toUpperCase();
+    const strMemberId = String(item.memberId || item["ID do Membro"] || "").toUpperCase();
+    if (strId.includes("TESTE-0") || strId.includes("-TESTE-") || strMemberId.includes("TESTE-0") || strMemberId.includes("-TESTE-")) return true;
+    return false;
+  };
+
   for (const r of remote) {
-    if (isDeleted(r)) continue;
+    if (isDeleted(r) || isTestItem(r)) continue;
     const key = getUniqueKey(r);
     mergedMap.set(key, { ...r, syncStatus: 'synced' });
   }
   
   for (const l of local) {
-    if (isDeleted(l)) continue;
+    if (isDeleted(l) || isTestItem(l)) continue;
     const key = getUniqueKey(l);
     const r = mergedMap.get(key);
     if (!r) {
