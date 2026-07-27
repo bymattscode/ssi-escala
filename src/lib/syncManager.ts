@@ -27,7 +27,7 @@ const headerMaps = {
     casesLine: "Linha de Casos", justificationReason: "Motivo da Justificativa", justificationText: "Texto da Justificativa",
     justificationAttachment: "Anexo da Justificativa", justificationOccurrenceDate: "Data da Ocorrência (Just.)",
     justificationStatus: "Status da Justificativa", justificationDate: "Data da Justificativa",
-    justificationReviewerId: "ID do Revisor (Just.)", updatedAt: "Atualizado Em"
+    justificationReviewerId: "ID do Revisor (Just.)", updatedAt: "Atualizado Em", scheduleDate: "Data", responseDate: "Data da Resposta"
   },
   casos: {
     id: "ID", status: "Status", creatorId: "ID do Criador", offenderNick: "Nick do Infrator",
@@ -79,32 +79,56 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
     
     return listToTranslate.map(item => {
       const nick = memberMap.get(item.memberId) || item.nick || "Desconhecido";
-      let dateStr = "";
-      if (item.updatedAt) {
-        const d = new Date(Number(item.updatedAt));
-        if (!isNaN(d.getTime())) {
-          const pad = (n: number) => n.toString().padStart(2, '0');
-          dateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      // Coluna Data: Data real do dia da escala ("a data mesmo do dia referente a escala")
+      let scaleDateStr = "-";
+      if (item.scheduleDate) {
+        let d: Date;
+        if (typeof item.scheduleDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item.scheduleDate)) {
+          const [y, m, day] = item.scheduleDate.split("-").map(Number);
+          scaleDateStr = `${String(day).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+        } else {
+          d = new Date(item.scheduleDate);
+          if (!isNaN(d.getTime())) {
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            scaleDateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+          }
         }
       }
-      if (!dateStr && item.deadlineDate) {
+      if ((!scaleDateStr || scaleDateStr === "-") && item.deadlineDate) {
         const d = new Date(item.deadlineDate);
         if (!isNaN(d.getTime())) {
+          // O prazo (deadline) ao gerar escala é definido 2 dias após o dia da escala
+          d.setDate(d.getDate() - 2);
           const pad = (n: number) => n.toString().padStart(2, '0');
-          dateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-        } else {
-          dateStr = String(item.deadlineDate).split("T")[0];
+          scaleDateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+        } else if (typeof item.deadlineDate === "string" && item.deadlineDate.includes("-")) {
+          const parts = item.deadlineDate.split("T")[0].split("-");
+          if (parts.length === 3) {
+            scaleDateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+          }
         }
       }
-      if (!dateStr) dateStr = "-";
+
+      // Coluna ID: Data em que a pessoa respondeu no aplicativo
+      let responseDateStr = "-";
+      if (item.status === "Concluído" || item.status === "Justificado" || item.responseDate || item.justificationDate) {
+        const targetDate = item.responseDate || item.justificationDate || (item.updatedAt ? new Date(Number(item.updatedAt)).toISOString() : null);
+        if (targetDate && targetDate !== "-") {
+          const d = new Date(targetDate);
+          if (!isNaN(d.getTime())) {
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            responseDateStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+          }
+        }
+      }
 
       // Formato impecável e limpo na planilha solicitado pelo usuário:
       return {
-        "Data": dateStr,
+        "Data": scaleDateStr,
         "Nick": nick,
         "Cargo": item.type || "-",
         "Status": item.status || "Pendente",
-        "ID": item.conclusionId || item.referenceDay || "-",
+        "ID": responseDateStr,
         "Justificativa": item.justificationText || item.justificationReason || "-",
         "Comentários": item.comments || "-",
         // Campos de controle interno para manter vínculo entre planilha e aplicação sem quebras:
@@ -151,7 +175,32 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
       let status = item["Status"] || "Pendente";
       let week = item["Semana"] && item["Semana"] !== "-" ? item["Semana"] : "2026-W30";
       let referenceDay = item["Dia de Referência"] && item["Dia de Referência"] !== "-" ? item["Dia de Referência"] : "Segunda";
-      let conclusionId = item["ID de Conclusão"] || (item["ID"] && item["ID"] !== referenceDay && !String(item["ID"]).startsWith("SSI-") && item["ID"] !== "-" ? item["ID"] : undefined);
+      let responseDate: string | undefined = undefined;
+      let conclusionId: string | undefined = undefined;
+      const rawIdCol = item["Data da Resposta"] || item["ID de Conclusão"] || item["ID"];
+      if (rawIdCol && rawIdCol !== "-" && rawIdCol !== referenceDay && !String(rawIdCol).startsWith("SSI-")) {
+        if (String(rawIdCol).includes("/") || !isNaN(Date.parse(String(rawIdCol)))) {
+          const parts = String(rawIdCol).trim().split(" ");
+          const dateParts = parts[0].split("/");
+          if (dateParts.length === 3) {
+            responseDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}${parts[1] ? 'T' + parts[1] : 'T12:00:00.000Z'}`;
+          } else {
+            responseDate = String(rawIdCol);
+          }
+        } else {
+          conclusionId = String(rawIdCol);
+        }
+      }
+
+      let scheduleDate: string | undefined = undefined;
+      if (item["Data"] && item["Data"] !== "-") {
+        const dateParts = String(item["Data"]).split("/");
+        if (dateParts.length === 3) {
+          scheduleDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+        } else {
+          scheduleDate = String(item["Data"]).split("T")[0];
+        }
+      }
       let comments = item["Comentários"] && item["Comentários"] !== "-" ? item["Comentários"] : undefined;
       let justificationText = item["Justificativa"] && item["Justificativa"] !== "-" ? item["Justificativa"] : (item["Texto da Justificativa"] || undefined);
       
@@ -162,6 +211,8 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         week,
         memberId,
         referenceDay,
+        scheduleDate,
+        responseDate,
         deadline: `${referenceDay} (23:59)`,
         status,
         type,

@@ -41,6 +41,8 @@ export interface Schedule {
   observations?: string;
   type: "Fiscalizador" | "Diretor" | "Fiscalização de Avaliadores" | "Fiscalização de Capacitadores" | string;
   
+  scheduleDate?: string; // Data real referente ao dia da escala
+  responseDate?: string; // Data e hora de resposta/conclusão do membro no app
   deadlineDate?: string; // ISO date format for automation
   conclusionId?: string; // BA01 / AV01 etc
   comments?: string; // Observações ou link do print

@@ -321,7 +321,11 @@ function EscalasPage() {
       "Não Justificado": "Pendente",
     };
     const next = nextStatusMap[currentStatus] || "Pendente";
-    await updateSchedule(id, { status: next });
+    const isCompleted = next === "Concluído" || next === "Justificado";
+    await updateSchedule(id, { 
+      status: next,
+      responseDate: isCompleted ? new Date().toISOString() : undefined 
+    });
     
     await addAuditLog("1", role, "Alteração de Status", "Escalas", `Status da escala #${id} alterado para ${next}.`, id);
     
@@ -346,11 +350,13 @@ function EscalasPage() {
       return;
     }
     
+    const nowIso = new Date().toISOString();
     await updateSchedule(justifyingSchedule.id, {
       status: "Justificado",
       justificationReason: justificationText.trim(),
       justificationText: justificationText.trim(),
-      justificationDate: new Date().toISOString()
+      justificationDate: nowIso,
+      responseDate: nowIso
     });
     
     await addAuditLog("1", role, "Envio de Justificativa", "Escalas", `Justificativa enviada para a escala #${justifyingSchedule.id}.`, justifyingSchedule.id);
@@ -374,7 +380,7 @@ function EscalasPage() {
     await updateSchedule(registeringSchedule.id, {
       status: "Concluído",
       comments: registerComments.trim(),
-      conclusionId: registeringSchedule.referenceDay || undefined,
+      responseDate: new Date().toISOString(),
     });
     
     await addAuditLog("1", role, "Alteração de Status", "Escalas", `Função registrada como Concluído na escala #${registeringSchedule.id}.`, registeringSchedule.id);
