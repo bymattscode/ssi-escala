@@ -15,6 +15,9 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
     throw new Error(`Nenhum membro ativo encontrado para a função: ${type}`);
   }
 
+  // Embaralhar aleatoriamente os membros para que cada geração/regeneração reordene a escala da semana
+  activeMembers = [...activeMembers].sort(() => Math.random() - 0.5);
+
   // Identificador da semana (ex: 2026-W30) - Simplificado
   const weekNumber = format(startDate, "I"); 
   const weekId = `${format(startDate, "yyyy")}-W${weekNumber}`;

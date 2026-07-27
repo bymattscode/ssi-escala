@@ -306,7 +306,6 @@ export const deleteMember = async (id: string): Promise<void> => {
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.MEMBERS, JSON.stringify(newMembers));
     triggerAutoSync("membros");
-    import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "membros", id: id, payload: { id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
   }
 };
 
@@ -349,9 +348,6 @@ export const getSchedules = async (): Promise<Schedule[]> => {
     if (latestWeek && s.week && s.week < latestWeek) {
       addDeletedKey(s.id);
       needsSave = true;
-      if (typeof window !== "undefined") {
-        import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "escalas", id: s.id, payload: { id: s.id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
-      }
       return false;
     }
     return true;
@@ -419,15 +415,9 @@ export const getSchedules = async (): Promise<Schedule[]> => {
       // Manter a escala concluída/justificada ou a que foi atualizada mais recentemente
       if (item.status === "Concluído" || item.status === "Justificado" || ((item.updatedAt || 0) > (existing.updatedAt || 0))) {
         addDeletedKey(existing.id);
-        if (typeof window !== "undefined") {
-          import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "escalas", id: existing.id, payload: { id: existing.id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
-        }
         deduplicatedMap.set(key, item);
       } else {
         addDeletedKey(item.id);
-        if (typeof window !== "undefined") {
-          import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "escalas", id: item.id, payload: { id: item.id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
-        }
       }
     }
   }
@@ -506,12 +496,7 @@ export const deleteSchedulesForWeekAndType = async (week: string, type: string):
   await delay(200);
   let schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
   const toDelete = schedules.filter(s => s.type === type || (s.week && s.week !== week));
-  toDelete.forEach(s => {
-    addDeletedKey(s.id);
-    if (typeof window !== "undefined") {
-      import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "escalas", id: s.id, payload: { id: s.id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
-    }
-  });
+  toDelete.forEach(s => addDeletedKey(s.id));
   schedules = schedules.filter(s => !(s.type === type || (s.week && s.week !== week)));
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
@@ -557,7 +542,6 @@ export const deleteCase = async (id: string): Promise<void> => {
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.CASES, JSON.stringify(cases));
     triggerAutoSync("casos");
-    import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "casos", id: id, payload: { id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
   }
 };
 
@@ -599,7 +583,6 @@ export const deleteWarning = async (id: string): Promise<void> => {
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
     triggerAutoSync("advertencias");
-    import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "advertencias", id: id, payload: { id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
   }
 };
 

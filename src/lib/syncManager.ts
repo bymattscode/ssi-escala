@@ -400,7 +400,9 @@ function cleanEscalasData(items: any[]): any[] {
     if (!existing) {
       deduplicationMap.set(key, item);
     } else {
-      if (item.status === "Concluído" || item.status === "Justificado" || ((item.updatedAt || 0) > (existing.updatedAt || 0))) {
+      const itemTime = item.updatedAt || 0;
+      const existingTime = existing.updatedAt || 0;
+      if (itemTime > existingTime || (itemTime === existingTime && (item.status === "Concluído" || item.status === "Justificado"))) {
         deduplicationMap.set(key, item);
       }
     }
