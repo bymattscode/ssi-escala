@@ -333,12 +333,25 @@ export const getSchedules = async (): Promise<Schedule[]> => {
   const validMembers = getParsedData<Member[]>(KEYS.MEMBERS, []);
   const memberIdSet = new Set(validMembers.map(m => m.id));
   
+  // Identificar a semana ativa (a mais recente cadastrada ou atual) para expurgar semanas antigas (ex: 2026-W29) que causam duplicatas e falso status Não Justificado
+  const allWeeks = Array.from(new Set(schedules.map(s => s.week).filter(Boolean))).sort();
+  const latestWeek = allWeeks.length > 0 ? allWeeks[allWeeks.length - 1] : undefined;
+
   const filtered = schedules.filter(s => {
     if (s.id && deletedKeys.includes(String(s.id).trim().toLowerCase())) return false;
     // Remove escalas vinculadas aos antigos IDs numéricos de teste que não existem mais na base
     if (s.memberId && s.memberId.length <= 3 && !memberIdSet.has(s.memberId)) {
       addDeletedKey(s.id);
       needsSave = true;
+      return false;
+    }
+    // Remove escalas de semanas passadas/antigas (ex: 2026-W29) que geram duplicação e status Não Justificado na planilha
+    if (latestWeek && s.week && s.week < latestWeek) {
+      addDeletedKey(s.id);
+      needsSave = true;
+      if (typeof window !== "undefined") {
+        import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "escalas", id: s.id, payload: { id: s.id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
+      }
       return false;
     }
     return true;
@@ -394,6 +407,32 @@ export const getSchedules = async (): Promise<Schedule[]> => {
     return updated;
   });
   
+  // Deduplicação estrita: garantir que exista apenas 1 registro por cargo e por dia de referência na mesma semana!
+  const deduplicatedMap = new Map<string, Schedule>();
+  for (const item of normalized) {
+    const key = `${item.week || ""}-${item.type || ""}-${item.referenceDay || ""}`.toLowerCase();
+    const existing = deduplicatedMap.get(key);
+    if (!existing) {
+      deduplicatedMap.set(key, item);
+    } else {
+      needsSave = true;
+      // Manter a escala concluída/justificada ou a que foi atualizada mais recentemente
+      if (item.status === "Concluído" || item.status === "Justificado" || ((item.updatedAt || 0) > (existing.updatedAt || 0))) {
+        addDeletedKey(existing.id);
+        if (typeof window !== "undefined") {
+          import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "escalas", id: existing.id, payload: { id: existing.id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
+        }
+        deduplicatedMap.set(key, item);
+      } else {
+        addDeletedKey(item.id);
+        if (typeof window !== "undefined") {
+          import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "escalas", id: item.id, payload: { id: item.id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
+        }
+      }
+    }
+  }
+  const cleanSchedules = Array.from(deduplicatedMap.values());
+
   // Ordenar de Domingo a Sábado para apresentação impecável, colocando funções semanais extras no final
   const dayOrder: Record<string, number> = {
     "Domingo": 0,
@@ -411,17 +450,18 @@ export const getSchedules = async (): Promise<Schedule[]> => {
     "Fiscalizador": 0,
     "Diretor": 0
   };
-  normalized.sort((a, b) => {
+  cleanSchedules.sort((a, b) => {
     const dayDiff = (dayOrder[a.referenceDay] ?? 10) - (dayOrder[b.referenceDay] ?? 10);
     if (dayDiff !== 0) return dayDiff;
     return (typeOrder[a.type || ""] ?? 0) - (typeOrder[b.type || ""] ?? 0);
   });
   
   if (needsSave && typeof window !== "undefined") {
-    localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(normalized));
+    localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(cleanSchedules));
+    triggerAutoSync("escalas");
   }
   
-  return normalized;
+  return cleanSchedules;
 };
 
 export const addSchedules = async (newSchedules: Schedule[]): Promise<void> => {
@@ -465,9 +505,14 @@ export const deleteSchedulesForWeek = async (week: string): Promise<void> => {
 export const deleteSchedulesForWeekAndType = async (week: string, type: string): Promise<void> => {
   await delay(200);
   let schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
-  const toDelete = schedules.filter(s => s.week === week && s.type === type);
-  toDelete.forEach(s => addDeletedKey(s.id));
-  schedules = schedules.filter(s => !(s.week === week && s.type === type));
+  const toDelete = schedules.filter(s => s.type === type || (s.week && s.week !== week));
+  toDelete.forEach(s => {
+    addDeletedKey(s.id);
+    if (typeof window !== "undefined") {
+      import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "escalas", id: s.id, payload: { id: s.id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
+    }
+  });
+  schedules = schedules.filter(s => !(s.type === type || (s.week && s.week !== week)));
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(schedules));
     triggerAutoSync("escalas");
