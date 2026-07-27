@@ -40,7 +40,7 @@ const headerMaps = {
     reason: "Motivo", directorNick: "Responsável", caseId: "ID do Caso", notes: "Observações"
   },
   logs: {
-    id: "ID", date: "Data", timestamp: "Timestamp", userId: "ID do Usuário", userRole: "Cargo do Usuário",
+    id: "ID", date: "Data", timestamp: "Data e Hora", userId: "ID do Usuário", userRole: "Cargo do Usuário",
     action: "Ação", module: "Módulo", details: "Detalhes", targetId: "ID Alvo"
   }
 };
@@ -192,6 +192,60 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         "Responsável": responsavel,
         "ID do Caso": item.caseId || "-",
         "Observações": item.notes || "-"
+      };
+    });
+  }
+
+  if (module === "logs") {
+    const allMembers = getParsedDataLocally<any[]>(KEYS.MEMBERS, []);
+    const memberMap = new Map(allMembers.map(m => [m.id, m.nick]));
+
+    return listToTranslate.map(item => {
+      let dateTimeStr = "-";
+      const val = item.timestamp || item.date;
+      if (val && typeof val === "number") {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          const pad = (n: number) => n.toString().padStart(2, '0');
+          dateTimeStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+      } else if (val) {
+        const strVal = String(val);
+        if (strVal.includes("/") || strVal.includes("-")) {
+          const d = new Date(strVal);
+          if (!isNaN(d.getTime()) && strVal.includes("T")) {
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            dateTimeStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+          } else {
+            dateTimeStr = strVal;
+          }
+        } else {
+          const num = Number(val);
+          if (!isNaN(num) && num > 100000000000) {
+            const d = new Date(num);
+            if (!isNaN(d.getTime())) {
+              const pad = (n: number) => n.toString().padStart(2, '0');
+              dateTimeStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+            }
+          } else {
+            dateTimeStr = strVal;
+          }
+        }
+      }
+
+      const userNick = item.userNick || memberMap.get(item.userId) || item.userId || "-";
+
+      return {
+        "ID do Usuário": userNick,
+        "ID": item.id || "-",
+        "Cargo do Usuário": item.userRole || "-",
+        "Data e Hora": dateTimeStr,
+        "Timestamp": dateTimeStr,
+        "Data": dateTimeStr,
+        "Ação": item.action || "-",
+        "Módulo": item.module || "-",
+        "Detalhes": item.details || "-",
+        "ID Alvo": item.targetId || "-"
       };
     });
   }
@@ -353,6 +407,45 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         caseId: item["ID do Caso"] && item["ID do Caso"] !== "-" ? item["ID do Caso"] : undefined,
         notes: item["Observações"] && item["Observações"] !== "-" ? item["Observações"] : undefined,
         updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : 0
+      };
+    });
+  }
+
+  if (module === "logs") {
+    const allMembers = getParsedDataLocally<any[]>(KEYS.MEMBERS, []);
+    const nickMap = new Map(allMembers.map(m => [String(m.nick).trim().toLowerCase(), m.id]));
+
+    return data.map((item: any) => {
+      const uNick = String(item["ID do Usuário"] || "").trim();
+      const userId = uNick !== "-" && uNick !== "" ? (nickMap.get(uNick.toLowerCase()) || uNick) : "desconhecido";
+      
+      const timeStr = item["Data e Hora"] || item["Timestamp"] || item["Data"] || "-";
+      let timestamp = Date.now();
+      if (typeof timeStr === "number" && timeStr > 100000000000) {
+        timestamp = timeStr;
+      } else if (typeof timeStr === "string" && (timeStr.includes("/") || timeStr.includes("-"))) {
+        const d = new Date(timeStr);
+        if (!isNaN(d.getTime())) {
+          timestamp = d.getTime();
+        } else if (timeStr.includes("/")) {
+          const [datePart, timePart = "00:00:00"] = timeStr.split(" ");
+          const [day, month, year] = datePart.split("/").map(Number);
+          const [h = 0, m = 0, s = 0] = timePart.split(":").map(Number);
+          const dt = new Date(year, month - 1, day, h, m, s);
+          if (!isNaN(dt.getTime())) timestamp = dt.getTime();
+        }
+      }
+
+      return {
+        id: item["ID"] && item["ID"] !== "-" ? item["ID"] : `SSI-LOG-${Date.now()}`,
+        date: String(timeStr).split(" ")[0] || "-",
+        timestamp,
+        userId,
+        userRole: item["Cargo do Usuário"] || "-",
+        action: item["Ação"] || "-",
+        module: item["Módulo"] || "-",
+        details: item["Detalhes"] || "-",
+        targetId: item["ID Alvo"] && item["ID Alvo"] !== "-" ? item["ID Alvo"] : undefined
       };
     });
   }
