@@ -129,6 +129,7 @@ function AppLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
+  useEffect(() => {
     if (!isAuthenticated) return;
     const runAutoBackgroundSync = async () => {
       try {
