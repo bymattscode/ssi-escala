@@ -103,8 +103,8 @@ function AdvertenciasPage() {
   }, []);
 
   const validateAndPromptCreate = () => {
-    if (!newOffender.trim() || !newReason.trim()) {
-      toast.error("Obrigatório: Preencha os campos de Infrator e Motivo da punição.");
+    if (!newOffender.trim() || !newReason.trim() || !newCaseId.trim()) {
+      toast.error("Obrigatório: Preencha os campos de Infrator, Motivo e o ID do Caso vinculado.");
       return;
     }
     if (newOffender.trim().length < 2) {
@@ -392,12 +392,12 @@ function AdvertenciasPage() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-foreground">Vincular a um Caso? (ID do Caso - opcional)</label>
+            <label className="text-sm font-medium text-foreground">Vincular a um Caso? (ID do Caso - obrigatório)</label>
             <div className="flex items-center relative">
               <LinkIcon className="absolute left-3 h-4 w-4 text-muted-foreground" />
-              <input type="text" value={newCaseId} onChange={e => setNewCaseId(e.target.value)} className="bg-background border border-border rounded-md pl-9 pr-3 py-2 text-sm text-foreground w-full focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: C2" />
+              <input type="text" value={newCaseId} onChange={e => setNewCaseId(e.target.value)} className="bg-background border border-border rounded-md pl-9 pr-3 py-2 text-sm text-foreground w-full focus:outline-none focus:border-primary/50 transition-colors" placeholder="Ex: C2 ou ID do Caso..." />
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Se esta punição foi originada de um caso aberto no painel de casos.</p>
+            <p className="text-xs text-muted-foreground mt-1">Informe o ID do caso originador correspondente a esta punição no painel de casos.</p>
           </div>
 
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
