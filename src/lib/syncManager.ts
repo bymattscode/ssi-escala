@@ -121,6 +121,7 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
 
       // Formato impecável e limpo na planilha solicitado pelo usuário:
       return {
+        "Data": scaleDateStr,
         "Nick": nick,
         "Cargo": item.type || "-",
         "Status": item.status || "Pendente",
@@ -682,20 +683,14 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
     if (!r) {
       mergedMap.set(key, l);
     } else {
-      if (l.syncStatus === 'pending') {
-        const localTime = l.updatedAt || 0;
-        const remoteTime = r.updatedAt || 0;
-        
-        if (localTime > remoteTime) {
-          mergedMap.set(key, { ...r, ...l }); // Local wins
-        } else if (localTime < remoteTime) {
-          conflictCount++;
-          mergedMap.set(key, { ...l, ...r, syncStatus: 'synced' }); // Remote wins
-        } else {
-          mergedMap.set(key, { ...l, ...r });
-        }
+      const localTime = l.updatedAt || 0;
+      const remoteTime = r.updatedAt || 0;
+      
+      if (l.syncStatus === 'pending' || localTime >= remoteTime) {
+        mergedMap.set(key, { ...r, ...l }); // Local vence: garante conservação e envio da escala gerada/editada localmente
       } else {
-        mergedMap.set(key, { ...l, ...r, syncStatus: 'synced' }); // Remote wins
+        conflictCount++;
+        mergedMap.set(key, { ...l, ...r, syncStatus: 'synced' });
       }
     }
   }

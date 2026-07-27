@@ -98,12 +98,31 @@ export const wipeAllData = () => {
 // Zero latency for snappy interface
 const delay = (_ms: number) => Promise.resolve();
 
-// Automate sync to cloud whenever local state changes
+// Automate sync to cloud whenever local state changes, with debounce and locking against concurrent overrides
+const autoSyncTimers: Record<string, NodeJS.Timeout | number> = {};
+const activeSyncs: Record<string, boolean> = {};
+
 const triggerAutoSync = (module: string) => {
   if (typeof window !== "undefined") {
-    setTimeout(() => {
-      import("./syncManager").then(m => m.syncModule(module)).catch(e => console.error(`Falha no auto-sync de ${module}:`, e));
-    }, 150);
+    if (autoSyncTimers[module]) {
+      clearTimeout(autoSyncTimers[module] as any);
+    }
+    autoSyncTimers[module] = setTimeout(async () => {
+      if (activeSyncs[module]) {
+        // Re-agenda se uma sincronização já estiver ocorrendo para este módulo
+        triggerAutoSync(module);
+        return;
+      }
+      activeSyncs[module] = true;
+      try {
+        const m = await import("./syncManager");
+        await m.syncModule(module);
+      } catch (e) {
+        console.error(`Falha no auto-sync de ${module}:`, e);
+      } finally {
+        activeSyncs[module] = false;
+      }
+    }, 500);
   }
 };
 
