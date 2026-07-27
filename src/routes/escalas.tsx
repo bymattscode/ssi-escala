@@ -600,7 +600,7 @@ function EscalasPage() {
                 </h4>
                 <div className="grid grid-cols-1 gap-4 mt-2">
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Data e Hora da Resposta (Postagem)</span>
+                    <span className="text-xs text-muted-foreground">Data e Hora</span>
                     <span className="text-sm font-medium text-foreground">
                       {viewSchedule.responseDate ? new Date(viewSchedule.responseDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "-"}
                     </span>

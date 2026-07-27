@@ -17,8 +17,7 @@ const headerMaps = {
   membros: {
     id: "ID", nick: "Nick", role: "Cargo", status: "Status", entryDate: "Data de Entrada",
     promotionDate: "Data de Promoção", leaveStartDate: "Início da Licença", leaveEndDate: "Fim da Licença",
-    avatarUrl: "URL do Avatar", group: "Grupo", permissions: "Permissões", accessCode: "Código de Acesso",
-    updatedAt: "Atualizado Em"
+    avatarUrl: "URL do Avatar", group: "Grupo", permissions: "Permissões", accessCode: "Código de Acesso"
   },
   escalas: {
     id: "ID", week: "Semana", memberId: "ID do Membro", referenceDay: "Dia de Referência",
@@ -27,20 +26,18 @@ const headerMaps = {
     casesLine: "Linha de Casos", justificationReason: "Motivo da Justificativa", justificationText: "Texto da Justificativa",
     justificationAttachment: "Anexo da Justificativa", justificationOccurrenceDate: "Data da Ocorrência (Just.)",
     justificationStatus: "Status da Justificativa", justificationDate: "Data da Justificativa",
-    justificationReviewerId: "ID do Revisor (Just.)", updatedAt: "Atualizado Em", scheduleDate: "Data", responseDate: "Data da Resposta"
+    justificationReviewerId: "ID do Revisor (Just.)", scheduleDate: "Data", responseDate: "Data e Hora"
   },
   casos: {
-    id: "ID", status: "Status", creatorId: "ID do Criador", creatorNick: "Fiscalizador", offenderNick: "Nick do Infrator",
-    description: "Descrição", creationDate: "Data de Criação", proofAttachment: "Anexo de Prova",
-    orientation: "Orientação", orderNumber: "Número do Pedido", crimeCommitted: "Crime Cometido",
-    resolutionAttachment: "Anexo de Resolução", punishmentApplied: "Punição Aplicada",
-    resolutionDate: "Data de Resolução", resolverId: "ID do Solucionador", resolverNick: "Responsável", cancellationReason: "Motivo de Cancelamento",
-    updatedAt: "Atualizado Em"
+    id: "ID", status: "Veredito", creatorId: "Fiscalizador", creatorNick: "Fiscalizador", offenderNick: "Infrator",
+    description: "Descrição", creationDate: "Data", proofAttachment: "Anexo da Prova",
+    orientation: "Orientação", crimeCommitted: "Crime Cometido",
+    resolutionAttachment: "Anexo da Resolução", punishmentApplied: "Punição Aplicada",
+    resolverId: "Responsável", resolverNick: "Responsável", cancellationReason: "Motivo de Cancelamento"
   },
   advertencias: {
     id: "ID", date: "Data", offenderNick: "Nick do Infrator", punishmentType: "Tipo de Punição",
-    reason: "Motivo", directorId: "ID do Diretor", directorNick: "Responsável", caseId: "ID do Caso", notes: "Observações",
-    updatedAt: "Atualizado Em"
+    reason: "Motivo", directorNick: "Responsável", caseId: "ID do Caso", notes: "Observações"
   },
   logs: {
     id: "ID", date: "Data", timestamp: "Timestamp", userId: "ID do Usuário", userRole: "Cargo do Usuário",
@@ -128,7 +125,7 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         "Nick": nick,
         "Cargo": item.type || "-",
         "Status": item.status || "Pendente",
-        "Data e Hora da Resposta": responseDateStr,
+        "Data e Hora": responseDateStr,
         "Justificativa": item.justificationText || item.justificationReason || "-",
         "Comentários": item.comments || "-",
         // Campos de controle interno para manter vínculo entre planilha e aplicação sem quebras:
@@ -140,10 +137,68 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
     });
   }
 
+  if (module === "membros") {
+    return listToTranslate.map(item => ({
+      "ID": item.id || "-",
+      "Nick": item.nick || "-",
+      "Cargo": item.role || "-",
+      "Status": item.status || "Ativo",
+      "Data de Entrada": cleanTimestampFromDate(item.entryDate, "entryDate") || "-",
+      "Data de Promoção": cleanTimestampFromDate(item.promotionDate, "promotionDate") || "-",
+      "Grupo": item.group || "SSI",
+      "Permissões": Array.isArray(item.permissions) ? item.permissions.join(", ") : (item.permissions || "Gestão de Casos, Registro de Punições"),
+      "Código de Acesso": item.accessCode || "-"
+    }));
+  }
+
+  if (module === "casos") {
+    const allMembers = getParsedDataLocally<any[]>(KEYS.MEMBERS, []);
+    const memberMap = new Map(allMembers.map(m => [m.id, m.nick]));
+
+    return listToTranslate.map(item => {
+      const fiscalizador = item.creatorNick || memberMap.get(item.creatorId) || item.creatorId || "-";
+      const responsavel = item.resolverNick || (item.resolverId ? (memberMap.get(item.resolverId) || item.resolverId) : "-");
+
+      return {
+        "Fiscalizador": fiscalizador,
+        "Infrator": item.offenderNick || "-",
+        "Descrição": item.description || "-",
+        "Data": cleanTimestampFromDate(item.creationDate, "creationDate") || "-",
+        "Orientação": item.orientation || "-",
+        "Anexo da Prova": item.proofAttachment || "-",
+        "Veredito": item.status || "Pendente",
+        "Responsável": responsavel,
+        "Punição Aplicada": item.punishmentApplied || "-",
+        "Crime Cometido": item.crimeCommitted || "-",
+        "Anexo da Resolução": item.resolutionAttachment || "-",
+        "ID": item.id || "-"
+      };
+    });
+  }
+
+  if (module === "advertencias") {
+    const allMembers = getParsedDataLocally<any[]>(KEYS.MEMBERS, []);
+    const memberMap = new Map(allMembers.map(m => [m.id, m.nick]));
+
+    return listToTranslate.map(item => {
+      const responsavel = item.directorNick || memberMap.get(item.directorId) || item.directorId || "-";
+      return {
+        "ID": item.id || "-",
+        "Data": cleanTimestampFromDate(item.date, "date") || "-",
+        "Nick do Infrator": item.offenderNick || "-",
+        "Tipo de Punição": item.punishmentType || "Observação",
+        "Motivo": item.reason || "-",
+        "Responsável": responsavel,
+        "ID do Caso": item.caseId || "-",
+        "Observações": item.notes || "-"
+      };
+    });
+  }
+
   return listToTranslate.map(item => {
     const translated: any = {};
     for (const key in item) {
-      if (key === "syncStatus") continue; // Ignorar campo interno
+      if (key === "syncStatus" || key === "updatedAt") continue;
       const ptKey = map[key as keyof typeof map] || key;
       let val = cleanTimestampFromDate(item[key], key);
       
@@ -176,7 +231,7 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
       let week = item["Semana"] && item["Semana"] !== "-" ? item["Semana"] : "2026-W30";
       let referenceDay = item["Dia de Referência"] && item["Dia de Referência"] !== "-" ? item["Dia de Referência"] : "Segunda";
       let responseDate: string | undefined = undefined;
-      const rawIdCol = item["Data e Hora da Resposta"] || item["Data da Resposta"] || item["ID de Conclusão"] || item["ID"];
+      const rawIdCol = item["Data e Hora"] || item["Data e Hora da Resposta"] || item["Data da Resposta"] || item["ID de Conclusão"] || item["ID"];
       if (rawIdCol && rawIdCol !== "-" && rawIdCol !== referenceDay && !String(rawIdCol).startsWith("SSI-")) {
         if (String(rawIdCol).includes("/") || !isNaN(Date.parse(String(rawIdCol)))) {
           const parts = String(rawIdCol).trim().split(" ");
@@ -218,6 +273,84 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         conclusionId,
         comments,
         justificationText,
+        updatedAt: Date.now()
+      };
+    });
+  }
+
+  if (module === "membros") {
+    return data.map((item: any) => {
+      let perms = item["Permissões"];
+      if (typeof perms === "string") {
+        if (perms.trim().startsWith("[")) {
+          try { perms = JSON.parse(perms); } catch (e) {}
+        } else {
+          perms = perms.split(",").map((s: string) => s.trim()).filter(Boolean);
+        }
+      }
+      return {
+        id: item["ID"] || `SSI-MEM-${Math.random().toString(36).substring(2,8).toUpperCase()}`,
+        nick: item["Nick"] || "Desconhecido",
+        role: item["Cargo"] || "Fiscalizador",
+        status: item["Status"] || "Ativo",
+        entryDate: cleanTimestampFromDate(item["Data de Entrada"], "entryDate") || "-",
+        promotionDate: cleanTimestampFromDate(item["Data de Promoção"], "promotionDate") || "-",
+        group: item["Grupo"] || "SSI",
+        permissions: perms || ["Gestão de Casos", "Registro de Punições"],
+        accessCode: item["Código de Acesso"] || "-",
+        updatedAt: Date.now()
+      };
+    });
+  }
+
+  if (module === "casos") {
+    const allMembers = getParsedDataLocally<any[]>(KEYS.MEMBERS, []);
+    const nickMap = new Map(allMembers.map(m => [String(m.nick).trim().toLowerCase(), m.id]));
+
+    return data.map((item: any) => {
+      const creatorNick = String(item["Fiscalizador"] || item["ID do Criador"] || "").trim();
+      const creatorId = (creatorNick && creatorNick !== "-" ? (nickMap.get(creatorNick.toLowerCase()) || creatorNick) : "desconhecido");
+      const resolverNick = item["Responsável"] || item["ID do Solucionador"] || undefined;
+      const resolverId = resolverNick && resolverNick !== "-" ? (nickMap.get(String(resolverNick).trim().toLowerCase()) || resolverNick) : undefined;
+
+      return {
+        id: item["ID"] && item["ID"] !== "-" ? item["ID"] : `SSI-CASO-${Date.now()}-${Math.random().toString(36).substring(2,6)}`,
+        status: item["Veredito"] || item["Status"] || "Pendente",
+        creatorId,
+        creatorNick: creatorNick !== "-" ? creatorNick : undefined,
+        offenderNick: item["Infrator"] || item["Nick do Infrator"] || "-",
+        description: item["Descrição"] || "-",
+        creationDate: cleanTimestampFromDate(item["Data"] || item["Data de Criação"], "creationDate") || new Date().toISOString().split("T")[0],
+        orientation: item["Orientação"] || "-",
+        proofAttachment: item["Anexo da Prova"] || item["Anexo de Prova"] || undefined,
+        resolverId,
+        resolverNick: resolverNick && resolverNick !== "-" ? resolverNick : undefined,
+        punishmentApplied: item["Punição Aplicada"] && item["Punição Aplicada"] !== "-" ? item["Punição Aplicada"] : undefined,
+        crimeCommitted: item["Crime Cometido"] && item["Crime Cometido"] !== "-" ? item["Crime Cometido"] : undefined,
+        resolutionAttachment: item["Anexo da Resolução"] || item["Anexo de Resolução"] || undefined,
+        updatedAt: Date.now()
+      };
+    });
+  }
+
+  if (module === "advertencias") {
+    const allMembers = getParsedDataLocally<any[]>(KEYS.MEMBERS, []);
+    const nickMap = new Map(allMembers.map(m => [String(m.nick).trim().toLowerCase(), m.id]));
+
+    return data.map((item: any) => {
+      const respNick = String(item["Responsável"] || item["ID do Diretor"] || "").trim();
+      const directorId = respNick !== "-" && respNick !== "" ? (nickMap.get(respNick.toLowerCase()) || respNick) : "desconhecido";
+
+      return {
+        id: item["ID"] && item["ID"] !== "-" ? item["ID"] : `SSI-PUN-${Date.now()}`,
+        date: cleanTimestampFromDate(item["Data"], "date") || new Date().toISOString().split("T")[0],
+        offenderNick: item["Nick do Infrator"] || "-",
+        punishmentType: item["Tipo de Punição"] || "Observação",
+        reason: item["Motivo"] || "-",
+        directorId,
+        directorNick: respNick !== "-" ? respNick : undefined,
+        caseId: item["ID do Caso"] && item["ID do Caso"] !== "-" ? item["ID do Caso"] : undefined,
+        notes: item["Observações"] && item["Observações"] !== "-" ? item["Observações"] : undefined,
         updatedAt: Date.now()
       };
     });
