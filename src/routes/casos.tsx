@@ -11,22 +11,24 @@ export const Route = createFileRoute("/casos")({
   component: CasosPage,
 });
 
-function getMemberDetails(memberId: string, members: Member[]) {
-  return members.find((m) => m.id === memberId) || null;
+function getMemberDetails(memberId?: any, members: Member[] = []) {
+  if (!memberId) return null;
+  return (members || []).find((m) => m && String(m.id) === String(memberId)) || null;
 }
 
 function StatusBadge({ status }: { status: CaseStatus }) {
-  const styles: Record<Exclude<CaseStatus, "Em Análise">, { bg: string, icon: any }> = {
+  const styles: Record<string, { bg: string, icon: any }> = {
     "Aberto": { bg: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: AlertCircle },
     "Resolvido": { bg: "bg-green-500/10 text-green-500 border-green-500/20", icon: CheckCircle2 },
     "Cancelado": { bg: "bg-red-500/10 text-red-500 border-red-500/20", icon: XCircle },
   };
-  const Icon = styles[status]?.icon || AlertCircle;
+  const safeStatus = String(status || "Aberto");
+  const Icon = styles[safeStatus]?.icon || AlertCircle;
   
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1.5 w-fit ${styles[status]?.bg}`}>
+    <span className={`px-2.5 py-1 rounded-full text-xs font-medium border flex items-center gap-1.5 w-fit ${styles[safeStatus]?.bg || "bg-secondary text-muted-foreground border-border"}`}>
       <Icon className="h-3.5 w-3.5" />
-      {status}
+      {safeStatus}
     </span>
   );
 }
@@ -52,18 +54,19 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
   );
 }
 
-function getNickDisplay(idOrNick?: string, explicitNick?: string, members: Member[] = []): string {
-  if (explicitNick && explicitNick !== "-" && explicitNick !== "1") {
-    return explicitNick;
+function getNickDisplay(idOrNick?: any, explicitNick?: any, members: Member[] = []): string {
+  if (explicitNick !== undefined && explicitNick !== null && String(explicitNick).trim() !== "" && String(explicitNick) !== "-" && String(explicitNick) !== "1") {
+    return String(explicitNick);
   }
-  if (!idOrNick || idOrNick === "-" || idOrNick === "1") {
+  if (idOrNick === undefined || idOrNick === null || String(idOrNick).trim() === "" || String(idOrNick) === "-" || String(idOrNick) === "1") {
     return "-";
   }
-  const found = members.find(m => m.id === idOrNick || m.nick.toLowerCase() === idOrNick.toLowerCase());
-  if (found) {
-    return found.nick;
+  const target = String(idOrNick).trim().toLowerCase();
+  const found = (members || []).find(m => m && (String(m.id || "").trim().toLowerCase() === target || String(m.nick || "").trim().toLowerCase() === target));
+  if (found && found.nick) {
+    return String(found.nick);
   }
-  return idOrNick;
+  return String(idOrNick);
 }
 
 function CasosPage() {
@@ -206,9 +209,11 @@ function CasosPage() {
     setResCancelReason("");
   };
 
-  const filteredCases = cases.filter(c => {
-    const matchesSearch = c.offenderNick.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          c.id.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredCases = (cases || []).filter(c => {
+    if (!c) return false;
+    const term = String(searchTerm || "").toLowerCase();
+    const matchesSearch = String(c.offenderNick || "").toLowerCase().includes(term) || 
+                          String(c.id || "").toLowerCase().includes(term);
     const matchesStatus = statusFilter === "Todos" || c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -285,9 +290,9 @@ function CasosPage() {
                  const resolverNick = getNickDisplay(c.resolverId, c.resolverNick, members);
                  return (
                    <tr key={c.id} className="border-b border-border hover:bg-secondary/20 transition-colors group">
-                     <td className="px-6 py-4 font-medium text-foreground">#{String(c.id).toUpperCase()}</td>
-                     <td className="px-6 py-4 text-muted-foreground">{c.creationDate}</td>
-                     <td className="px-6 py-4 font-bold text-foreground">{c.offenderNick}</td>
+                     <td className="px-6 py-4 font-medium text-foreground">#{String(c.id || "").toUpperCase()}</td>
+                     <td className="px-6 py-4 text-muted-foreground">{String(c.creationDate || "-")}</td>
+                     <td className="px-6 py-4 font-bold text-foreground">{String(c.offenderNick || "-")}</td>
                      <td className="px-6 py-4 font-medium text-primary/90">{creatorNick}</td>
                      <td className="px-6 py-4">
                        <StatusBadge status={c.status} />
