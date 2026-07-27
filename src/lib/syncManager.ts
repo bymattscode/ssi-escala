@@ -286,6 +286,7 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
       let week = item["Semana"] && item["Semana"] !== "-" ? item["Semana"] : "2026-W30";
       let referenceDay = item["Dia de Referência"] && item["Dia de Referência"] !== "-" ? item["Dia de Referência"] : "Segunda";
       let responseDate: string | undefined = undefined;
+      let conclusionId: string | undefined = undefined;
       const rawIdCol = item["Data e Hora"] || item["Data e Hora da Resposta"] || item["Data da Resposta"] || item["ID de Conclusão"] || item["ID"];
       if (rawIdCol && rawIdCol !== "-" && rawIdCol !== referenceDay && !String(rawIdCol).startsWith("SSI-")) {
         if (String(rawIdCol).includes("/") || !isNaN(Date.parse(String(rawIdCol)))) {
