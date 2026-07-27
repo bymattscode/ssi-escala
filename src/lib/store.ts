@@ -306,6 +306,7 @@ export const deleteMember = async (id: string): Promise<void> => {
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.MEMBERS, JSON.stringify(newMembers));
     triggerAutoSync("membros");
+    import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "membros", id: id, payload: { id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
   }
 };
 
@@ -511,6 +512,7 @@ export const deleteCase = async (id: string): Promise<void> => {
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.CASES, JSON.stringify(cases));
     triggerAutoSync("casos");
+    import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "casos", id: id, payload: { id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
   }
 };
 
@@ -552,6 +554,7 @@ export const deleteWarning = async (id: string): Promise<void> => {
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
     triggerAutoSync("advertencias");
+    import("./googleSheets").then(m => m.fetchGoogleSheets({ action: "delete" as any, module: "advertencias", id: id, payload: { id, deletedKeys: getDeletedKeys() } } as any)).catch(() => {});
   }
 };
 

@@ -592,6 +592,31 @@ function EscalasPage() {
               <StatusBadge status={viewSchedule.status} />
             </div>
             
+            {viewSchedule.status === "Concluído" && (viewSchedule.responseDate || viewSchedule.comments) && (
+              <div className="flex flex-col gap-2 bg-green-500/10 p-4 rounded-xl border border-green-500/20">
+                <h4 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Registro de Realização da Função
+                </h4>
+                <div className="grid grid-cols-1 gap-4 mt-2">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Data e Hora da Resposta (Postagem)</span>
+                    <span className="text-sm font-medium text-foreground">
+                      {viewSchedule.responseDate ? new Date(viewSchedule.responseDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "-"}
+                    </span>
+                  </div>
+                </div>
+                {viewSchedule.comments && (
+                  <div className="mt-2 flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">Comprovante / Print da Função</span>
+                    <p className="text-sm text-foreground bg-background p-3 rounded-md border border-border/50 font-medium break-all">
+                      {viewSchedule.comments}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+            
             {viewSchedule.justificationText && (
               <div className="flex flex-col gap-2 bg-secondary/20 p-4 rounded-xl border border-border/50">
                 <h4 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">

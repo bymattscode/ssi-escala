@@ -128,7 +128,7 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         "Nick": nick,
         "Cargo": item.type || "-",
         "Status": item.status || "Pendente",
-        "ID": responseDateStr,
+        "Data e Hora da Resposta": responseDateStr,
         "Justificativa": item.justificationText || item.justificationReason || "-",
         "Comentários": item.comments || "-",
         // Campos de controle interno para manter vínculo entre planilha e aplicação sem quebras:
@@ -176,8 +176,7 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
       let week = item["Semana"] && item["Semana"] !== "-" ? item["Semana"] : "2026-W30";
       let referenceDay = item["Dia de Referência"] && item["Dia de Referência"] !== "-" ? item["Dia de Referência"] : "Segunda";
       let responseDate: string | undefined = undefined;
-      let conclusionId: string | undefined = undefined;
-      const rawIdCol = item["Data da Resposta"] || item["ID de Conclusão"] || item["ID"];
+      const rawIdCol = item["Data e Hora da Resposta"] || item["Data da Resposta"] || item["ID de Conclusão"] || item["ID"];
       if (rawIdCol && rawIdCol !== "-" && rawIdCol !== referenceDay && !String(rawIdCol).startsWith("SSI-")) {
         if (String(rawIdCol).includes("/") || !isNaN(Date.parse(String(rawIdCol)))) {
           const parts = String(rawIdCol).trim().split(" ");
@@ -280,14 +279,16 @@ export const syncModule = async (moduleName: string): Promise<boolean> => {
       toast.warning(`${conflictCount} conflito(s) resolvido(s) remotamente.`);
     }
 
-    // 3. Push merged state
+    // 3. Push merged state with deleted keys and overwrite flag
     const payload = {
       action: "sync" as const,
       module: moduleName,
-      payload: translateToPortuguese(merged, moduleName as keyof typeof headerMaps)
+      payload: translateToPortuguese(merged, moduleName as keyof typeof headerMaps),
+      deletedKeys: getDeletedKeys(),
+      overwrite: true
     };
     
-    const pushResponse = await fetchGoogleSheets(payload);
+    const pushResponse = await fetchGoogleSheets(payload as any);
     
     if (pushResponse.success) {
       // 4. Update local state as synced
@@ -361,8 +362,10 @@ export const syncAll = async (): Promise<boolean> => {
       const pushResponse = await fetchGoogleSheets({
         action: "sync" as const,
         module: mod.name,
-        payload: translateToPortuguese(mod.data, mod.name as keyof typeof headerMaps)
-      });
+        payload: translateToPortuguese(mod.data, mod.name as keyof typeof headerMaps),
+        deletedKeys: getDeletedKeys(),
+        overwrite: true
+      } as any);
       if (!pushResponse.success) {
         allSuccess = false;
         pushError = pushResponse.error || "Erro ao sincronizar módulo " + mod.name;
