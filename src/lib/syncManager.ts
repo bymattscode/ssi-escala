@@ -251,6 +251,30 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
   });
 };
 
+function cleanEscalasData(items: any[]): any[] {
+  if (!items || !Array.isArray(items) || items.length === 0) return items;
+  const allWeeks = Array.from(new Set(items.map(s => s && s.week).filter(Boolean))).sort() as string[];
+  const latestWeek = allWeeks.length > 0 ? allWeeks[allWeeks.length - 1] : undefined;
+  const deduplicationMap = new Map<string, any>();
+
+  for (const item of items) {
+    if (!item) continue;
+    // Ignorar escalas de semanas anteriores na mesclagem e sincronização
+    if (latestWeek && item.week && item.week < latestWeek) continue;
+
+    const key = `${item.week || ""}-${item.type || ""}-${item.referenceDay || ""}`.toLowerCase();
+    const existing = deduplicationMap.get(key);
+    if (!existing) {
+      deduplicationMap.set(key, item);
+    } else {
+      if (item.status === "Concluído" || item.status === "Justificado" || ((item.updatedAt || 0) > (existing.updatedAt || 0))) {
+        deduplicationMap.set(key, item);
+      }
+    }
+  }
+  return Array.from(deduplicationMap.values());
+}
+
 export const syncModule = async (moduleName: string): Promise<boolean> => {
   try {
     // 1. Pull remote state first
@@ -273,6 +297,7 @@ export const syncModule = async (moduleName: string): Promise<boolean> => {
 
     // 2. Merge local and remote
     const { merged, conflictCount } = mergeArrays(localData, remoteData);
+    const finalMerged = moduleName === "escalas" ? cleanEscalasData(merged) : merged;
 
     if (conflictCount > 0) {
       await addSyncLog({ type: "warning", message: `⚠️ ${conflictCount} conflito(s) resolvido(s) no módulo '${moduleName}' (Last-Write-Wins).` });
@@ -283,7 +308,7 @@ export const syncModule = async (moduleName: string): Promise<boolean> => {
     const payload = {
       action: "sync" as const,
       module: moduleName,
-      payload: translateToPortuguese(merged, moduleName as keyof typeof headerMaps),
+      payload: translateToPortuguese(finalMerged, moduleName as keyof typeof headerMaps),
       deletedKeys: getDeletedKeys(),
       overwrite: true
     };
@@ -292,7 +317,7 @@ export const syncModule = async (moduleName: string): Promise<boolean> => {
     
     if (pushResponse.success) {
       // 4. Update local state as synced
-      const syncedData = merged.map(item => ({ ...item, syncStatus: "synced" }));
+      const syncedData = finalMerged.map(item => ({ ...item, syncStatus: "synced" }));
       if (typeof window !== "undefined") {
         localStorage.setItem(localKey, JSON.stringify(syncedData));
       }
@@ -340,6 +365,8 @@ export const syncAll = async (): Promise<boolean> => {
     // Logs are just append, no conflicts to merge, but we can use mergeArrays safely.
     const mLogs = mergeArrays(logs, remoteData['logs'] || []);
 
+    const cleanSchedulesMerged = cleanEscalasData(mSchedules.merged);
+
     const totalConflicts = mMembers.conflictCount + mSchedules.conflictCount + mCases.conflictCount + mWarnings.conflictCount;
     if (totalConflicts > 0) {
       await addSyncLog({ type: "warning", message: `⚠️ ${totalConflicts} conflito(s) resolvidos na sincronização total (Last-Write-Wins).` });
@@ -349,7 +376,7 @@ export const syncAll = async (): Promise<boolean> => {
     // 3. Push all merged data back module by module
     const modulesToSync = [
       { name: 'membros', data: mMembers.merged },
-      { name: 'escalas', data: mSchedules.merged },
+      { name: 'escalas', data: cleanSchedulesMerged },
       { name: 'casos', data: mCases.merged },
       { name: 'advertencias', data: mWarnings.merged },
       { name: 'logs', data: mLogs.merged }
@@ -376,7 +403,7 @@ export const syncAll = async (): Promise<boolean> => {
     if (allSuccess) {
       if (typeof window !== "undefined") {
         localStorage.setItem(KEYS.MEMBERS, JSON.stringify(mMembers.merged.map(i => ({...i, syncStatus: 'synced'}))));
-        localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(mSchedules.merged.map(i => ({...i, syncStatus: 'synced'}))));
+        localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(cleanSchedulesMerged.map(i => ({...i, syncStatus: 'synced'}))));
         localStorage.setItem(KEYS.CASES, JSON.stringify(mCases.merged.map(i => ({...i, syncStatus: 'synced'}))));
         localStorage.setItem(KEYS.WARNINGS, JSON.stringify(mWarnings.merged.map(i => ({...i, syncStatus: 'synced'}))));
         localStorage.setItem(KEYS.AUDIT, JSON.stringify(mLogs.merged.map(i => ({...i, syncStatus: 'synced'}))));
