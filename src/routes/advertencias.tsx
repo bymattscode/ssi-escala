@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Warning, PunishmentType, Member } from "@/lib/types";
-import { Search, Plus, Filter, FileWarning, Eye, AlertTriangle, ShieldOff, Skull, Link as LinkIcon, X } from "lucide-react";
+import { Search, Plus, Filter, FileWarning, Eye, AlertTriangle, ShieldOff, Skull, Link as LinkIcon, X, Trash2 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
-import { getWarnings, getMembers, addWarning, addAuditLog } from "../lib/store";
+import { getWarnings, getMembers, addWarning, deleteWarning, addAuditLog } from "../lib/store";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
@@ -11,8 +11,20 @@ export const Route = createFileRoute("/advertencias")({
   component: AdvertenciasPage,
 });
 
-function getMemberDetails(memberId: string, members: Member[]) {
-  return members.find((m) => m.id === memberId) || null;
+function getNickDisplay(idOrNick?: any, explicitNick?: any, members: Member[] = []): string {
+  if (explicitNick && explicitNick !== "-" && explicitNick !== "1" && explicitNick !== 1 && String(explicitNick).trim() !== "") {
+    return String(explicitNick);
+  }
+  if (!idOrNick || idOrNick === "-" || idOrNick === "1" || idOrNick === 1) return "-";
+  const cleanId = String(idOrNick).trim().toLowerCase();
+  const m = members.find(mem => mem && (String(mem.id) === cleanId || String(mem.nick || "").trim().toLowerCase() === cleanId));
+  return m ? (m.nick || "-") : String(idOrNick);
+}
+
+function getMemberDetails(memberId?: any, members: Member[] = []) {
+  if (!memberId) return null;
+  const clean = String(memberId).trim().toLowerCase();
+  return members.find((m) => m && (String(m.id).toLowerCase() === clean || String(m.nick || "").toLowerCase() === clean)) || null;
 }
 
 const punishmentConfig: Record<PunishmentType, { color: string, icon: any, label: string }> = {
@@ -62,6 +74,7 @@ function AdvertenciasPage() {
   const [directorFilter, setDirectorFilter] = useState<string>("Todos");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [viewWarning, setViewWarning] = useState<Warning | null>(null);
+  const [warningToDelete, setWarningToDelete] = useState<Warning | null>(null);
 
   // Create states
   const [newOffender, setNewOffender] = useState("");
@@ -74,8 +87,9 @@ function AdvertenciasPage() {
   const [warnings, setWarnings] = useState<Warning[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { role } = useAuth();
+  const { user, role, userName } = useAuth();
   const isAdminOrDir = role !== "Fiscalizador";
+  const isPresidencia = role === "Presidente" || role === "Vice-Presidente";
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -107,19 +121,23 @@ function AdvertenciasPage() {
   const handleCreate = async () => {
     setShowConfirmCreate(false);
     
+    const creatorId = user?.id || userName || "Desconhecido";
+    const creatorNick = userName || user?.nick || "Desconhecido";
+
     const newWarning: Warning = {
       id: `SSI-PUN-${Date.now().toString(36).toUpperCase()}`,
       date: new Date().toLocaleDateString('pt-BR'),
       offenderNick: newOffender.trim(),
       punishmentType: newType,
       reason: newReason.trim(),
-      directorId: "1", // Mock current user
+      directorId: creatorId,
+      directorNick: creatorNick,
       caseId: newCaseId ? newCaseId.trim() : undefined,
       notes: newNotes ? newNotes.trim() : undefined
     };
 
     await addWarning(newWarning);
-    await addAuditLog("1", role, "Registro de Punição", "Punições", `Punição (${newType}) registrada para ${newOffender}.`, newWarning.id);
+    await addAuditLog(creatorId, role, "Registro de Punição", "Punições", `Punição (${newType}) registrada para ${newOffender} por ${creatorNick}.`, newWarning.id);
     toast.success("Punição disciplinar registrada no histórico com sucesso!");
     setIsCreateOpen(false);
     fetchData();
@@ -132,9 +150,20 @@ function AdvertenciasPage() {
     setNewCaseId("");
   };
 
+  const handleDeleteWarning = async () => {
+    if (!warningToDelete) return;
+    const actorId = user?.id || userName || "Desconhecido";
+    const actorNick = userName || user?.nick || "Desconhecido";
+    await deleteWarning(warningToDelete.id);
+    await addAuditLog(actorId, role, "Exclusão de Punição" as any, "Punições", `Punição #${warningToDelete.id} foi excluída definitivamente por ${actorNick}.`, warningToDelete.id);
+    setWarningToDelete(null);
+    toast.success("Punição excluída permanentemente com sucesso!");
+    fetchData();
+  };
+
   const filteredWarnings = useMemo(() => {
     return warnings.filter(w => {
-      const matchesSearch = w.offenderNick.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = String(w.offenderNick || "").toLowerCase().includes(String(searchTerm || "").toLowerCase());
       const matchesType = typeFilter === "Todas" || w.punishmentType === typeFilter;
       const matchesDirector = directorFilter === "Todos" || w.directorId === directorFilter;
       return matchesSearch && matchesType && matchesDirector;
@@ -169,7 +198,7 @@ function AdvertenciasPage() {
              className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all w-full sm:w-auto"
            >
              <Plus className="h-4 w-4" />
-             Registrar Advertência
+             Registrar Nova Punição
            </button>
          )}
       </div>
@@ -271,7 +300,7 @@ function AdvertenciasPage() {
              </thead>
              <tbody>
                {filteredWarnings.map((w) => {
-                  const director = getMemberDetails(w.directorId, members);
+                  const directorNick = getNickDisplay(w.directorId, w.directorNick, members);
                   return (
                    <tr key={w.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                      <td className="px-6 py-4 font-medium text-foreground">#{String(w.id).toUpperCase()}</td>
@@ -283,8 +312,8 @@ function AdvertenciasPage() {
                      <td className="px-6 py-4 text-muted-foreground truncate max-w-[200px]" title={w.reason}>
                        {w.reason}
                      </td>
-                     <td className="px-6 py-4 text-muted-foreground">{director?.nick || "-"}</td>
-                     <td className="px-6 py-4 text-right">
+                     <td className="px-6 py-4 font-medium text-foreground">{directorNick}</td>
+                     <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
                        <button 
                          onClick={() => setViewWarning(w)}
                          className="p-1.5 text-muted-foreground hover:text-primary bg-background rounded-md border border-border hover:border-primary/30 transition-colors inline-flex" 
@@ -292,6 +321,15 @@ function AdvertenciasPage() {
                        >
                          <Eye className="h-4 w-4" />
                        </button>
+                       {isPresidencia && (
+                         <button 
+                           onClick={() => setWarningToDelete(w)}
+                           className="p-1.5 text-muted-foreground hover:text-red-500 bg-background rounded-md border border-border hover:border-red-500/30 transition-colors inline-flex" 
+                           title="Excluir Punição (Presidência)"
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </button>
+                       )}
                      </td>
                    </tr>
                  );
@@ -314,17 +352,22 @@ function AdvertenciasPage() {
       </div>
 
       {/* MODAL REGISTRAR ADVERTÊNCIA */}
-      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Registrar Nova Advertência">
+      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Registrar Nova Punição">
         <div className="flex flex-col gap-4">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Responsável pela Punição:</span>
+            <span className="text-sm font-bold text-primary">{userName || user?.nick || "Membro"} ({role})</span>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Infrator (Nick)</label>
-              <select value={newOffender} onChange={e => setNewOffender(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors">
-                <option value="" disabled className="bg-background text-foreground">Selecione o membro...</option>
-                {members.filter(m => m.status === "Ativo").map(m => (
-                  <option key={m.id} value={m.nick} className="bg-background text-foreground">{m.nick}</option>
-                ))}
-              </select>
+              <input 
+                type="text" 
+                value={newOffender} 
+                onChange={e => setNewOffender(e.target.value)} 
+                placeholder="Ex: Nick do membro..."
+                className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors placeholder:text-muted-foreground" 
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-foreground">Tipo de Punição</label>
@@ -375,7 +418,7 @@ function AdvertenciasPage() {
             <div className="flex items-center justify-between border-b border-border/50 pb-4">
               <div className="flex flex-col">
                 <h3 className="text-xl font-bold text-foreground">Infrator: {viewWarning.offenderNick}</h3>
-                 <p className="text-sm text-muted-foreground mt-1">Registrado por {getMemberDetails(viewWarning.directorId, members)?.nick} em {viewWarning.date}</p>
+                 <p className="text-sm text-muted-foreground mt-1">Registrado por {getNickDisplay(viewWarning.directorId, viewWarning.directorNick, members)} em {viewWarning.date}</p>
               </div>
               <PunishmentBadge type={viewWarning.punishmentType} />
             </div>
@@ -419,6 +462,16 @@ function AdvertenciasPage() {
         variant="warning"
         onConfirm={handleCreate}
         onClose={() => setShowConfirmCreate(false)}
+      />
+
+      <ConfirmModal
+        isOpen={!!warningToDelete}
+        title="Excluir Punição Definitivamente?"
+        description={`Tem certeza que deseja apagar o registro de punição #${warningToDelete ? String(warningToDelete.id).toUpperCase() : ""} do membro "${warningToDelete?.offenderNick}"? Esta ação não poderá ser desfeita.`}
+        confirmText="Excluir Definitivamente"
+        variant="danger"
+        onConfirm={handleDeleteWarning}
+        onClose={() => setWarningToDelete(null)}
       />
 
     </div>

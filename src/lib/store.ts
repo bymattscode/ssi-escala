@@ -476,11 +476,14 @@ export const deleteSchedulesForWeekAndType = async (week: string, type: string):
 // --- CASES ---
 export const getCases = async (): Promise<Case[]> => {
   await delay(200);
-  return getParsedData<Case[]>(KEYS.CASES, []);
+  const raw = getParsedData<Case[]>(KEYS.CASES, []);
+  const deletedKeys = getDeletedKeys();
+  return raw.filter(c => c && c.id && !deletedKeys.includes(String(c.id).trim().toLowerCase()));
 };
 
 export const addCase = async (newCase: Case): Promise<void> => {
   await delay(200);
+  if (newCase.id) removeDeletedKey(newCase.id);
   const cases = getParsedData<Case[]>(KEYS.CASES, []);
   cases.push({ ...newCase, updatedAt: Date.now(), syncStatus: "pending" });
   if (typeof window !== "undefined") {
@@ -500,14 +503,28 @@ export const updateCase = async (id: string, updates: Partial<Case>): Promise<vo
   }
 };
 
+export const deleteCase = async (id: string): Promise<void> => {
+  await delay(200);
+  let cases = getParsedData<Case[]>(KEYS.CASES, []);
+  cases = cases.filter(c => c.id !== id);
+  addDeletedKey(id);
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.CASES, JSON.stringify(cases));
+    triggerAutoSync("casos");
+  }
+};
+
 // --- WARNINGS ---
 export const getWarnings = async (): Promise<Warning[]> => {
   await delay(200);
-  return getParsedData<Warning[]>(KEYS.WARNINGS, []);
+  const raw = getParsedData<Warning[]>(KEYS.WARNINGS, []);
+  const deletedKeys = getDeletedKeys();
+  return raw.filter(w => w && w.id && !deletedKeys.includes(String(w.id).trim().toLowerCase()));
 };
 
 export const addWarning = async (newWarning: Warning): Promise<void> => {
   await delay(200);
+  if (newWarning.id) removeDeletedKey(newWarning.id);
   const warnings = getParsedData<Warning[]>(KEYS.WARNINGS, []);
   warnings.push({ ...newWarning, updatedAt: Date.now(), syncStatus: "pending" });
   if (typeof window !== "undefined") {
@@ -522,6 +539,17 @@ export const updateWarning = async (id: string, updates: Partial<Warning>): Prom
   const idx = warnings.findIndex(w => w.id === id);
   if (idx !== -1 && typeof window !== "undefined") {
     warnings[idx] = { ...warnings[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
+    localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
+    triggerAutoSync("advertencias");
+  }
+};
+
+export const deleteWarning = async (id: string): Promise<void> => {
+  await delay(200);
+  let warnings = getParsedData<Warning[]>(KEYS.WARNINGS, []);
+  warnings = warnings.filter(w => w.id !== id);
+  addDeletedKey(id);
+  if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
     triggerAutoSync("advertencias");
   }

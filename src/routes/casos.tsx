@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Case, CaseStatus, Member } from "@/lib/types";
-import { Search, Plus, Filter, AlertCircle, CheckCircle2, Clock, XCircle, MoreVertical, FileText, Gavel, X, AlertTriangle } from "lucide-react";
+import { Search, Plus, Filter, AlertCircle, CheckCircle2, Clock, XCircle, MoreVertical, FileText, Gavel, X, AlertTriangle, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getCases, getMembers, addCase, updateCase, addAuditLog } from "../lib/store";
+import { getCases, getMembers, addCase, updateCase, deleteCase, addAuditLog } from "../lib/store";
 import { toast } from "sonner";
 import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
 
@@ -78,11 +78,13 @@ function CasosPage() {
   
   const { user, role, userName } = useAuth();
   const isFiscalizador = role === "Fiscalizador";
+  const isPresidencia = role === "Presidente" || role === "Vice-Presidente";
   
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [resolveCase, setResolveCase] = useState<Case | null>(null);
   const [viewCase, setViewCase] = useState<Case | null>(null);
+  const [caseToDelete, setCaseToDelete] = useState<Case | null>(null);
   
   // Create state
   const [newOffender, setNewOffender] = useState("");
@@ -209,6 +211,17 @@ function CasosPage() {
     setResCancelReason("");
   };
 
+  const handleDeleteCase = async () => {
+    if (!caseToDelete) return;
+    const actorId = user?.id || userName || "Desconhecido";
+    const actorNick = userName || user?.nick || "Desconhecido";
+    await deleteCase(caseToDelete.id);
+    await addAuditLog(actorId, role, "Exclusão de Caso" as any, "Casos", `Caso #${caseToDelete.id} foi excluído definitivamente por ${actorNick}.`, caseToDelete.id);
+    setCaseToDelete(null);
+    toast.success("Caso excluído permanentemente com sucesso!");
+    fetchData();
+  };
+
   const filteredCases = (cases || []).filter(c => {
     if (!c) return false;
     const term = String(searchTerm || "").toLowerCase();
@@ -306,16 +319,25 @@ function CasosPage() {
                        >
                          <FileText className="h-4 w-4" />
                        </button>
-                       {(c.status === "Aberto" && !isFiscalizador) && (
-                         <button 
-                           onClick={() => setResolveCase(c)}
-                           className="p-1.5 text-muted-foreground hover:text-green-500 bg-background rounded-md border border-border hover:border-green-500/30 transition-colors" 
-                           title="Resolver Caso (Diretores)"
-                         >
-                           <Gavel className="h-4 w-4" />
-                         </button>
-                       )}
-                     </td>
+                        {(c.status === "Aberto" && !isFiscalizador) && (
+                          <button 
+                            onClick={() => setResolveCase(c)}
+                            className="p-1.5 text-muted-foreground hover:text-green-500 bg-background rounded-md border border-border hover:border-green-500/30 transition-colors" 
+                            title="Resolver Caso (Diretores)"
+                          >
+                            <Gavel className="h-4 w-4" />
+                          </button>
+                        )}
+                        {isPresidencia && (
+                          <button 
+                            onClick={() => setCaseToDelete(c)}
+                            className="p-1.5 text-muted-foreground hover:text-red-500 bg-background rounded-md border border-border hover:border-red-500/30 transition-colors" 
+                            title="Excluir Caso (Presidência)"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </td>
                    </tr>
                  );
                })}
@@ -543,6 +565,16 @@ function CasosPage() {
         variant={resDecision === "Resolver" ? "warning" : "danger"}
         onConfirm={handleResolve}
         onClose={() => setShowConfirmResolve(false)}
+      />
+
+      <ConfirmModal
+        isOpen={!!caseToDelete}
+        title="Excluir Caso Definitivamente?"
+        description={`Tem certeza que deseja apagar o caso #${caseToDelete ? String(caseToDelete.id).toUpperCase() : ""} contra ${caseToDelete?.offenderNick}? Esta ação não poderá ser desfeita.`}
+        confirmText="Excluir Definitivamente"
+        variant="danger"
+        onConfirm={handleDeleteCase}
+        onClose={() => setCaseToDelete(null)}
       />
 
     </div>

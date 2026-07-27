@@ -95,6 +95,7 @@ export interface Warning {
   punishmentType: PunishmentType;
   reason: string;
   directorId: string;
+  directorNick?: string;
   caseId?: string;
   notes?: string;
   updatedAt?: number;
@@ -104,8 +105,8 @@ export interface Warning {
 export type AuditAction = 
   | "Criação de Membro" | "Edição de Membro" | "Alteração de Status"
   | "Geração de Escala" | "Regeneração de Escala" | "Envio de Justificativa" | "Análise de Justificativa"
-  | "Abertura de Caso" | "Resolução de Caso" | "Cancelamento de Caso"
-  | "Registro de Punição" | "Sincronização" | "Backup Executado"
+  | "Abertura de Caso" | "Resolução de Caso" | "Cancelamento de Caso" | "Exclusão de Caso"
+  | "Registro de Punição" | "Exclusão de Punição" | "Sincronização" | "Backup Executado"
   | "Retorno de Licença" | "Membro em Licença" | "Desligamento de Membro" | "Revogação de Acesso";
 
 export type AuditModule = "Membros" | "Escalas" | "Casos" | "Punições" | "Sistema";

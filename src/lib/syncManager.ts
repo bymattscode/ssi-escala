@@ -39,7 +39,7 @@ const headerMaps = {
   },
   advertencias: {
     id: "ID", date: "Data", offenderNick: "Nick do Infrator", punishmentType: "Tipo de Punição",
-    reason: "Motivo", directorId: "ID do Diretor", caseId: "ID do Caso", notes: "Observações",
+    reason: "Motivo", directorId: "ID do Diretor", directorNick: "Responsável", caseId: "ID do Caso", notes: "Observações",
     updatedAt: "Atualizado Em"
   },
   logs: {
