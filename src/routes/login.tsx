@@ -12,7 +12,9 @@ export const Route = createFileRoute("/login")({
 });
 
 const CORE_ADMINS: Record<string, { role: string, accessCode?: string }> = {
-  'admin': { role: 'Presidente', accessCode: 'SSI-MASTER' }
+  'admin': { role: 'Presidente', accessCode: 'SSI-MASTER' },
+  'ministerio': { role: 'Ministério', accessCode: 'SSI-MINISTERIO' },
+  'ministério': { role: 'Ministério', accessCode: 'SSI-MINISTERIO' }
 };
 
 const resolveUser = (members: any[], inputNick: string) => {

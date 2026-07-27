@@ -78,7 +78,7 @@ function CasosPage() {
   
   const { user, role, userName } = useAuth();
   const isFiscalizador = role === "Fiscalizador";
-  const isPresidencia = role === "Presidente" || role === "Vice-Presidente";
+  const isPresidencia = role === "Ministério" || role === "Presidente" || role === "Vice-Presidente";
   
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);

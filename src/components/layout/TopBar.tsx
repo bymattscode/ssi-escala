@@ -12,7 +12,7 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
   const navigate = useNavigate();
 
   const { user, role, userName, logout } = useAuth();
-  const canBackup = role === "Presidente" || role === "Vice-Presidente";
+  const canBackup = role === "Ministério" || role === "Presidente" || role === "Vice-Presidente";
 
   const handleLogout = () => {
     logout();

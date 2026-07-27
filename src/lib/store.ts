@@ -34,18 +34,21 @@ const initialize = () => {
     if (!localStorage.getItem(KEYS.MEMBERS)) {
       localStorage.setItem(KEYS.MEMBERS, JSON.stringify(mockMembers));
     } else {
-      // Limpar automaticamente dados fictícios de testes passados do cache do navegador, se existirem
+      // Limpar automaticamente dados fictícios de testes passados do cache e garantir membros oficiais
       try {
         const fictional = ['viceadmin', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'policial123'];
         let existing: Member[] = JSON.parse(localStorage.getItem(KEYS.MEMBERS) || '[]');
         const cleanList = existing.filter(m => !m.nick || !fictional.includes(String(m.nick).trim().toLowerCase()));
         
-        // Garantir que Admin (conta de emergência) esteja sempre ativo e com o código mestre configurado
-        let adminUser = cleanList.find(m => String(m.nick).trim().toLowerCase() === 'admin');
-        if (!adminUser) {
-          cleanList.push({ id: "1", nick: "Admin", role: "Presidente", status: "Ativo", entryDate: "2024-01-01", accessCode: "SSI-MASTER" });
-        } else {
-          adminUser.accessCode = "SSI-MASTER";
+        // Injetar ou atualizar contas essenciais (Admin, Ministério, e membros oficiais caso faltem no dispositivo)
+        for (const official of mockMembers) {
+          const found = cleanList.find(m => String(m.nick).trim().toLowerCase() === String(official.nick).trim().toLowerCase());
+          if (!found) {
+            cleanList.push(official);
+          } else if ((official.nick === 'Admin' || official.nick === 'Ministério' || official.nick === 'Ministerio') && !found.accessCode) {
+            found.accessCode = official.accessCode;
+            found.role = official.role;
+          }
         }
         
         if (JSON.stringify(cleanList) !== JSON.stringify(existing)) {
@@ -193,6 +196,7 @@ export const removeDeletedKey = (key?: string | number): void => {
 // --- HIERARCHY & ARRIVAL DATE SORTING ---
 export const getRoleRank = (role?: string): number => {
   const r = String(role || "").trim().toLowerCase();
+  if (r.includes("ministério") || r.includes("ministerio")) return 0;
   if (r.includes("presidente") && !r.includes("vice")) return 1;
   if (r.includes("vice")) return 2;
   if (r.includes("diretor")) return 3;
@@ -255,7 +259,7 @@ export const getMembers = async (): Promise<Member[]> => {
       promotionDate: cleanPromo,
       group: m.group || "SSI",
       permissions: m.permissions || (
-        m.role === "Presidente" || m.role === "Vice-Presidente" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"] :
+        m.role === "Ministério" || m.role === "Presidente" || m.role === "Vice-Presidente" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"] :
         m.role === "Diretor" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições"] :
         m.role === "Fiscalizador" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos"] :
         ["Dashboard"]

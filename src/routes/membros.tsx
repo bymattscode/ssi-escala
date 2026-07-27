@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Member, Role, UserGroup, ModulePermission } from "../lib/types";
-import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, ShieldCheck, ShieldAlert, X, Key, Users } from "lucide-react";
+import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, ShieldCheck, ShieldAlert, X, Key, Users, Award } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getMembers, updateMemberStatus, updateMember, deleteMember, addMember, addAuditLog } from "../lib/store";
@@ -172,7 +172,7 @@ function MembrosPage() {
   const [revokeTarget, setRevokeTarget] = useState<Member | null>(null);
   const { role } = useAuth();
   
-  const isAdmin = role === "Presidente" || role === "Vice-Presidente";
+  const isAdmin = role === "Ministério" || role === "Presidente" || role === "Vice-Presidente";
 
   const fetchMembers = async () => {
     setIsLoading(true);
@@ -364,12 +364,13 @@ function MembrosPage() {
   };
 
   // Otimização de performance no filtro e agrupamento
-  const { presidencia, vice, diretores, fiscalizadores, filteredCount } = useMemo(() => {
+  const { ministerio, presidencia, vice, diretores, fiscalizadores, filteredCount } = useMemo(() => {
     const filtered = members.filter(m => 
       m.nick.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.role.toLowerCase().includes(searchTerm.toLowerCase())
     );
     return {
+      ministerio: filtered.filter(m => m.role === "Ministério"),
       presidencia: filtered.filter(m => m.role === "Presidente"),
       vice: filtered.filter(m => m.role === "Vice-Presidente"),
       diretores: filtered.filter(m => m.role === "Diretor"),
@@ -418,6 +419,7 @@ function MembrosPage() {
           </div>
         ) : (
           <>
+            <RoleSection title="Ministério" icon={Award} members={ministerio} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
             <RoleSection title="Presidente" icon={Crown} members={presidencia} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
             <RoleSection title="Vice-Presidente" icon={Star} members={vice} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
             <RoleSection title="Diretores" icon={ShieldCheck} members={diretores} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
@@ -468,7 +470,8 @@ function MembrosPage() {
               <option value="Diretor">Diretor</option>
               <option value="Vice-Presidente">Vice-Presidente</option>
               <option value="Presidente">Presidente</option>
-              <option value="Convidado">Convidado (Ministério, GATE...)</option>
+              <option value="Ministério">Ministério</option>
+              <option value="Convidado">Convidado (GATE, CSI...)</option>
             </select>
           </div>
           <div className="flex flex-col gap-2">
@@ -531,7 +534,8 @@ function MembrosPage() {
                   <option value="Diretor">Diretor</option>
                   <option value="Vice-Presidente">Vice-Presidente</option>
                   <option value="Presidente">Presidente</option>
-                  <option value="Convidado">Convidado (Ministério, GATE...)</option>
+                  <option value="Ministério">Ministério</option>
+                  <option value="Convidado">Convidado (GATE, CSI...)</option>
                 </select>
               </div>
 

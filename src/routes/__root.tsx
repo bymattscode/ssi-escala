@@ -182,7 +182,7 @@ function AppLayout() {
   const requiredPermission = routePermissions[location.pathname];
   if (requiredPermission && user && user.permissions) {
     const hasPerm = (user.permissions as string[]).includes(requiredPermission) || (user.permissions as string[]).includes('all');
-    if (!hasPerm && user.role !== "Presidente" && user.role !== "Vice-Presidente") {
+    if (!hasPerm && user.role !== "Ministério" && user.role !== "Presidente" && user.role !== "Vice-Presidente") {
       setTimeout(() => console.warn(`Acesso restrito ao módulo ${requiredPermission}`), 100);
       return <Navigate to="/" />;
     }

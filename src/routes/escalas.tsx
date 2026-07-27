@@ -217,7 +217,7 @@ function EscalasPage() {
   const [showConfirmGenerate, setShowConfirmGenerate] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { role, userName } = useAuth();
-  const isAdmin = role === "Presidente" || role === "Vice-Presidente";
+  const isAdmin = role === "Ministério" || role === "Presidente" || role === "Vice-Presidente";
   
   // Modals state
   const [justifyingSchedule, setJustifyingSchedule] = useState<Schedule | null>(null);

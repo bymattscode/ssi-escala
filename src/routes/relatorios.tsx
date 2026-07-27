@@ -24,7 +24,7 @@ function RelatoriosPage() {
   const [memberFilter, setMemberFilter] = useState("Todos");
   
   const { role } = useAuth();
-  const isAdmin = role === "Presidente" || role === "Vice-Presidente";
+  const isAdmin = role === "Ministério" || role === "Presidente" || role === "Vice-Presidente";
 
   useEffect(() => {
     async function fetchData() {
