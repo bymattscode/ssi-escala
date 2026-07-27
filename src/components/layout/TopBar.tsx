@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
-import { Role } from "../../lib/types";
 import { getConfig, updateConfig, addSyncLog } from "../../lib/store";
 
 export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
@@ -12,7 +11,7 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const navigate = useNavigate();
 
-  const { user, role, setRole, userName, logout } = useAuth();
+  const { user, role, userName, logout } = useAuth();
   const canBackup = role === "Presidente" || role === "Vice-Presidente";
 
   const handleLogout = () => {
@@ -123,26 +122,11 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
           </div>
           
           {showRoleMenu && (
-            <div className="absolute right-0 top-12 mt-2 w-48 bg-card border border-border shadow-xl rounded-md overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
-              <div className="px-3 py-2 text-xs font-semibold text-muted-foreground bg-secondary/50 border-b border-border">
-                Simular Perfil
-              </div>
+            <div className="absolute right-0 top-12 mt-2 w-40 bg-card border border-border shadow-xl rounded-md overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex flex-col p-1">
-                {(["Presidente", "Diretor", "Fiscalizador"] as Role[]).map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => { setRole(r); setShowRoleMenu(false); toast.success(`Perfil alterado para ${r}`); }}
-                    className={`text-left px-3 py-2 text-sm rounded-md transition-colors ${role === r ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-secondary hover:text-foreground'}`}
-                  >
-                    {r}
-                  </button>
-                ))}
-                
-                <div className="h-px bg-border my-1" />
-                
                 <button
                   onClick={handleLogout}
-                  className="text-left px-3 py-2 text-sm rounded-md transition-colors text-red-400 hover:bg-red-950/30 hover:text-red-400 flex items-center gap-2"
+                  className="text-left px-3 py-2 text-sm rounded-md transition-colors text-red-400 hover:bg-red-950/30 hover:text-red-400 flex items-center gap-2 w-full font-medium"
                 >
                   <LogOut className="h-4 w-4" />
                   Sair
