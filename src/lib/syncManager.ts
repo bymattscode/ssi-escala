@@ -273,7 +273,7 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         conclusionId,
         comments,
         justificationText,
-        updatedAt: Date.now()
+        updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : 0
       };
     });
   }
@@ -298,7 +298,7 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         group: item["Grupo"] || "SSI",
         permissions: perms || ["Gestão de Casos", "Registro de Punições"],
         accessCode: item["Código de Acesso"] || "-",
-        updatedAt: Date.now()
+        updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : 0
       };
     });
   }
@@ -328,7 +328,7 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         punishmentApplied: item["Punição Aplicada"] && item["Punição Aplicada"] !== "-" ? item["Punição Aplicada"] : undefined,
         crimeCommitted: item["Crime Cometido"] && item["Crime Cometido"] !== "-" ? item["Crime Cometido"] : undefined,
         resolutionAttachment: item["Anexo da Resolução"] || item["Anexo de Resolução"] || undefined,
-        updatedAt: Date.now()
+        updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : 0
       };
     });
   }
@@ -351,7 +351,7 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         directorNick: respNick !== "-" ? respNick : undefined,
         caseId: item["ID do Caso"] && item["ID do Caso"] !== "-" ? item["ID do Caso"] : undefined,
         notes: item["Observações"] && item["Observações"] !== "-" ? item["Observações"] : undefined,
-        updatedAt: Date.now()
+        updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : 0
       };
     });
   }
