@@ -129,6 +129,31 @@ function AppLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const runAutoBackgroundSync = async () => {
+      try {
+        const { getPendingCount, getConfig } = await import("../lib/store");
+        const config = await getConfig();
+        if (config.googleConnected) {
+          const pending = await getPendingCount();
+          if (pending > 0) {
+            console.log(`[AutoSync Background] Encontrados ${pending} itens pendentes. Sincronizando com o Google Sheets...`);
+            const { syncAll } = await import("../lib/syncManager");
+            await syncAll();
+          }
+        }
+      } catch (e) {
+        console.error("Falha na sincronização silenciosa de fundo:", e);
+      }
+    };
+
+    // Aciona imediatamente ao abrir o app e verifica a cada 45 segundos para manter zero pendências automaticamente
+    runAutoBackgroundSync();
+    const interval = setInterval(runAutoBackgroundSync, 45000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center text-foreground">

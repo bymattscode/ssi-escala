@@ -158,6 +158,7 @@ export const addAuditLog = async (
   
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.AUDIT, JSON.stringify(logs));
+    triggerAutoSync("logs");
   }
 };
 

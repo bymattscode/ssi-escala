@@ -44,14 +44,6 @@ function RelatoriosPage() {
 
   const getMemberDetails = (id: string) => members.find(m => m.id === id) || null;
 
-  const handleExport = () => {
-    toast.success("Arquivo CSV exportado com sucesso! (Simulado)");
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
   // Simple stats for reports
   const stats = useMemo(() => {
     const activeMembers = members.filter(m => m.status === "Ativo").length;
@@ -121,16 +113,6 @@ function RelatoriosPage() {
           </h1>
           <p className="text-muted-foreground mt-1">Análise de métricas e histórico de ações no sistema.</p>
         </div>
-        <div className="flex gap-2">
-           <button onClick={handlePrint} className="flex items-center justify-center gap-2 bg-background border border-border text-foreground hover:bg-secondary/50 px-4 py-2 rounded-md font-medium transition-all w-full sm:w-auto">
-             <Printer className="h-4 w-4" />
-             Imprimir
-           </button>
-           <button onClick={handleExport} className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-all w-full sm:w-auto">
-             <Download className="h-4 w-4" />
-             Exportar CSV
-           </button>
-         </div>
       </div>
 
       <Tabs defaultValue="auditoria" className="w-full mt-2" onValueChange={setActiveTab}>
