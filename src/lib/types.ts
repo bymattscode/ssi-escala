@@ -66,6 +66,7 @@ export interface Case {
 
   // Campos de Abertura (Fiscalizador)
   creatorId: string;
+  creatorNick?: string;
   offenderNick: string;
   description: string;
   creationDate: string;
@@ -79,6 +80,7 @@ export interface Case {
   punishmentApplied?: string;
   resolutionDate?: string;
   resolverId?: string;
+  resolverNick?: string;
   cancellationReason?: string;
   updatedAt?: number;
   syncStatus?: SyncStatus;

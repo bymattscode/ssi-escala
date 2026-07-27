@@ -52,6 +52,20 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
   );
 }
 
+function getNickDisplay(idOrNick?: string, explicitNick?: string, members: Member[] = []): string {
+  if (explicitNick && explicitNick !== "-" && explicitNick !== "1") {
+    return explicitNick;
+  }
+  if (!idOrNick || idOrNick === "-" || idOrNick === "1") {
+    return "-";
+  }
+  const found = members.find(m => m.id === idOrNick || m.nick.toLowerCase() === idOrNick.toLowerCase());
+  if (found) {
+    return found.nick;
+  }
+  return idOrNick;
+}
+
 function CasosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
@@ -59,7 +73,7 @@ function CasosPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const { role } = useAuth();
+  const { user, role, userName } = useAuth();
   const isFiscalizador = role === "Fiscalizador";
   
   // Modals state
@@ -109,10 +123,14 @@ function CasosPage() {
       toast.error("Dados mínimos insuficientes: Detalhe adequadamente a descrição da infração (mínimo 5 caracteres).");
       return;
     }
+    const creatorIdValue = user?.id || userName || "Desconhecido";
+    const creatorNickValue = userName || user?.nick || "Desconhecido";
+
     const newCase: Case = {
       id: `SSI-CASO-${Date.now().toString(36).toUpperCase()}`,
       status: "Aberto",
-      creatorId: "1", // Mock ID of logged user
+      creatorId: creatorIdValue,
+      creatorNick: creatorNickValue,
       offenderNick: newOffender,
       description: newDesc,
       creationDate: newDate.replace('T', ' '),
@@ -120,7 +138,7 @@ function CasosPage() {
       proofAttachment: newProof
     };
     await addCase(newCase);
-    await addAuditLog("1", role, "Abertura de Caso", "Casos", `Caso #${newCase.id} aberto contra ${newOffender}.`, newCase.id);
+    await addAuditLog(creatorIdValue, role, "Abertura de Caso", "Casos", `Caso #${newCase.id} aberto contra ${newOffender} por ${creatorNickValue}.`, newCase.id);
     setIsCreateOpen(false);
     toast.success("Caso aberto com sucesso!");
     fetchData();
@@ -151,9 +169,13 @@ function CasosPage() {
     if (!resolveCase) return;
     setShowConfirmResolve(false);
     
+    const resolverIdValue = user?.id || userName || "Desconhecido";
+    const resolverNickValue = userName || user?.nick || "Desconhecido";
+
     await updateCase(resolveCase.id, {
       status: resDecision === "Resolver" ? "Resolvido" : "Cancelado",
-      resolverId: "1",
+      resolverId: resolverIdValue,
+      resolverNick: resolverNickValue,
       resolutionDate: new Date().toISOString().replace('T', ' ').slice(0, 16),
       punishmentApplied: resDecision === "Resolver" ? resPunishment : undefined,
       crimeCommitted: resDecision === "Resolver" ? resCrime.trim() : undefined,
@@ -163,11 +185,11 @@ function CasosPage() {
     });
     
     await addAuditLog(
-      "1", 
+      resolverIdValue, 
       role, 
       resDecision === "Resolver" ? "Resolução de Caso" : "Cancelamento de Caso", 
       "Casos", 
-      `Caso #${resolveCase.id} foi ${resDecision === "Resolver" ? "resolvido" : "cancelado"}.`, 
+      `Caso #${resolveCase.id} foi ${resDecision === "Resolver" ? "resolvido" : "cancelado"} por ${resolverNickValue}.`, 
       resolveCase.id
     );
     
@@ -259,18 +281,18 @@ function CasosPage() {
              </thead>
              <tbody>
                {filteredCases.map((c) => {
-                 const creator = getMemberDetails(c.creatorId, members);
-                 const resolver = c.resolverId ? getMemberDetails(c.resolverId, members) : null;
+                 const creatorNick = getNickDisplay(c.creatorId, c.creatorNick, members);
+                 const resolverNick = getNickDisplay(c.resolverId, c.resolverNick, members);
                  return (
                    <tr key={c.id} className="border-b border-border hover:bg-secondary/20 transition-colors group">
                      <td className="px-6 py-4 font-medium text-foreground">#{String(c.id).toUpperCase()}</td>
                      <td className="px-6 py-4 text-muted-foreground">{c.creationDate}</td>
                      <td className="px-6 py-4 font-bold text-foreground">{c.offenderNick}</td>
-                     <td className="px-6 py-4 text-muted-foreground">{creator?.nick || "-"}</td>
+                     <td className="px-6 py-4 font-medium text-primary/90">{creatorNick}</td>
                      <td className="px-6 py-4">
                        <StatusBadge status={c.status} />
                      </td>
-                     <td className="px-6 py-4 text-muted-foreground">{resolver?.nick || "-"}</td>
+                     <td className="px-6 py-4 font-medium text-foreground">{resolverNick}</td>
                      <td className="px-6 py-4 text-right flex items-center justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                        <button 
                          onClick={() => setViewCase(c)}
@@ -312,6 +334,14 @@ function CasosPage() {
       {/* MODAL CRIAR CASO */}
       <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Abrir Novo Caso (Fiscalizador)">
         <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between bg-primary/10 border border-primary/20 px-4 py-2.5 rounded-md text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Fiscalizador Responsável:</span>
+              <strong className="text-primary font-bold">{userName}</strong>
+            </div>
+            <span className="text-xs text-muted-foreground bg-background/60 px-2 py-0.5 rounded border border-border/50">Conta Sincronizada</span>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
              <div className="flex flex-col gap-1.5">
                <label className="text-sm font-medium text-foreground">Infrator (Nick)</label>
@@ -356,8 +386,12 @@ function CasosPage() {
       {/* MODAL RESOLVER CASO */}
       <Modal isOpen={!!resolveCase} onClose={() => setResolveCase(null)} title={`Resolver Caso #${resolveCase ? String(resolveCase.id).toUpperCase() : ""}`}>
         <div className="flex flex-col gap-4">
-          <div className="bg-secondary/30 p-3 rounded-md border border-border/50 text-sm">
+          <div className="bg-secondary/30 p-3 rounded-md border border-border/50 text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <p className="text-muted-foreground">Você está analisando a infração de <strong className="text-foreground">{resolveCase?.offenderNick}</strong>.</p>
+            <div className="flex items-center gap-1.5 text-xs">
+              <span className="text-muted-foreground">Diretor Responsável:</span>
+              <strong className="text-primary font-semibold">{userName}</strong>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
@@ -417,7 +451,7 @@ function CasosPage() {
             <div className="flex items-center justify-between border-b border-border/50 pb-4">
               <div className="flex flex-col">
                 <h3 className="text-xl font-bold text-foreground">Infrator: {viewCase.offenderNick}</h3>
-                 <p className="text-sm text-muted-foreground mt-1">Aberto por {getMemberDetails(viewCase.creatorId, members)?.nick} em {viewCase.creationDate}</p>
+                 <p className="text-sm text-muted-foreground mt-1">Aberto por {getNickDisplay(viewCase.creatorId, viewCase.creatorNick, members)} em {viewCase.creationDate}</p>
               </div>
               <StatusBadge status={viewCase.status} />
             </div>
@@ -442,7 +476,7 @@ function CasosPage() {
               <div className="flex flex-col gap-4 border-t border-border/50 pt-4 mt-2">
                 <h4 className="text-sm font-bold text-green-500 uppercase tracking-wider flex items-center gap-2">
                    <CheckCircle2 className="h-4 w-4" />
-                   Resolução (Por {getMemberDetails(viewCase.resolverId!, members)?.nick || "Desconhecido"})
+                   Resolução (Por {getNickDisplay(viewCase.resolverId, viewCase.resolverNick, members)})
                  </h4>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -474,7 +508,7 @@ function CasosPage() {
               <div className="flex flex-col gap-4 border-t border-border/50 pt-4 mt-2">
                 <h4 className="text-sm font-bold text-red-500 uppercase tracking-wider flex items-center gap-2">
                    <XCircle className="h-4 w-4" />
-                   Cancelado (Por {getMemberDetails(viewCase.resolverId!, members)?.nick || "Desconhecido"})
+                   Cancelado (Por {getNickDisplay(viewCase.resolverId, viewCase.resolverNick, members)})
                  </h4>
                 
                 <div className="flex flex-col gap-1">

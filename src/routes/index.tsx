@@ -36,7 +36,7 @@ function Dashboard() {
   const { role } = useAuth();
   
   const [stats, setStats] = useState({
-    activeInspectors: 0,
+    totalMembers: 0,
     openCases: 0,
     resolvedCases: 0,
     punishments: 0,
@@ -57,7 +57,7 @@ function Dashboard() {
       const logs = await getAuditLogs();
 
       setStats({
-        activeInspectors: members.filter(m => m.role === "Fiscalizador" && m.status === "Ativo").length,
+        totalMembers: members.length,
         openCases: cases.filter(c => c.status === "Aberto").length,
         resolvedCases: cases.filter(c => c.status === "Resolvido").length,
         punishments: warnings.length,
@@ -78,7 +78,7 @@ function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Fiscalizadores Ativos" value={stats.activeInspectors} icon={Users} description="Total atual" />
+        <StatCard title="Total de Membros" value={stats.totalMembers} icon={Users} description="Total atual" />
         <StatCard title="Casos Abertos" value={stats.openCases} icon={AlertTriangle} description="Requer atenção da diretoria" />
         <StatCard title="Casos Resolvidos" value={stats.resolvedCases} icon={BadgeCheck} description="Total histórico" />
         {role !== "Fiscalizador" && (

@@ -30,11 +30,11 @@ const headerMaps = {
     justificationReviewerId: "ID do Revisor (Just.)", updatedAt: "Atualizado Em", scheduleDate: "Data", responseDate: "Data da Resposta"
   },
   casos: {
-    id: "ID", status: "Status", creatorId: "ID do Criador", offenderNick: "Nick do Infrator",
+    id: "ID", status: "Status", creatorId: "ID do Criador", creatorNick: "Fiscalizador", offenderNick: "Nick do Infrator",
     description: "Descrição", creationDate: "Data de Criação", proofAttachment: "Anexo de Prova",
     orientation: "Orientação", orderNumber: "Número do Pedido", crimeCommitted: "Crime Cometido",
     resolutionAttachment: "Anexo de Resolução", punishmentApplied: "Punição Aplicada",
-    resolutionDate: "Data de Resolução", resolverId: "ID do Solucionador", cancellationReason: "Motivo de Cancelamento",
+    resolutionDate: "Data de Resolução", resolverId: "ID do Solucionador", resolverNick: "Responsável", cancellationReason: "Motivo de Cancelamento",
     updatedAt: "Atualizado Em"
   },
   advertencias: {
