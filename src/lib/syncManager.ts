@@ -121,11 +121,11 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
 
       // Formato impecável e limpo na planilha solicitado pelo usuário:
       return {
-        "Data": scaleDateStr,
         "Nick": nick,
         "Cargo": item.type || "-",
         "Status": item.status || "Pendente",
         "Data e Hora": responseDateStr,
+        "Data e Hora da Resposta": responseDateStr,
         "Justificativa": item.justificationText || item.justificationReason || "-",
         "Comentários": item.comments || "-",
         // Campos de controle interno para manter vínculo entre planilha e aplicação sem quebras:
@@ -402,7 +402,7 @@ function cleanEscalasData(items: any[]): any[] {
     } else {
       const itemTime = item.updatedAt || 0;
       const existingTime = existing.updatedAt || 0;
-      if (itemTime > existingTime || (itemTime === existingTime && (item.status === "Concluído" || item.status === "Justificado"))) {
+      if (item.syncStatus === "pending" || (existing.syncStatus !== "pending" && (itemTime >= existingTime || item.status === "Concluído" || item.status === "Justificado"))) {
         deduplicationMap.set(key, item);
       }
     }
@@ -652,8 +652,11 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
   const mergedMap = new Map<string, T>();
   const deletedKeys = getDeletedKeys();
   
-  // Usar Nick (se for membro/usuário) ou ID para evitar duplicação em sincronização cruzada (garantindo conversão para string)
-  const getUniqueKey = (item: T) => {
+  // Usar chave única de semana-cargo-dia para escalas, ou Nick (para membros), evitando duplicação em sincronização cruzada
+  const getUniqueKey = (item: any) => {
+    if (item.week && item.type && item.referenceDay) {
+      return `${item.week}-${item.type}-${item.referenceDay}`.trim().toLowerCase();
+    }
     if (item.nick !== undefined && item.nick !== null && String(item.nick).trim() !== "") {
       return String(item.nick).trim().toLowerCase();
     }
