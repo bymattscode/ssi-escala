@@ -44,14 +44,16 @@ function ConfiguracoesPage() {
     setIsSyncing(true);
     toast.info("Iniciando sincronização total com o Google Sheets...");
     
-    const success = await syncAll();
+    const result = await syncAll();
+    const isSuccess = typeof result === "object" ? result.success : result;
+    const errorMsg = typeof result === "object" && result.error ? result.error : undefined;
     
     await loadConfig();
     setIsSyncing(false);
-    if (success) {
+    if (isSuccess) {
       toast.success("Todos os dados foram sincronizados com sucesso!");
     } else {
-      toast.error("Falha na sincronização. Verifique se o Web App Script está ativo e sua conexão.");
+      toast.error(`Falha na sincronização: ${errorMsg || "Verifique o Web App Script e sua conexão."}`);
     }
   };
 
@@ -63,14 +65,16 @@ function ConfiguracoesPage() {
     setSyncingModule(module);
     toast.info(`Sincronizando o módulo ${module}...`);
     
-    const success = await syncModule(module);
+    const result = await syncModule(module);
+    const isSuccess = typeof result === "object" ? result.success : result;
+    const errorMsg = typeof result === "object" && result.error ? result.error : undefined;
     
     await loadConfig();
     setSyncingModule(null);
-    if (success) {
+    if (isSuccess) {
       toast.success(`Módulo ${module} sincronizado com sucesso!`);
     } else {
-      toast.error(`Erro ao sincronizar o módulo ${module}. Tente novamente mais tarde.`);
+      toast.error(`Erro no módulo ${module}: ${errorMsg || "Tente novamente mais tarde."}`);
     }
   };
   

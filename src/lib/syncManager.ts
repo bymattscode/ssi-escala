@@ -411,13 +411,14 @@ function cleanEscalasData(items: any[]): any[] {
   return Array.from(deduplicationMap.values());
 }
 
-export const syncModule = async (moduleName: string): Promise<boolean> => {
+export const syncModule = async (moduleName: string): Promise<{ success: boolean; error?: string }> => {
   try {
     // 1. Pull remote state first
     const readResponse = await fetchGoogleSheets({ action: "readAll" });
     if (!readResponse.success) {
-      toast.error(`Falha ao obter dados remotos: ${readResponse.error}`);
-      return false; // Fallback: Mantém local como pending, usuário pode tentar de novo
+      const err = `Falha ao obter dados remotos: ${readResponse.error || "Erro de rede"}`;
+      toast.error(err);
+      return { success: false, error: err };
     }
 
     const rawRemoteData = readResponse.data?.[moduleName] || [];
@@ -461,23 +462,26 @@ export const syncModule = async (moduleName: string): Promise<boolean> => {
       const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
       await updateConfig({ lastWrite: now, lastRead: now });
       await addSyncLog({ type: "success", message: `Módulo '${moduleName}' sincronizado com sucesso.` });
-      return true;
+      return { success: true };
     } else {
-      await addSyncLog({ type: "error", message: `Erro ao subir '${moduleName}': ${pushResponse.error}` });
-      return false;
+      const err = pushResponse.error || `Erro ao salvar ${moduleName} na planilha`;
+      await addSyncLog({ type: "error", message: `Erro ao subir '${moduleName}': ${err}` });
+      return { success: false, error: err };
     }
   } catch (error: any) {
-    await addSyncLog({ type: "error", message: `Erro inesperado na sincronização: ${error.message}` });
-    return false;
+    const err = error.message || "Erro inesperado ao sincronizar";
+    await addSyncLog({ type: "error", message: `Erro inesperado na sincronização: ${err}` });
+    return { success: false, error: err };
   }
 };
 
-export const syncAll = async (): Promise<boolean> => {
+export const syncAll = async (): Promise<{ success: boolean; error?: string }> => {
   try {
     const readResponse = await fetchGoogleSheets({ action: "readAll" });
     if (!readResponse.success) {
-      toast.error(`Falha ao obter dados remotos: ${readResponse.error}`);
-      return false; // Retorna false se falhar
+      const err = `Falha ao obter dados remotos: ${readResponse.error || "Sem resposta do Google Sheets"}`;
+      toast.error(err);
+      return { success: false, error: err };
     }
 
     const remoteData = {
@@ -498,7 +502,6 @@ export const syncAll = async (): Promise<boolean> => {
     const mSchedules = mergeArrays(schedules, remoteData['escalas'] || []);
     const mCases = mergeArrays(cases, remoteData['casos'] || []);
     const mWarnings = mergeArrays(warnings, remoteData['advertencias'] || []);
-    // Logs are just append, no conflicts to merge, but we can use mergeArrays safely.
     const mLogs = mergeArrays(logs, remoteData['logs'] || []);
 
     const cleanSchedulesMerged = cleanEscalasData(mSchedules.merged);
@@ -509,17 +512,17 @@ export const syncAll = async (): Promise<boolean> => {
       toast.warning(`${totalConflicts} conflito(s) resolvido(s).`);
     }
 
-    // 3. Push all merged data back module by module
+    // 3. Push all merged data back module by module com intervalo entre eles e salvamento imediato por módulo
     const modulesToSync = [
-      { name: 'membros', data: mMembers.merged },
-      { name: 'escalas', data: cleanSchedulesMerged },
-      { name: 'casos', data: mCases.merged },
-      { name: 'advertencias', data: mWarnings.merged },
-      { name: 'logs', data: mLogs.merged }
+      { name: 'membros', data: mMembers.merged, key: KEYS.MEMBERS },
+      { name: 'escalas', data: cleanSchedulesMerged, key: KEYS.SCHEDULES },
+      { name: 'casos', data: mCases.merged, key: KEYS.CASES },
+      { name: 'advertencias', data: mWarnings.merged, key: KEYS.WARNINGS },
+      { name: 'logs', data: mLogs.merged, key: KEYS.AUDIT }
     ];
 
     let allSuccess = true;
-    let pushError = "";
+    let pushErrors: string[] = [];
 
     for (const mod of modulesToSync) {
       const pushResponse = await fetchGoogleSheets({
@@ -529,33 +532,38 @@ export const syncAll = async (): Promise<boolean> => {
         deletedKeys: getDeletedKeys(),
         overwrite: true
       } as any);
-      if (!pushResponse.success) {
+
+      if (pushResponse.success) {
+        // Salva imediatamente os itens como sincronizados para zerar pendências
+        if (typeof window !== "undefined") {
+          const syncedData = mod.data.map((i: any) => ({ ...i, syncStatus: 'synced' }));
+          localStorage.setItem(mod.key, JSON.stringify(syncedData));
+        }
+        await addSyncLog({ type: "success", message: `Módulo '${mod.name}' sincronizado na sincronização geral.` });
+      } else {
         allSuccess = false;
-        pushError = pushResponse.error || "Erro ao sincronizar módulo " + mod.name;
-        break;
-      }
-    }
-    
-    if (allSuccess) {
-      if (typeof window !== "undefined") {
-        localStorage.setItem(KEYS.MEMBERS, JSON.stringify(mMembers.merged.map(i => ({...i, syncStatus: 'synced'}))));
-        localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(cleanSchedulesMerged.map(i => ({...i, syncStatus: 'synced'}))));
-        localStorage.setItem(KEYS.CASES, JSON.stringify(mCases.merged.map(i => ({...i, syncStatus: 'synced'}))));
-        localStorage.setItem(KEYS.WARNINGS, JSON.stringify(mWarnings.merged.map(i => ({...i, syncStatus: 'synced'}))));
-        localStorage.setItem(KEYS.AUDIT, JSON.stringify(mLogs.merged.map(i => ({...i, syncStatus: 'synced'}))));
+        const errDesc = `${mod.name}: ${pushResponse.error || "Sem resposta do servidor"}`;
+        pushErrors.push(errDesc);
+        await addSyncLog({ type: "error", message: `Erro ao sincronizar '${mod.name}': ${pushResponse.error}` });
       }
 
-      const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
-      await updateConfig({ lastWrite: now, lastRead: now });
+      // Pequena pausa de segurança para o Google Apps Script não bloquear por excesso de requisições paralelas / Lock Timeout
+      await new Promise(r => setTimeout(r, 600));
+    }
+    
+    const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+    await updateConfig({ lastWrite: now, lastRead: now });
+
+    if (allSuccess) {
       await addSyncLog({ type: "success", message: "Todos os módulos sincronizados com sucesso." });
-      return true;
+      return { success: true };
     } else {
-      await addSyncLog({ type: "error", message: `Erro na sincronização total: ${pushError}` });
-      return false;
+      return { success: false, error: pushErrors.join("; ") };
     }
   } catch (error: any) {
-    await addSyncLog({ type: "error", message: `Erro inesperado na sincronização total: ${error.message}` });
-    return false;
+    const err = error.message || "Erro inesperado ao executar Sincronizar Tudo";
+    await addSyncLog({ type: "error", message: `Erro inesperado na sincronização total: ${err}` });
+    return { success: false, error: err };
   }
 };
 

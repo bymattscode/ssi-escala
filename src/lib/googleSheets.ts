@@ -15,7 +15,7 @@ export type SyncResponse = {
   error?: string;
 };
 
-export const fetchGoogleSheets = async (payload: SyncPayload): Promise<SyncResponse> => {
+export const fetchGoogleSheets = async (payload: SyncPayload, maxRetries = 2): Promise<SyncResponse> => {
   const config = await getConfig();
   let targetUrl = config.sheetUrl || "https://script.google.com/macros/s/AKfycbz1jvDrxlyp3p5kGCQanlPeFC-XXmMz4Jy0gjCKrtDUiBV5sKJGrlxraxvpV05tzWAZ1A/exec";
   
@@ -27,23 +27,34 @@ export const fetchGoogleSheets = async (payload: SyncPayload): Promise<SyncRespo
     return { success: false, error: "Nenhuma URL configurada." };
   }
   
-  try {
-    const response = await fetch(targetUrl, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    try {
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      if (!data.success && attempt <= maxRetries && String(data.error || "").toLowerCase().includes("lock")) {
+        await new Promise(r => setTimeout(r, 800 * attempt));
+        continue;
+      }
+      return data;
+    } catch (error: any) {
+      if (attempt <= maxRetries) {
+        await new Promise(r => setTimeout(r, 800 * attempt));
+        continue;
+      }
+      console.error("Google Sheets API Error:", error);
+      return { success: false, error: error.message || "Erro ao conectar com o Web App do Apps Script." };
     }
-    
-    const data = await response.json();
-    return data;
-  } catch (error: any) {
-    console.error("Google Sheets API Error:", error);
-    return { success: false, error: error.message || "Erro desconhecido ao conectar com a planilha." };
   }
+  return { success: false, error: "Falha na comunicação após tentativas." };
 };
