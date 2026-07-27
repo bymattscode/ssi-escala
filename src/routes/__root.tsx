@@ -129,13 +129,14 @@ function AppLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
+  useEffect(() => {
     if (!isAuthenticated) return;
     const runAutoBackgroundSync = async () => {
       try {
         const { getConfig } = await import("../lib/store");
         const config = await getConfig();
         if (config.googleConnected) {
-          console.log("[AutoSync Background] Sincronização automática ativa no app. Alinhando e salvando todas as escalas e módulos no Google Sheets...");
+          console.log("[AutoSync Background] Sincronização automática ativa no app.");
           const { syncAll } = await import("../lib/syncManager");
           await syncAll();
         }
@@ -144,7 +145,6 @@ function AppLayout() {
       }
     };
 
-    // Aciona imediatamente e de forma incondicional ao abrir/atualizar o app e a cada 30 segundos
     runAutoBackgroundSync();
     const interval = setInterval(runAutoBackgroundSync, 30000);
     return () => clearInterval(interval);
