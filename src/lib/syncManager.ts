@@ -74,7 +74,32 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
     const allMembers = getParsedDataLocally<any[]>(KEYS.MEMBERS, []);
     const memberMap = new Map(allMembers.map(m => [m.id, m.nick]));
     
-    return listToTranslate.map(item => {
+    // Ordem estrita solicitada pelo usuário: Domingo em primeiro, depois Segunda, Terça, etc.
+    const dayOrderMap: Record<string, number> = {
+      "Domingo": 0,
+      "Segunda": 1, "Segunda-feira": 1,
+      "Terça": 2, "Terça-feira": 2,
+      "Quarta": 3, "Quarta-feira": 3,
+      "Quinta": 4, "Quinta-feira": 4,
+      "Sexta": 5, "Sexta-feira": 5,
+      "Sábado": 6,
+      "Avaliadores": 7,
+      "Capacitadores": 8
+    };
+
+    const sortedSchedules = [...listToTranslate].sort((a, b) => {
+      if (a.week !== b.week) {
+        return String(b.week || "").localeCompare(String(a.week || ""));
+      }
+      const orderA = dayOrderMap[String(a.referenceDay || "").trim()] ?? 99;
+      const orderB = dayOrderMap[String(b.referenceDay || "").trim()] ?? 99;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      return String(a.type || "").localeCompare(String(b.type || ""));
+    });
+
+    return sortedSchedules.map(item => {
       const nick = memberMap.get(item.memberId) || item.nick || "Desconhecido";
       // Coluna Data: Data real do dia da escala ("a data mesmo do dia referente a escala")
       let scaleDateStr = "-";
@@ -116,18 +141,18 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
             const firstMonday = new Date(yr, 0, 4 - jan4DayOfWeek);
             const targetWeekStart = new Date(firstMonday.getTime() + (wk - 1) * 7 * 24 * 60 * 60 * 1000);
             
-            const dayOffsetMap: Record<string, number> = {
-              "Segunda": 0,
+            const offsetMap: Record<string, number> = {
+              "Domingo": -1,
+              "Segunda": 0, "Segunda-feira": 0,
               "Terça": 1, "Terça-feira": 1,
               "Quarta": 2, "Quarta-feira": 2,
               "Quinta": 3, "Quinta-feira": 3,
               "Sexta": 4, "Sexta-feira": 4,
               "Sábado": 5,
-              "Domingo": 6,
               "Avaliadores": 1,
               "Capacitadores": 1
             };
-            const offset = dayOffsetMap[String(item.referenceDay || "").trim()] ?? 0;
+            const offset = offsetMap[String(item.referenceDay || "").trim()] ?? 0;
             const calcDate = new Date(targetWeekStart.getTime() + offset * 24 * 60 * 60 * 1000);
             if (!isNaN(calcDate.getTime())) {
               const pad = (n: number) => n.toString().padStart(2, '0');
@@ -137,7 +162,7 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         }
       }
 
-      // Coluna ID: Data em que a pessoa respondeu no aplicativo
+      // Coluna ID/Resposta: Data em que a pessoa respondeu no aplicativo
       let responseDateStr = "-";
       if (item.status === "Concluído" || item.status === "Justificado" || item.responseDate || item.justificationDate) {
         const targetDate = item.responseDate || item.justificationDate || (item.updatedAt ? new Date(Number(item.updatedAt)).toISOString() : null);
@@ -150,8 +175,9 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         }
       }
 
-      // Formato impecável e limpo na planilha solicitado pelo usuário com aliases de cabeçalho:
+      // Preenchemos "Data e Hora", "Data", "Data da Escala" com a data real referente ao dia da escala (ex: 28/07/2026 para segunda)
       return {
+        "Data e Hora": scaleDateStr,
         "Data": scaleDateStr,
         "Data da Escala": scaleDateStr,
         "Data do Dia da Escala": scaleDateStr,
@@ -159,8 +185,8 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         "Nick": nick,
         "Cargo": item.type || "-",
         "Status": item.status || "Pendente",
-        "Data e Hora": responseDateStr,
         "Data e Hora da Resposta": responseDateStr,
+        "Data da Resposta": responseDateStr,
         "Justificativa": item.justificationText || item.justificationReason || "-",
         "Comentários": item.comments || "-",
         // Campos de controle interno para manter vínculo entre planilha e aplicação sem quebras:
@@ -321,28 +347,29 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
       let referenceDay = item["Dia de Referência"] && item["Dia de Referência"] !== "-" ? item["Dia de Referência"] : "Segunda";
       let responseDate: string | undefined = undefined;
       let conclusionId: string | undefined = undefined;
-      const rawIdCol = item["Data e Hora"] || item["Data e Hora da Resposta"] || item["Data da Resposta"] || item["ID de Conclusão"] || item["ID"];
-      if (rawIdCol && rawIdCol !== "-" && rawIdCol !== referenceDay && !String(rawIdCol).startsWith("SSI-")) {
-        if (String(rawIdCol).includes("/") || !isNaN(Date.parse(String(rawIdCol)))) {
-          const parts = String(rawIdCol).trim().split(" ");
+      const rawRespCol = item["Data e Hora da Resposta"] || item["Data da Resposta"] || item["ID de Conclusão"] || item["ID"];
+      if (rawRespCol && rawRespCol !== "-" && rawRespCol !== referenceDay && !String(rawRespCol).startsWith("SSI-")) {
+        if (String(rawRespCol).includes("/") || !isNaN(Date.parse(String(rawRespCol)))) {
+          const parts = String(rawRespCol).trim().split(" ");
           const dateParts = parts[0].split("/");
           if (dateParts.length === 3) {
             responseDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}${parts[1] ? 'T' + parts[1] : 'T12:00:00.000Z'}`;
           } else {
-            responseDate = String(rawIdCol);
+            responseDate = String(rawRespCol);
           }
         } else {
-          conclusionId = String(rawIdCol);
+          conclusionId = String(rawRespCol);
         }
       }
 
       let scheduleDate: string | undefined = undefined;
-      if (item["Data"] && item["Data"] !== "-") {
-        const dateParts = String(item["Data"]).split("/");
+      const rawScaleDate = item["Data"] || item["Data e Hora"] || item["Data da Escala"] || item["Data do Dia da Escala"] || "-";
+      if (rawScaleDate && rawScaleDate !== "-") {
+        const dateParts = String(rawScaleDate).trim().split(" ")[0].split("/");
         if (dateParts.length === 3) {
           scheduleDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
         } else {
-          scheduleDate = String(item["Data"]).split("T")[0];
+          scheduleDate = String(rawScaleDate).split("T")[0];
         }
       }
       let comments = item["Comentários"] && item["Comentários"] !== "-" ? item["Comentários"] : undefined;
