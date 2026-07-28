@@ -103,31 +103,44 @@ export const wipeAllData = () => {
 // Zero latency for snappy interface
 const delay = (_ms: number) => Promise.resolve();
 
-// Automate sync to cloud whenever local state changes, with debounce and locking against concurrent overrides
+// Automate sync to cloud whenever local state changes, with a sequential queue to prevent concurrent lock timeout errors
 const autoSyncTimers: Record<string, NodeJS.Timeout | number> = {};
-const activeSyncs: Record<string, boolean> = {};
+const syncQueue: string[] = [];
+let isSyncingQueue = false;
+
+const processSyncQueue = async () => {
+  if (isSyncingQueue || syncQueue.length === 0) return;
+  isSyncingQueue = true;
+  try {
+    const m = await import("./syncManager");
+    while (syncQueue.length > 0) {
+      const moduleName = syncQueue.shift();
+      if (moduleName) {
+        await m.syncModule(moduleName);
+        await new Promise(r => setTimeout(r, 450)); // Pausa anti-concorrência para o Apps Script
+      }
+    }
+  } catch (e) {
+    console.error("Falha ao processar fila de sincronização:", e);
+  } finally {
+    isSyncingQueue = false;
+    if (syncQueue.length > 0) {
+      setTimeout(processSyncQueue, 300);
+    }
+  }
+};
 
 const triggerAutoSync = (module: string) => {
   if (typeof window !== "undefined") {
     if (autoSyncTimers[module]) {
       clearTimeout(autoSyncTimers[module] as any);
     }
-    autoSyncTimers[module] = setTimeout(async () => {
-      if (activeSyncs[module]) {
-        // Re-agenda se uma sincronização já estiver ocorrendo para este módulo
-        triggerAutoSync(module);
-        return;
+    autoSyncTimers[module] = setTimeout(() => {
+      if (!syncQueue.includes(module)) {
+        syncQueue.push(module);
       }
-      activeSyncs[module] = true;
-      try {
-        const m = await import("./syncManager");
-        await m.syncModule(module);
-      } catch (e) {
-        console.error(`Falha no auto-sync de ${module}:`, e);
-      } finally {
-        activeSyncs[module] = false;
-      }
-    }, 500);
+      processSyncQueue();
+    }, 400);
   }
 };
 

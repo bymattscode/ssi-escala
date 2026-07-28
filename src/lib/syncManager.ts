@@ -105,6 +105,37 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
           }
         }
       }
+      if (!scaleDateStr || scaleDateStr === "-") {
+        if (item.week && typeof item.week === "string" && item.week.includes("-W")) {
+          const [yrStr, wkStr] = item.week.split("-W");
+          const yr = parseInt(yrStr, 10);
+          const wk = parseInt(wkStr, 10);
+          if (!isNaN(yr) && !isNaN(wk)) {
+            const jan4 = new Date(yr, 0, 4);
+            const jan4DayOfWeek = (jan4.getDay() + 6) % 7;
+            const firstMonday = new Date(yr, 0, 4 - jan4DayOfWeek);
+            const targetWeekStart = new Date(firstMonday.getTime() + (wk - 1) * 7 * 24 * 60 * 60 * 1000);
+            
+            const dayOffsetMap: Record<string, number> = {
+              "Segunda": 0,
+              "Terça": 1, "Terça-feira": 1,
+              "Quarta": 2, "Quarta-feira": 2,
+              "Quinta": 3, "Quinta-feira": 3,
+              "Sexta": 4, "Sexta-feira": 4,
+              "Sábado": 5,
+              "Domingo": 6,
+              "Avaliadores": 1,
+              "Capacitadores": 1
+            };
+            const offset = dayOffsetMap[String(item.referenceDay || "").trim()] ?? 0;
+            const calcDate = new Date(targetWeekStart.getTime() + offset * 24 * 60 * 60 * 1000);
+            if (!isNaN(calcDate.getTime())) {
+              const pad = (n: number) => n.toString().padStart(2, '0');
+              scaleDateStr = `${pad(calcDate.getDate())}/${pad(calcDate.getMonth() + 1)}/${calcDate.getFullYear()}`;
+            }
+          }
+        }
+      }
 
       // Coluna ID: Data em que a pessoa respondeu no aplicativo
       let responseDateStr = "-";
@@ -119,9 +150,12 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         }
       }
 
-      // Formato impecável e limpo na planilha solicitado pelo usuário:
+      // Formato impecável e limpo na planilha solicitado pelo usuário com aliases de cabeçalho:
       return {
         "Data": scaleDateStr,
+        "Data da Escala": scaleDateStr,
+        "Data do Dia da Escala": scaleDateStr,
+        "Prazo": item.deadline || "-",
         "Nick": nick,
         "Cargo": item.type || "-",
         "Status": item.status || "Pendente",
@@ -489,7 +523,10 @@ function cleanEscalasData(items: any[]): any[] {
       continue;
     }
 
-    const key = `${item.week || ""}-${item.type || ""}-${item.referenceDay || ""}`.toLowerCase();
+    const key = (item.id && String(item.id).trim() !== "")
+      ? String(item.id).trim().toLowerCase()
+      : `${item.week || ""}-${item.type || ""}-${item.referenceDay || ""}-${item.memberId || ""}`.toLowerCase();
+
     const existing = deduplicationMap.get(key);
     if (!existing) {
       deduplicationMap.set(key, item);
@@ -506,16 +543,6 @@ function cleanEscalasData(items: any[]): any[] {
 
 export const syncModule = async (moduleName: string): Promise<{ success: boolean; error?: string }> => {
   try {
-    // 1. Pull remote state first
-    const readResponse = await fetchGoogleSheets({ action: "readAll" });
-    if (!readResponse.success) {
-      const err = `Falha ao obter dados remotos: ${readResponse.error || "Erro de rede"}`;
-      toast.error(err);
-      return { success: false, error: err };
-    }
-
-    const rawRemoteData = readResponse.data?.[moduleName] || [];
-    const remoteData = translateToEnglish(rawRemoteData, moduleName as keyof typeof headerMaps);
     let localData: any[] = [];
     let localKey = "";
 
@@ -525,20 +552,13 @@ export const syncModule = async (moduleName: string): Promise<{ success: boolean
     else if (moduleName === 'advertencias') { localData = await getWarnings(); localKey = KEYS.WARNINGS; }
     else if (moduleName === 'logs') { localData = getParsedDataLocally(KEYS.AUDIT, []); localKey = KEYS.AUDIT; }
 
-    // 2. Merge local and remote
-    const { merged, conflictCount } = mergeArrays(localData, remoteData);
-    const finalMerged = moduleName === "escalas" ? cleanEscalasData(merged) : merged;
+    const finalData = moduleName === "escalas" ? cleanEscalasData(localData) : localData;
 
-    if (conflictCount > 0) {
-      await addSyncLog({ type: "warning", message: `⚠️ ${conflictCount} conflito(s) resolvido(s) no módulo '${moduleName}' (Last-Write-Wins).` });
-      toast.warning(`${conflictCount} conflito(s) resolvido(s) remotamente.`);
-    }
-
-    // 3. Push merged state with deleted keys and overwrite flag
+    // Push local state directly without slow readAll merges, ensuring instant real-time synchronization to Google Sheets
     const payload = {
       action: "sync" as const,
       module: moduleName,
-      payload: translateToPortuguese(finalMerged, moduleName as keyof typeof headerMaps),
+      payload: translateToPortuguese(finalData, moduleName as keyof typeof headerMaps),
       deletedKeys: getDeletedKeys(),
       overwrite: true
     };
@@ -546,15 +566,14 @@ export const syncModule = async (moduleName: string): Promise<{ success: boolean
     const pushResponse = await fetchGoogleSheets(payload as any);
     
     if (pushResponse.success) {
-      // 4. Update local state as synced
-      const syncedData = finalMerged.map(item => ({ ...item, syncStatus: "synced" }));
-      if (typeof window !== "undefined") {
+      const syncedData = finalData.map(item => ({ ...item, syncStatus: "synced" }));
+      if (typeof window !== "undefined" && localKey) {
         localStorage.setItem(localKey, JSON.stringify(syncedData));
       }
 
       const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
       await updateConfig({ lastWrite: now, lastRead: now });
-      await addSyncLog({ type: "success", message: `Módulo '${moduleName}' sincronizado com sucesso.` });
+      await addSyncLog({ type: "success", message: `Módulo '${moduleName}' sincronizado em tempo real.` });
       return { success: true };
     } else {
       const err = pushResponse.error || `Erro ao salvar ${moduleName} na planilha`;
@@ -756,13 +775,16 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
   
   // Usar chave única de semana-cargo-dia para escalas, ou Nick (para membros), evitando duplicação em sincronização cruzada
   const getUniqueKey = (item: any) => {
-    if (item.week && item.type && item.referenceDay) {
-      return `${item.week}-${item.type}-${item.referenceDay}`.trim().toLowerCase();
+    if (item.id !== undefined && item.id !== null && String(item.id).trim() !== "" && !String(item.id).toUpperCase().includes("TESTE")) {
+      return String(item.id).trim().toLowerCase();
+    }
+    if (item.week && item.type && item.referenceDay && item.memberId) {
+      return `${item.week}-${item.type}-${item.referenceDay}-${item.memberId}`.trim().toLowerCase();
     }
     if (item.nick !== undefined && item.nick !== null && String(item.nick).trim() !== "") {
       return String(item.nick).trim().toLowerCase();
     }
-    return item.id !== undefined && item.id !== null ? String(item.id).trim().toLowerCase() : Math.random().toString(36);
+    return Math.random().toString(36);
   };
   
   const isDeleted = (item: T) => {
