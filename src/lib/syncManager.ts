@@ -20,13 +20,13 @@ const headerMaps = {
     avatarUrl: "URL do Avatar", group: "Grupo", permissions: "Permissões", accessCode: "Código de Acesso"
   },
   escalas: {
-    id: "ID", week: "Semana", memberId: "ID do Membro", referenceDay: "Dia de Referência",
+    id: "ID Interno", week: "Semana", memberId: "ID do Membro", referenceDay: "Dia de Referência",
     deadline: "Prazo", status: "Status", responsibleId: "ID do Responsável", observations: "Observações",
-    type: "Tipo", deadlineDate: "Data do Prazo", conclusionId: "ID de Conclusão", comments: "Comentários",
-    casesLine: "Linha de Casos", justificationReason: "Motivo da Justificativa", justificationText: "Texto da Justificativa",
+    type: "Cargo", deadlineDate: "Data do Prazo", conclusionId: "ID de Conclusão", comments: "Print da Função",
+    casesLine: "Linha de Casos", justificationReason: "Motivo da Justificativa", justificationText: "Justificativa",
     justificationAttachment: "Anexo da Justificativa", justificationOccurrenceDate: "Data da Ocorrência (Just.)",
     justificationStatus: "Status da Justificativa", justificationDate: "Data da Justificativa",
-    justificationReviewerId: "ID do Revisor (Just.)", scheduleDate: "Data", responseDate: "Data e Hora"
+    justificationReviewerId: "ID do Revisor (Just.)", scheduleDate: "Data da Escala", responseDate: "Data da Resposta"
   },
   casos: {
     id: "ID", status: "Veredito", creatorId: "Fiscalizador", creatorNick: "Fiscalizador", offenderNick: "Infrator",
@@ -175,23 +175,19 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         }
       }
 
-      // Preenchemos "Data e Hora", "Data", "Data da Escala" com a data real referente ao dia da escala (ex: 28/07/2026 para segunda)
+      // Ordem exata das colunas na planilha solicitada pelo usuário:
       return {
-        "Data e Hora": scaleDateStr,
-        "Data": scaleDateStr,
-        "Data da Escala": scaleDateStr,
-        "Data do Dia da Escala": scaleDateStr,
-        "Prazo": item.deadline || "-",
         "Nick": nick,
         "Cargo": item.type || "-",
-        "Status": item.status || "Pendente",
-        "Data e Hora da Resposta": responseDateStr,
-        "Data da Resposta": responseDateStr,
-        "Justificativa": item.justificationText || item.justificationReason || "-",
-        "Comentários": item.comments || "-",
-        // Campos de controle interno para manter vínculo entre planilha e aplicação sem quebras:
         "Semana": item.week || "-",
         "Dia de Referência": item.referenceDay || "-",
+        "Data da Escala": scaleDateStr,
+        "Prazo": item.deadline || "-",
+        "Print da Função": item.comments || "-",
+        "Data da Resposta": responseDateStr,
+        "Status": item.status || "Pendente",
+        "Justificativa": item.justificationText || item.justificationReason || "-",
+        // Campos de controle interno para manter vínculo na planilha sem quebras de sincronização:
         "ID Interno": item.id || "-",
         "ID do Membro": item.memberId || "-"
       };
@@ -372,7 +368,8 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
           scheduleDate = String(rawScaleDate).split("T")[0];
         }
       }
-      let comments = item["Comentários"] && item["Comentários"] !== "-" ? item["Comentários"] : undefined;
+      let comments = item["Print da Função"] || item["Print da função"] || item["Comentários"] || item["Comentário"] || undefined;
+      if (comments === "-") comments = undefined;
       let justificationText = item["Justificativa"] && item["Justificativa"] !== "-" ? item["Justificativa"] : (item["Texto da Justificativa"] || undefined);
       
       const id = internalId || `SSI-ESC-${nick || "UNK"}-${week}-${String(type).replace(/\s+/g, '').substring(0,3).toUpperCase()}-${Math.random().toString(36).substring(2,6)}`;
