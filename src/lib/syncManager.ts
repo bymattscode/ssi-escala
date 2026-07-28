@@ -411,7 +411,7 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         promotionDate: cleanTimestampFromDate(item["Data de Promoção"], "promotionDate") || "-",
         group: item["Grupo"] || "SSI",
         permissions: perms || ["Gestão de Casos", "Registro de Punições"],
-        accessCode: item["Código de Acesso"] || "-",
+        accessCode: item["Código de Acesso"] && item["Código de Acesso"] !== "-" ? item["Código de Acesso"] : undefined,
         updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : 0
       };
     });

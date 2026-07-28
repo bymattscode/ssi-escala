@@ -21,12 +21,14 @@ const CORE_ADMINS: Record<string, { role: string, accessCode?: string, nick?: st
 };
 
 const resolveUser = (members: any[], inputNick: string) => {
-  const clean = inputNick.trim().toLowerCase();
+  if (!inputNick) return null;
+  const clean = String(inputNick).trim().toLowerCase();
   const isCore = CORE_ADMINS[clean];
-  const existing = members.find(u => u.nick?.trim().toLowerCase() === clean || (isCore && u.id === isCore.id));
+  const existing = members.find(u => u && u.nick && (String(u.nick).trim().toLowerCase() === clean || (isCore && u.id === isCore.id)));
   
   if (existing) {
-    if (isCore || !existing.status || existing.status.trim().toLowerCase() === 'ativo') {
+    const statusClean = existing.status ? String(existing.status).trim().toLowerCase() : 'ativo';
+    if (isCore || statusClean === 'ativo' || existing.role === "Ministério") {
       if (isCore) {
         return { ...existing, id: isCore.id || existing.id, nick: isCore.nick || existing.nick, accessCode: isCore.accessCode || existing.accessCode, role: isCore.role };
       }
@@ -104,7 +106,7 @@ function Login() {
       if (foundUser) {
         setAvatarUrl(`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${nick}&action=std&direction=2&head_direction=2&gesture=sml&size=l`);
         
-        if (foundUser.accessCode) {
+        if (foundUser.accessCode && foundUser.accessCode !== "-") {
           setStep("input_code");
         } else {
           setMottoCode(`SSI-${Math.random().toString(36).substring(2, 8).toUpperCase()}`);
@@ -212,7 +214,7 @@ function Login() {
           // Sincroniza imediatamente o novo código salvo no Google Sheets!
           syncModule("membros").catch(console.error);
         } else {
-          const target = members.find(u => u.nick?.trim().toLowerCase() === nick.trim().toLowerCase());
+          const target = members.find(u => u && u.nick && String(u.nick).trim().toLowerCase() === nick.trim().toLowerCase());
           if (target && target.id !== 'admin') {
             await updateMember(target.id, { accessCode: newCode });
             syncModule("membros").catch(console.error);

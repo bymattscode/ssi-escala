@@ -273,16 +273,16 @@ export const getMembers = async (): Promise<Member[]> => {
       ...m,
       nick: isMinistryAccount ? "Min. Instrutores" : m.nick,
       role: isMinistryAccount ? "Ministério" : m.role,
-      accessCode: isMinistryAccount ? "MIN-INSTRUTORES" : m.accessCode,
+      accessCode: isMinistryAccount ? "MIN-INSTRUTORES" : (m.accessCode === "-" || !m.accessCode ? undefined : m.accessCode),
       entryDate: cleanEntry,
       promotionDate: cleanPromo,
       group: m.group || "SSI",
-      permissions: m.permissions || (
+      permissions: Array.isArray(m.permissions) ? m.permissions : (typeof m.permissions === "string" ? (m.permissions as string).split(",").map((s: string) => s.trim()).filter(Boolean) : (
         m.role === "Ministério" || m.role === "Presidente" || m.role === "Vice-Presidente" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"] :
         m.role === "Diretor" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições"] :
         m.role === "Fiscalizador" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos"] :
         ["Dashboard"]
-      ),
+      )),
       updatedAt: m.updatedAt || Date.now()
     };
 

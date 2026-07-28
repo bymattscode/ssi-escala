@@ -31,9 +31,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const parsed = JSON.parse(savedSession);
           const expirationTime = parsed.trustedDevice ? 30 * 24 * 60 * 60 * 1000 : 7200000; // 30 dias se confiável, senão 2 horas
-          if (Date.now() - parsed.timestamp < expirationTime) {
+          if (Date.now() - parsed.timestamp < expirationTime && parsed && parsed.nick) {
             const members = await getMembers();
-            const foundUser = members.find(u => u.nick.toLowerCase() === parsed.nick.toLowerCase() && u.status === 'Ativo');
+            const cleanTarget = String(parsed.nick).trim().toLowerCase();
+            const isMin = cleanTarget === "ministério" || cleanTarget === "ministerio" || cleanTarget.includes("min. instrutores") || cleanTarget === "mininstrutores";
+            const foundUser = members.find(u => {
+              if (!u || !u.nick) return false;
+              const uNick = String(u.nick).trim().toLowerCase();
+              if (isMin && (uNick.includes("min") || u.role === "Ministério" || u.id === "SSI-MEM-MIN001")) return true;
+              return uNick === cleanTarget && (u.status === 'Ativo' || u.role === "Ministério");
+            });
             if (foundUser) {
               setUser(foundUser);
             } else {
@@ -53,9 +60,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (nick: string, trustedDevice?: boolean): Promise<boolean> => {
     const members = await getMembers();
-    // Allow 'Admin' as a hardcoded fallback just in case the list gets empty
-    const foundUser = members.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.status === 'Ativo') 
-      || (nick === 'Admin' ? { 
+    const cleanNick = String(nick || "").trim().toLowerCase();
+    const isMin = cleanNick === "ministério" || cleanNick === "ministerio" || cleanNick.includes("min. instrutores") || cleanNick === "mininstrutores";
+
+    const foundUser = members.find(u => {
+      if (!u || !u.nick) return false;
+      const uNick = String(u.nick).trim().toLowerCase();
+      if (isMin && (uNick.includes("min") || u.role === "Ministério" || u.id === "SSI-MEM-MIN001")) return true;
+      return uNick === cleanNick && (u.status === 'Ativo' || u.role === "Ministério");
+    }) || (cleanNick === 'admin' ? { 
           id: 'admin', 
           nick: 'Admin', 
           role: 'Presidente', 
@@ -63,7 +76,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           entryDate: new Date().toISOString(),
           group: 'SSI',
           permissions: ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"]
-        } as Member : undefined);
+        } as Member : (isMin ? {
+          id: 'SSI-MEM-MIN001', 
+          nick: 'Min. Instrutores', 
+          role: 'Ministério', 
+          status: 'Ativo', 
+          entryDate: '2024-01-01',
+          group: 'Ministério',
+          permissions: ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"],
+          accessCode: 'MIN-INSTRUTORES'
+        } as Member : undefined));
       
     if (foundUser) {
       setUser(foundUser);
