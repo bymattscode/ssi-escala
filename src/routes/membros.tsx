@@ -366,14 +366,21 @@ function MembrosPage() {
     fetchMembers();
   };
 
-  // Otimização de performance no filtro e agrupamento
-  const { ministerio, presidencia, vice, diretores, fiscalizadores, filteredCount } = useMemo(() => {
-    const filtered = members.filter(m => 
+  // Otimização de performance no filtro e agrupamento (ocultando integralmente a conta fantasma Min. Instrutores / Ministério)
+  const { presidencia, vice, diretores, fiscalizadores, filteredCount } = useMemo(() => {
+    const visibleMembers = members.filter(m => 
+      m.role !== "Ministério" && 
+      !m.nick.toLowerCase().includes("ministério") && 
+      !m.nick.toLowerCase().includes("ministerio") && 
+      !m.nick.toLowerCase().includes("min. instrutores") &&
+      m.nick !== "Admin"
+    );
+
+    const filtered = visibleMembers.filter(m => 
       m.nick.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.role.toLowerCase().includes(searchTerm.toLowerCase())
     );
     return {
-      ministerio: filtered.filter(m => m.role === "Ministério"),
       presidencia: filtered.filter(m => m.role === "Presidente"),
       vice: filtered.filter(m => m.role === "Vice-Presidente"),
       diretores: filtered.filter(m => m.role === "Diretor"),
@@ -422,7 +429,6 @@ function MembrosPage() {
           </div>
         ) : (
           <>
-            <RoleSection title="Ministério" icon={Award} members={ministerio} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
             <RoleSection title="Presidente" icon={Crown} members={presidencia} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
             <RoleSection title="Vice-Presidente" icon={Star} members={vice} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
             <RoleSection title="Diretores" icon={ShieldCheck} members={diretores} isAdmin={isAdmin} onEdit={handleEdit} onDeactivate={handleDeactivate} onReactivate={handleReactivate} onRevokeAccess={handleRevokeAccess} />
@@ -473,7 +479,6 @@ function MembrosPage() {
               <option value="Diretor">Diretor</option>
               <option value="Vice-Presidente">Vice-Presidente</option>
               <option value="Presidente">Presidente</option>
-              <option value="Ministério">Ministério</option>
               <option value="Convidado">Convidado (GATE, CSI...)</option>
             </select>
           </div>
@@ -494,7 +499,6 @@ function MembrosPage() {
               <option value="GATE">GATE</option>
               <option value="CSI">CSI</option>
               <option value="Supremacia">Supremacia</option>
-              <option value="Ministério">Ministério</option>
             </select>
           </div>
 
@@ -537,7 +541,6 @@ function MembrosPage() {
                   <option value="Diretor">Diretor</option>
                   <option value="Vice-Presidente">Vice-Presidente</option>
                   <option value="Presidente">Presidente</option>
-                  <option value="Ministério">Ministério</option>
                   <option value="Convidado">Convidado (GATE, CSI...)</option>
                 </select>
               </div>
@@ -569,7 +572,6 @@ function MembrosPage() {
                   <option value="GATE">GATE</option>
                   <option value="CSI">CSI</option>
                   <option value="Supremacia">Supremacia</option>
-                  <option value="Ministério">Ministério</option>
                 </select>
               </div>
 

@@ -46,12 +46,13 @@ function RelatoriosPage() {
 
   // Simple stats for reports
   const stats = useMemo(() => {
-    const activeMembers = members.filter(m => m.status === "Ativo").length;
+    const visibleMembers = members.filter(m => m.status === "Ativo" && m.role !== "Ministério" && !m.nick.toLowerCase().includes("min. instrutores") && m.nick !== "Admin");
+    const activeMembers = visibleMembers.length;
     const resolvedCases = cases.filter(c => c.status === "Resolvido").length;
     const totalWarnings = warnings.length;
     
     // Member performance (mock logic for report)
-    const productivity = members.filter(m => m.status === "Ativo").map(m => {
+    const productivity = visibleMembers.map(m => {
       const memberCases = cases.filter(c => c.creatorId === m.id).length;
       const memberWarnings = warnings.filter(w => w.offenderNick === m.nick).length;
       const memberSchedules = schedules.filter(s => s.memberId === m.id).length;

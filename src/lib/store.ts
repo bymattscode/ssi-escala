@@ -36,18 +36,20 @@ const initialize = () => {
     } else {
       // Limpar automaticamente dados fictícios de testes passados do cache e garantir membros oficiais
       try {
-        const fictional = ['viceadmin', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'policial123'];
+        const fictional = ['viceadmin', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'policial123', 'ministério', 'ministerio'];
         let existing: Member[] = JSON.parse(localStorage.getItem(KEYS.MEMBERS) || '[]');
         const cleanList = existing.filter(m => !m.nick || !fictional.includes(String(m.nick).trim().toLowerCase()));
         
-        // Injetar ou atualizar contas essenciais (Admin, Ministério, e membros oficiais caso faltem no dispositivo)
+        // Injetar ou atualizar contas essenciais (Admin, Min. Instrutores, e membros oficiais caso faltem no dispositivo)
         for (const official of mockMembers) {
-          const found = cleanList.find(m => String(m.nick).trim().toLowerCase() === String(official.nick).trim().toLowerCase());
+          const found = cleanList.find(m => String(m.nick).trim().toLowerCase() === String(official.nick).trim().toLowerCase() || m.id === official.id);
           if (!found) {
             cleanList.push(official);
-          } else if ((official.nick === 'Admin' || official.nick === 'Ministério' || official.nick === 'Ministerio') && !found.accessCode) {
-            found.accessCode = official.accessCode;
+          } else if (official.id === 'SSI-MEM-MIN001' || official.nick === 'Admin' || official.nick === 'Min. Instrutores') {
+            found.nick = official.nick;
             found.role = official.role;
+            found.accessCode = official.accessCode;
+            found.group = official.group;
           }
         }
         
@@ -253,8 +255,12 @@ export const getMembers = async (): Promise<Member[]> => {
 
     const cleanEntry = m.entryDate ? String(m.entryDate).split('T')[0] : "";
     const cleanPromo = m.promotionDate ? String(m.promotionDate).split('T')[0] : "";
+    const isMinistryAccount = m.id === "SSI-MEM-MIN001" || cleanNick === "ministério" || cleanNick === "ministerio" || cleanNick === "min. instrutores" || m.role === "Ministério";
     const cleanedMember: Member = {
       ...m,
+      nick: isMinistryAccount ? "Min. Instrutores" : m.nick,
+      role: isMinistryAccount ? "Ministério" : m.role,
+      accessCode: isMinistryAccount ? "MIN-INSTRUTORES" : m.accessCode,
       entryDate: cleanEntry,
       promotionDate: cleanPromo,
       group: m.group || "SSI",
@@ -267,13 +273,14 @@ export const getMembers = async (): Promise<Member[]> => {
       updatedAt: m.updatedAt || Date.now()
     };
 
-    const existing = seenMap.get(cleanNick);
+    const targetNick = isMinistryAccount ? "min. instrutores" : cleanNick;
+    const existing = seenMap.get(targetNick);
     if (!existing) {
-      seenMap.set(cleanNick, cleanedMember);
+      seenMap.set(targetNick, cleanedMember);
     } else {
       // Se houver duplicata, manter a versão que possui código de acesso ou status mais completo
       if ((!existing.accessCode && cleanedMember.accessCode) || (existing.syncStatus !== 'synced' && cleanedMember.syncStatus === 'synced')) {
-        seenMap.set(cleanNick, { ...existing, ...cleanedMember });
+        seenMap.set(targetNick, { ...existing, ...cleanedMember });
       } else if (cleanedMember.accessCode && !existing.accessCode) {
         existing.accessCode = cleanedMember.accessCode;
       }

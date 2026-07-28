@@ -11,29 +11,32 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
-const CORE_ADMINS: Record<string, { role: string, accessCode?: string }> = {
-  'admin': { role: 'Presidente', accessCode: 'SSI-MASTER' },
-  'ministerio': { role: 'Ministério', accessCode: 'SSI-MINISTERIO' },
-  'ministério': { role: 'Ministério', accessCode: 'SSI-MINISTERIO' }
+const CORE_ADMINS: Record<string, { role: string, accessCode?: string, nick?: string, id?: string }> = {
+  'admin': { role: 'Presidente', accessCode: 'SSI-MASTER', nick: 'Admin', id: 'admin' },
+  'min. instrutores': { role: 'Ministério', accessCode: 'MIN-INSTRUTORES', nick: 'Min. Instrutores', id: 'SSI-MEM-MIN001' },
+  'min.instrutores': { role: 'Ministério', accessCode: 'MIN-INSTRUTORES', nick: 'Min. Instrutores', id: 'SSI-MEM-MIN001' },
+  'mininstrutores': { role: 'Ministério', accessCode: 'MIN-INSTRUTORES', nick: 'Min. Instrutores', id: 'SSI-MEM-MIN001' },
+  'ministerio': { role: 'Ministério', accessCode: 'MIN-INSTRUTORES', nick: 'Min. Instrutores', id: 'SSI-MEM-MIN001' },
+  'ministério': { role: 'Ministério', accessCode: 'MIN-INSTRUTORES', nick: 'Min. Instrutores', id: 'SSI-MEM-MIN001' }
 };
 
 const resolveUser = (members: any[], inputNick: string) => {
   const clean = inputNick.trim().toLowerCase();
   const isCore = CORE_ADMINS[clean];
-  const existing = members.find(u => u.nick?.trim().toLowerCase() === clean);
+  const existing = members.find(u => u.nick?.trim().toLowerCase() === clean || (isCore && u.id === isCore.id));
   
   if (existing) {
     if (isCore || !existing.status || existing.status.trim().toLowerCase() === 'ativo') {
-      if (isCore && isCore.accessCode) {
-        return { ...existing, accessCode: isCore.accessCode, role: isCore.role };
+      if (isCore) {
+        return { ...existing, id: isCore.id || existing.id, nick: isCore.nick || existing.nick, accessCode: isCore.accessCode || existing.accessCode, role: isCore.role };
       }
       return existing;
     }
   }
   if (isCore) {
     return {
-      id: 'admin',
-      nick: 'Admin',
+      id: isCore.id || 'admin',
+      nick: isCore.nick || 'Admin',
       role: isCore.role,
       status: 'Ativo',
       accessCode: isCore.accessCode || undefined

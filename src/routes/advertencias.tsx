@@ -261,7 +261,7 @@ function AdvertenciasPage() {
               className="bg-background border border-border rounded-md px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-primary/50 transition-colors shadow-sm"
             >
               <option className="bg-background text-foreground" value="Todos">Qualquer Responsável</option>
-              {members.filter(m => m.role === "Diretor" || m.role === "Presidente" || m.role === "Ministério").map(m => (
+              {members.filter(m => (m.role === "Diretor" || m.role === "Presidente" || m.role === "Vice-Presidente") && m.role !== "Ministério").map(m => (
                 <option className="bg-background text-foreground" key={m.id} value={m.id}>{m.nick}</option>
               ))}
             </select>

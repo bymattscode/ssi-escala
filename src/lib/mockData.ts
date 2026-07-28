@@ -2,7 +2,7 @@ import { Member, Schedule, Case, Warning } from './types';
 
 export const mockMembers: Member[] = [
   { id: "1", nick: "Admin", role: "Presidente", status: "Ativo", entryDate: "2024-01-01", accessCode: "SSI-MASTER", group: "SSI" },
-  { id: "SSI-MEM-MIN001", nick: "Ministério", role: "Ministério", status: "Ativo", entryDate: "2024-01-01", accessCode: "SSI-MINISTERIO", group: "Ministério" },
+  { id: "SSI-MEM-MIN001", nick: "Min. Instrutores", role: "Ministério", status: "Ativo", entryDate: "2024-01-01", accessCode: "MIN-INSTRUTORES", group: "Ministério" },
   { id: "SSI-MEM-MS0OA5FF", nick: "-:Lisboa", role: "Presidente", status: "Ativo", entryDate: "2024-05-20", group: "SSI" },
   { id: "SSI-MEM-MRZXZ2ZJ", nick: "tchaumateu21", role: "Vice-Presidente", status: "Ativo", entryDate: "2025-12-14", accessCode: "SSI-PXWXYE", group: "SSI" },
   { id: "SSI-MEM-MS0OBUP0", nick: "zZq", role: "Diretor", status: "Ativo", entryDate: "2026-02-21", group: "SSI" },
