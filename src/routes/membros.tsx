@@ -201,6 +201,7 @@ function MembrosPage() {
   const [editPromotionDate, setEditPromotionDate] = useState("");
   const [editGroup, setEditGroup] = useState<UserGroup>("SSI");
   const [editPermissions, setEditPermissions] = useState<ModulePermission[]>([]);
+  const [editAccessCode, setEditAccessCode] = useState("");
 
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [newMemberNick, setNewMemberNick] = useState("");
@@ -222,6 +223,7 @@ function MembrosPage() {
     setEditPromotionDate(m.promotionDate || "");
     setEditGroup(m.group || "SSI");
     setEditPermissions(m.permissions || []);
+    setEditAccessCode(m.accessCode || "");
   };
 
   const handleDeactivate = (m: Member) => {
@@ -268,9 +270,10 @@ function MembrosPage() {
       entryDate: editEntryDate || editMember.entryDate,
       promotionDate: editPromotionDate || undefined,
       group: editGroup,
-      permissions: editPermissions
+      permissions: editPermissions,
+      accessCode: editAccessCode.trim() || undefined
     });
-    await addAuditLog("1", role, "Edição de Membro", "Membros", `Os dados do membro ${editMember.nick} foram atualizados.`, editMember.id);
+    await addAuditLog("1", role, "Edição de Membro", "Membros", `Os dados de ${editMember.nick} foram atualizados.`, editMember.id);
     toast.success("Membro atualizado com sucesso!");
     setEditMember(null);
     fetchMembers();
@@ -568,6 +571,17 @@ function MembrosPage() {
                   <option value="Supremacia">Supremacia</option>
                   <option value="Ministério">Ministério</option>
                 </select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-foreground">Código Exclusivo do Habbo</label>
+                <input 
+                  type="text"
+                  placeholder="Ex: SSI-XXXXXX (vazio para gerar via lema)"
+                  value={editAccessCode}
+                  onChange={e => setEditAccessCode(e.target.value.toUpperCase())}
+                  className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50 font-mono uppercase"
+                />
               </div>
 
               <div className="flex flex-col gap-2 mt-2">

@@ -22,11 +22,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user } = useAuth();
 
   const filteredNavItems = navItems.filter((item) => {
-    // Se não tiver user (o que não deve acontecer, mas por segurança), mostra só Dashboard
     if (!user || !user.permissions) {
       return item.label === "Dashboard";
     }
-    // Libera a aba se o nome dela estiver no array de permissões
+    const isAdmin = user.role === "Ministério" || user.role === "Presidente" || user.role === "Vice-Presidente";
+    if (isAdmin || (user.permissions as string[]).includes('all')) return true;
     return user.permissions.includes(item.label as any);
   });
 

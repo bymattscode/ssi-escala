@@ -73,7 +73,7 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
       deadlineDate: tuesday.toISOString(),
       status: "Pendente",
       responsibleId,
-      type: "Fiscalizador" as any
+      type: "Fiscalização dos Avaliadores" as any
     });
 
     schedules.push({
@@ -86,7 +86,7 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
       deadlineDate: tuesday.toISOString(),
       status: "Pendente",
       responsibleId,
-      type: "Fiscalizador" as any
+      type: "Fiscalização dos Capacitadores" as any
     });
   }
 
@@ -95,6 +95,8 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
   if (type === "Fiscalizador") {
     await deleteSchedulesForWeekAndType(weekId, "Fiscalização dos Avaliadores");
     await deleteSchedulesForWeekAndType(weekId, "Fiscalização dos Capacitadores");
+    await deleteSchedulesForWeekAndType(weekId, "Fiscalização de Avaliadores");
+    await deleteSchedulesForWeekAndType(weekId, "Fiscalização de Capacitadores");
   }
   await addSchedules(schedules);
   

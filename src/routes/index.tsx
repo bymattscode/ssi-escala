@@ -57,7 +57,7 @@ function Dashboard() {
       const logs = await getAuditLogs();
 
       setStats({
-        totalMembers: members.length,
+        totalMembers: members.filter(m => m.status === "Ativo").length,
         openCases: cases.filter(c => c.status === "Aberto").length,
         resolvedCases: cases.filter(c => c.status === "Resolvido").length,
         punishments: warnings.length,

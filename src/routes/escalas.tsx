@@ -404,6 +404,8 @@ function EscalasPage() {
     s.type === "Fiscalizador" || 
     s.type === "Fiscalização dos Avaliadores" || 
     s.type === "Fiscalização dos Capacitadores" || 
+    s.type === "Fiscalização de Avaliadores" || 
+    s.type === "Fiscalização de Capacitadores" || 
     (!s.type && s.id.includes("FIS"))
   );
   const diretoresSchedules = filteredSchedules.filter(s => s.type === "Diretor");

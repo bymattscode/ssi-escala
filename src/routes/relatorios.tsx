@@ -191,10 +191,11 @@ function RelatoriosPage() {
                 <tbody>
                   {filteredLogs.map((log) => {
                     const user = getMemberDetails(log.userId);
+                    const displayName = user?.nick || (log.userId && log.userId !== "1" ? log.userId : "Sistema");
                     return (
                       <tr key={log.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                         <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{String(log.date || log.timestamp || "-")}</td>
-                        <td className="px-6 py-4 font-medium text-foreground">{String(user?.nick || "Sistema")}</td>
+                        <td className="px-6 py-4 font-medium text-foreground">{String(displayName)}</td>
                         <td className="px-6 py-4">
                           <span className="px-2 py-1 bg-secondary/50 border border-border rounded-md text-xs font-medium text-foreground">
                             {String(log.action || "-")}

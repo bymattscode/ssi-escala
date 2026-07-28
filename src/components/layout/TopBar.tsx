@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { getConfig, updateConfig, addSyncLog } from "../../lib/store";
+import { backupToRemote } from "../../lib/syncManager";
 
 export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
   const [isBackingUp, setIsBackingUp] = useState(false);
@@ -29,25 +30,31 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
     fetchBackup();
   }, []);
 
-  const handleBackup = () => {
+  const handleBackup = async () => {
     if (!canBackup) {
       toast.error("Permissão negada. Apenas Presidente pode executar backups.");
       return;
     }
 
     setIsBackingUp(true);
-    toast.info("Iniciando backup dos dados principais...");
+    toast.info("Iniciando backup dos dados para o Google Sheets...");
 
-    // Mock API call
-    setTimeout(async () => {
-      const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
-      await updateConfig({ lastWrite: now });
-      await addSyncLog({ type: "success", message: "Backup manual realizado com sucesso pela Presidente." });
-      
+    try {
+      const success = await backupToRemote();
+      if (success) {
+        const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+        await updateConfig({ lastWrite: now });
+        setLastBackup(now);
+        toast.success("Backup concluído e sincronizado na planilha Google Sheets com sucesso!");
+      } else {
+        toast.error("Ocorreu uma falha ao comunicar com a planilha. Verifique a configuração.");
+      }
+    } catch (error) {
+      console.error("Erro no backup de emergência:", error);
+      toast.error("Falha inesperada ao sincronizar backup manual.");
+    } finally {
       setIsBackingUp(false);
-      setLastBackup(now);
-      toast.success("Backup concluído com sucesso! Dados exportados prontos para integração.");
-    }, 2500);
+    }
   };
 
   return (
@@ -114,7 +121,20 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
             </div>
             <div className="h-10 w-10 rounded-full bg-secondary/80 border border-border group-hover/user:border-primary/50 group-hover/user:bg-primary/10 flex items-center justify-center text-muted-foreground group-hover/user:text-primary transition-all duration-300 shadow-sm shrink-0 overflow-hidden">
               {user ? (
-                <img src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${user.nick}&action=std&direction=2&head_direction=2&gesture=sml&size=m`} alt={userName} className="h-12 w-12 object-cover mt-2" />
+                <>
+                  <img 
+                    src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${user.nick}&action=std&direction=2&head_direction=2&gesture=sml&size=m`} 
+                    alt={userName} 
+                    className="h-12 w-12 object-cover mt-2"
+                    onError={(e) => { 
+                      e.currentTarget.style.display = 'none'; 
+                      if (e.currentTarget.nextElementSibling) {
+                        (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'block'; 
+                      }
+                    }} 
+                  />
+                  <UserCircle className="h-6 w-6 hidden" />
+                </>
               ) : (
                 <UserCircle className="h-6 w-6" />
               )}

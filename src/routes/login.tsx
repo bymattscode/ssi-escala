@@ -58,6 +58,7 @@ function Login() {
   const [avatarError, setAvatarError] = useState(false);
   
   const [copied, setCopied] = useState(false);
+  const [trustedDevice, setTrustedDevice] = useState(false);
   
   // Warm up local cache by fetching remote members if not present
   useEffect(() => {
@@ -125,7 +126,7 @@ function Login() {
 
       if (foundUser && foundUser.accessCode === userAccessCode) {
         toast.success(`Bem-vindo de volta, ${nick}!`);
-        await login(nick);
+        await login(nick, trustedDevice);
         navigate({ to: "/" });
       } else {
         toast.error("Código de acesso inválido.");
@@ -229,7 +230,7 @@ function Login() {
   };
 
   const handleFinishLogin = async () => {
-    await login(nick);
+    await login(nick, trustedDevice);
     navigate({ to: "/" });
   };
 
@@ -341,6 +342,15 @@ function Login() {
               </div>
             </div>
 
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer mt-1 select-none ml-1">
+              <input 
+                type="checkbox" 
+                checked={trustedDevice} 
+                onChange={(e) => setTrustedDevice(e.target.checked)}
+                className="rounded border-border bg-secondary text-primary focus:ring-primary/50" 
+              />
+              Mantenha-me conectado (Dispositivo confiável)
+            </label>
 
             <button
               type="submit"

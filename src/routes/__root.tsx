@@ -180,9 +180,11 @@ function AppLayout() {
   };
 
   const requiredPermission = routePermissions[location.pathname];
-  if (requiredPermission && user && user.permissions) {
-    const hasPerm = (user.permissions as string[]).includes(requiredPermission) || (user.permissions as string[]).includes('all');
-    if (!hasPerm && user.role !== "Ministério" && user.role !== "Presidente" && user.role !== "Vice-Presidente") {
+  if (requiredPermission && user) {
+    const isAdmin = user.role === "Ministério" || user.role === "Presidente" || user.role === "Vice-Presidente";
+    const perms = (user.permissions as string[]) || [];
+    const hasPerm = isAdmin || perms.includes(requiredPermission) || perms.includes('all');
+    if (!hasPerm) {
       setTimeout(() => console.warn(`Acesso restrito ao módulo ${requiredPermission}`), 100);
       return <Navigate to="/" />;
     }
