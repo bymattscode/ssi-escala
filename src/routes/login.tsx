@@ -27,13 +27,10 @@ const resolveUser = (members: any[], inputNick: string) => {
   const existing = members.find(u => u && u.nick && (String(u.nick).trim().toLowerCase() === clean || (isCore && u.id === isCore.id)));
   
   if (existing) {
-    const statusClean = existing.status ? String(existing.status).trim().toLowerCase() : 'ativo';
-    if (isCore || statusClean === 'ativo' || statusClean === 'licença' || existing.role === "Ministério") {
-      if (isCore) {
-        return { ...existing, id: isCore.id || existing.id, nick: isCore.nick || existing.nick, accessCode: isCore.accessCode || existing.accessCode, role: isCore.role };
-      }
-      return existing;
+    if (isCore) {
+      return { ...existing, id: isCore.id || existing.id, nick: isCore.nick || existing.nick, accessCode: isCore.accessCode || existing.accessCode, role: isCore.role };
     }
+    return existing;
   }
   if (isCore) {
     return {

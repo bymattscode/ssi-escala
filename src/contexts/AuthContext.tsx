@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               if (!u || !u.nick) return false;
               const uNick = String(u.nick).trim().toLowerCase();
               if (isMin && (uNick.includes("min") || u.role === "Ministério" || u.id === "SSI-MEM-MIN001")) return true;
-              return uNick === cleanTarget && (u.status === 'Ativo' || u.status === 'Licença' || u.role === "Ministério");
+              return uNick === cleanTarget;
             });
             if (foundUser) {
               setUser(foundUser);
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!u || !u.nick) return false;
       const uNick = String(u.nick).trim().toLowerCase();
       if (isMin && (uNick.includes("min") || u.role === "Ministério" || u.id === "SSI-MEM-MIN001")) return true;
-      return uNick === cleanNick && (u.status === 'Ativo' || u.status === 'Licença' || u.role === "Ministério");
+      return uNick === cleanNick;
     }) || (cleanNick === 'admin' ? { 
           id: 'admin', 
           nick: 'Admin', 
