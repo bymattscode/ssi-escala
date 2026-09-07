@@ -28,7 +28,7 @@ const resolveUser = (members: any[], inputNick: string) => {
   
   if (existing) {
     const statusClean = existing.status ? String(existing.status).trim().toLowerCase() : 'ativo';
-    if (isCore || statusClean === 'ativo' || existing.role === "Ministério") {
+    if (isCore || statusClean === 'ativo' || statusClean === 'licença' || existing.role === "Ministério") {
       if (isCore) {
         return { ...existing, id: isCore.id || existing.id, nick: isCore.nick || existing.nick, accessCode: isCore.accessCode || existing.accessCode, role: isCore.role };
       }
