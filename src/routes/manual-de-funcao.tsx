@@ -12,13 +12,13 @@ function ManualDeFuncaoPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-6">
         <div>
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-amber-500">
+            <div className="h-10 w-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary shadow-sm">
               <BookMarked className="h-5 w-5" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-2.5">
                 Manual de Função
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                   Em Construção
                 </span>
               </h1>
@@ -36,7 +36,7 @@ function ManualDeFuncaoPage() {
           <BookMarked className="w-64 h-64 text-foreground" />
         </div>
 
-        <div className="h-20 w-20 bg-amber-500/10 border border-amber-500/20 rounded-3xl flex items-center justify-center text-amber-500 mb-5 shadow-inner">
+        <div className="h-20 w-20 bg-primary/10 border border-primary/20 rounded-3xl flex items-center justify-center text-primary mb-5 shadow-inner">
           <GraduationCap className="h-10 w-10" />
         </div>
 
@@ -56,14 +56,14 @@ function ManualDeFuncaoPage() {
           </div>
 
           <div className="bg-secondary/30 border border-border/50 rounded-xl p-4 flex flex-col items-center text-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-green-400" />
+            <ShieldCheck className="h-5 w-5 text-emerald-400" />
             <h3 className="font-semibold text-sm text-foreground">Diretores</h3>
             <p className="text-xs text-muted-foreground">Julgamento de casos, aplicação de sanções e auditoria.</p>
             <span className="text-[10px] font-medium text-muted-foreground/80 bg-secondary px-2 py-0.5 rounded-full mt-1 border border-border/50">Aguardando envio</span>
           </div>
 
           <div className="bg-secondary/30 border border-border/50 rounded-xl p-4 flex flex-col items-center text-center gap-2">
-            <CheckSquare className="h-5 w-5 text-amber-400" />
+            <CheckSquare className="h-5 w-5 text-primary" />
             <h3 className="font-semibold text-sm text-foreground">Gestão de Escalas</h3>
             <p className="text-xs text-muted-foreground">Prazos de envio de prints, justificativas e compensações.</p>
             <span className="text-[10px] font-medium text-muted-foreground/80 bg-secondary px-2 py-0.5 rounded-full mt-1 border border-border/50">Aguardando envio</span>
