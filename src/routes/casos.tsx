@@ -615,14 +615,7 @@ function CasosPage() {
                     <span className="text-sm font-medium text-foreground">{viewCase.resolutionDate || "-"}</span>
                   </div>
                 </div>
-
-                {viewCase.resolutionAttachment && (
-                  <div className="mt-2">
-                    <a href={viewCase.resolutionAttachment} target="_blank" rel="noreferrer" className="text-sm text-green-500 hover:underline bg-green-500/10 p-2 rounded-md border border-green-500/20 w-fit block">
-                      Visualizar Relatório de Resolução
-                    </a>
-                  </div>
-                )}
+                {/* Relatório de resolução removido conforme solicitação */}
 
                 {viewCase.punishmentApplied && viewCase.punishmentApplied !== "Sem Punição" && (
                   <div className="mt-2 pt-2 border-t border-border/40">
