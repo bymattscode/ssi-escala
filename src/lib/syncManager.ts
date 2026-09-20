@@ -839,6 +839,9 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
     if (['c1', 'c2', 'c3', 'w1', 'w2', 'w3', 'w4'].includes(strId.toLowerCase())) return true;
     if (['echo', 'foxtrot', 'golf'].includes(strOffender)) return true;
     
+    // Casos legados antigos que não existem na planilha (série MS de julho)
+    if (strId.startsWith("SSI-CASO-MS") || strId.startsWith("SSI-PUN-MS")) return true;
+
     // Nicks fictícios ou sabidamente desligados
     const bannedNicks = ['viceadmin', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'policial123', '@bann_id', ',raity', 'lgbq1234', '_brant'];
     if (bannedNicks.includes(strNick)) return true;
@@ -860,9 +863,10 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
     const r = mergedMap.get(key);
     
     if (!r) {
-      // SÓ mantém o item local se ele tiver syncStatus === 'pending' (foi criado/editado offline e ainda não subiu).
-      // Se NÃO for pending e não está na planilha remota, FOI EXCLUÍDO na nuvem! Deve ser descartado.
-      if (l.syncStatus === 'pending') {
+      // SÓ mantém o item local se ele tiver syncStatus === 'pending' e tiver sido editado recentemente (< 15 min).
+      // Se NÃO for pending ou for antigo/não estiver na planilha remota, FOI EXCLUÍDO na nuvem! Deve ser descartado.
+      const isRecent = l.updatedAt ? (Date.now() - l.updatedAt < 15 * 60 * 1000) : false;
+      if (l.syncStatus === 'pending' && isRecent) {
         mergedMap.set(key, l);
       }
     } else {

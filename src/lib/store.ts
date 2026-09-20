@@ -66,7 +66,7 @@ const initialize = () => {
       } catch (e) {}
     }
 
-    // Limpar casos de teste antigos/mockados
+    // Limpar casos de teste antigos/mockados e casos legados de julho não existentes na planilha
     try {
       const mockTestCases = ['c1', 'c2', 'c3'];
       const mockOffenders = ['echo', 'foxtrot', 'golf'];
@@ -75,7 +75,9 @@ const initialize = () => {
         if (!c || !c.id) return false;
         const idLower = String(c.id).trim().toLowerCase();
         const offenderLower = String(c.offenderNick || '').trim().toLowerCase();
-        return !mockTestCases.includes(idLower) && !mockOffenders.includes(offenderLower);
+        if (mockTestCases.includes(idLower) || mockOffenders.includes(offenderLower)) return false;
+        if (idLower.startsWith('ssi-caso-ms') || String(c.creationDate || '').startsWith('2026-07')) return false;
+        return true;
       });
       if (cleanCases.length !== existingCases.length) {
         localStorage.setItem(KEYS.CASES, JSON.stringify(cleanCases));
@@ -602,7 +604,16 @@ export const getCases = async (): Promise<Case[]> => {
   await delay(200);
   const raw = getParsedData<Case[]>(KEYS.CASES, []);
   const deletedKeys = getDeletedKeys();
-  return raw.filter(c => c && c.id && !deletedKeys.includes(String(c.id).trim().toLowerCase()));
+  return raw.filter(c => {
+    if (!c || !c.id) return false;
+    const idLower = String(c.id).trim().toLowerCase();
+    const offenderLower = String(c.offenderNick || '').trim().toLowerCase();
+    if (deletedKeys.includes(idLower)) return false;
+    if (['c1', 'c2', 'c3'].includes(idLower)) return false;
+    if (['echo', 'foxtrot', 'golf'].includes(offenderLower)) return false;
+    if (idLower.startsWith('ssi-caso-ms') || String(c.creationDate || '').startsWith('2026-07')) return false;
+    return true;
+  });
 };
 
 export const addCase = async (newCase: Case): Promise<void> => {
@@ -734,8 +745,8 @@ export const addSyncLog = async (logData: Omit<SyncLog, "id" | "date">): Promise
 export const getPendingCount = async (): Promise<number> => {
   const members = getParsedData<Member[]>(KEYS.MEMBERS, []);
   const schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
-  const cases = getParsedData<Case[]>(KEYS.CASES, []);
-  const warnings = getParsedData<Warning[]>(KEYS.WARNINGS, []);
+  const cases = await getCases();
+  const warnings = await getWarnings();
   
   let count = 0;
   count += members.filter(m => m.syncStatus === 'pending').length;
