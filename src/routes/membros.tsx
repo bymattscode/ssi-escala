@@ -7,6 +7,7 @@ import { getMembers, updateMemberStatus, updateMember, deleteMember, addMember, 
 import { fetchAllFromRemote } from "../lib/syncManager";
 import { toast } from "sonner";
 import { EmptyState, SkeletonCard, ConfirmModal, FormField } from "../components/ui/ux";
+import { formatBrasiliaDate } from "../lib/dateUtils";
 
 export const Route = createFileRoute("/membros")({
   component: MembrosPage,
@@ -48,13 +49,7 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
 }
 
 function formatCleanDate(dateStr?: string): string {
-  if (!dateStr) return "-";
-  const clean = dateStr.toString().split("T")[0];
-  const parts = clean.split("-");
-  if (parts.length === 3 && parts[0].length === 4) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return clean;
+  return formatBrasiliaDate(dateStr);
 }
 
 function MemberCard({ member, isAdmin, onEdit, onDeactivate, onReactivate, onRevokeAccess }: { 

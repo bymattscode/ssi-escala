@@ -6,6 +6,7 @@ import { getMembers, getCases, getWarnings, getConfig, getAuditLogs, getSchedule
 import { fetchAllFromRemote } from "../lib/syncManager";
 import { AuditLog } from "../lib/types";
 import { toast } from "sonner";
+import { formatBrasiliaDate } from "../lib/dateUtils";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -276,7 +277,7 @@ function Dashboard() {
                   <p className="text-xs text-muted-foreground">{act.action} ({act.module})</p>
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">{act.date.split(' ')[0]}</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">{formatBrasiliaDate(act.timestamp || act.date)}</span>
             </div>
           ))}
           {recentActivities.length === 0 && (

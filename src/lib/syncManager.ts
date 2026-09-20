@@ -11,6 +11,7 @@ import {
   KEYS
 } from './store';
 import { toast } from 'sonner';
+import { formatBrasiliaDate, formatBrasiliaDateTime } from './dateUtils';
 
 // Mapeamento de chaves (Frontend <-> Google Sheets)
 const headerMaps = {
@@ -201,8 +202,8 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
       "Nick": item.nick || "-",
       "Cargo": item.role || "-",
       "Status": item.status || "Ativo",
-      "Data de Entrada": cleanTimestampFromDate(item.entryDate, "entryDate") || "-",
-      "Data de Promoção": cleanTimestampFromDate(item.promotionDate, "promotionDate") || "-",
+      "Data de Entrada": item.entryDate ? formatBrasiliaDate(item.entryDate) : "-",
+      "Data de Promoção": item.promotionDate ? formatBrasiliaDate(item.promotionDate) : "-",
       "Grupo": item.group || "SSI",
       "Permissões": Array.isArray(item.permissions) ? item.permissions.join(", ") : (item.permissions || "Gestão de Casos, Registro de Punições"),
       "Código de Acesso": item.accessCode || "-"
@@ -221,7 +222,7 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         "Fiscalizador": fiscalizador,
         "Infrator": item.offenderNick || "-",
         "Descrição": item.description || "-",
-        "Data": cleanTimestampFromDate(item.creationDate, "creationDate") || "-",
+        "Data": item.creationDate ? formatBrasiliaDateTime(item.creationDate) : "-",
         "Orientação": item.orientation || "-",
         "Anexo da Prova": item.proofAttachment || "-",
         "Veredito": item.status || "Pendente",
@@ -229,7 +230,7 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         "Punição Aplicada": item.punishmentApplied || "-",
         "Crime Cometido": item.crimeCommitted || "-",
         "Anexo da Resolução": item.resolutionAttachment || "-",
-        "Data da Resolução": item.resolutionDate || "-",
+        "Data da Resolução": item.resolutionDate ? formatBrasiliaDateTime(item.resolutionDate) : "-",
         "Motivo de Cancelamento": item.cancellationReason || "-",
         "Número da Ordem": item.orderNumber || "-",
         "ID": item.id || "-"
@@ -245,7 +246,7 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
       const responsavel = item.directorNick || memberMap.get(item.directorId) || item.directorId || "-";
       return {
         "ID": item.id || "-",
-        "Data": cleanTimestampFromDate(item.date, "date") || "-",
+        "Data": item.date ? formatBrasiliaDate(item.date) : "-",
         "Nick do Infrator": item.offenderNick || "-",
         "Tipo de Punição": item.punishmentType || "Observação",
         "Motivo": item.reason || "-",
@@ -261,38 +262,7 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
     const memberMap = new Map(allMembers.map(m => [m.id, m.nick]));
 
     return listToTranslate.map(item => {
-      let dateTimeStr = "-";
-      const val = item.timestamp || item.date;
-      if (val && typeof val === "number") {
-        const d = new Date(val);
-        if (!isNaN(d.getTime())) {
-          const pad = (n: number) => n.toString().padStart(2, '0');
-          dateTimeStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-        }
-      } else if (val) {
-        const strVal = String(val);
-        if (strVal.includes("/") || strVal.includes("-")) {
-          const d = new Date(strVal);
-          if (!isNaN(d.getTime()) && strVal.includes("T")) {
-            const pad = (n: number) => n.toString().padStart(2, '0');
-            dateTimeStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-          } else {
-            dateTimeStr = strVal;
-          }
-        } else {
-          const num = Number(val);
-          if (!isNaN(num) && num > 100000000000) {
-            const d = new Date(num);
-            if (!isNaN(d.getTime())) {
-              const pad = (n: number) => n.toString().padStart(2, '0');
-              dateTimeStr = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-            }
-          } else {
-            dateTimeStr = strVal;
-          }
-        }
-      }
-
+      const dateTimeStr = formatBrasiliaDateTime(item.timestamp || item.date, true);
       const userNick = item.userNick || memberMap.get(item.userId) || item.userId || "-";
 
       return {

@@ -7,6 +7,7 @@ import { fetchAllFromRemote } from "../lib/syncManager";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
+import { formatBrasiliaDate, getBrasiliaDateNow } from "../lib/dateUtils";
 
 export const Route = createFileRoute("/advertencias")({
   component: AdvertenciasPage,
@@ -137,7 +138,7 @@ function AdvertenciasPage() {
 
     const newWarning: Warning = {
       id: `SSI-PUN-${Date.now().toString(36).toUpperCase()}`,
-      date: new Date().toLocaleDateString('pt-BR'),
+      date: getBrasiliaDateNow(),
       offenderNick: newOffender.trim(),
       punishmentType: newType,
       reason: newReason.trim(),
@@ -315,7 +316,7 @@ function AdvertenciasPage() {
                   return (
                    <tr key={w.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                      <td className="px-6 py-4 font-medium text-foreground">#{String(w.id).toUpperCase()}</td>
-                     <td className="px-6 py-4 text-muted-foreground">{w.date}</td>
+                     <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{formatBrasiliaDate(w.date)}</td>
                      <td className="px-6 py-4 font-bold text-foreground">{w.offenderNick}</td>
                      <td className="px-6 py-4">
                        <PunishmentBadge type={w.punishmentType} />
@@ -429,7 +430,7 @@ function AdvertenciasPage() {
             <div className="flex items-center justify-between border-b border-border/50 pb-4">
               <div className="flex flex-col">
                 <h3 className="text-xl font-bold text-foreground">Infrator: {viewWarning.offenderNick}</h3>
-                 <p className="text-sm text-muted-foreground mt-1">Registrado por {getNickDisplay(viewWarning.directorId, viewWarning.directorNick, members)} em {viewWarning.date}</p>
+                 <p className="text-sm text-muted-foreground mt-1">Registrado por {getNickDisplay(viewWarning.directorId, viewWarning.directorNick, members)} em {formatBrasiliaDate(viewWarning.date)}</p>
               </div>
               <PunishmentBadge type={viewWarning.punishmentType} />
             </div>

@@ -7,6 +7,7 @@ import { getCases, getMembers, addCase, updateCase, deleteCase, addAuditLog, add
 import { fetchAllFromRemote } from "../lib/syncManager";
 import { toast } from "sonner";
 import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
+import { formatBrasiliaDate, formatBrasiliaDateTime, getBrasiliaIsoNow, getBrasiliaDateNow } from "../lib/dateUtils";
 
 interface CasosSearchParams {
   highlight?: string;
@@ -98,7 +99,7 @@ function CasosPage() {
   // Create state
   const [newOffender, setNewOffender] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [newDate, setNewDate] = useState(new Date().toISOString().slice(0, 16));
+  const [newDate, setNewDate] = useState(getBrasiliaIsoNow());
   const [newOrientation, setNewOrientation] = useState("Sim");
   const [newProof, setNewProof] = useState("");
   
@@ -186,7 +187,7 @@ function CasosPage() {
     // Reset
     setNewOffender("");
     setNewDesc("");
-    setNewDate(new Date().toISOString().slice(0, 16));
+    setNewDate(getBrasiliaIsoNow());
     setNewOrientation("Sim");
     setNewProof("");
   };
@@ -217,7 +218,7 @@ function CasosPage() {
       status: resDecision === "Resolver" ? "Resolvido" : "Cancelado",
       resolverId: resolverIdValue,
       resolverNick: resolverNickValue,
-      resolutionDate: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      resolutionDate: new Date().toISOString(),
       punishmentApplied: resDecision === "Resolver" ? resPunishment : undefined,
       crimeCommitted: resDecision === "Resolver" ? resCrime.trim() : undefined,
       orderNumber: resDecision === "Resolver" ? resOrder : undefined,
@@ -243,7 +244,7 @@ function CasosPage() {
 
       const newWarning: Warning = {
         id: `SSI-PUN-${Date.now().toString(36).toUpperCase()}`,
-        date: new Date().toISOString().slice(0, 10),
+        date: getBrasiliaDateNow(),
         offenderNick: resolveCase.offenderNick.trim(),
         punishmentType: resPunishment as PunishmentType,
         reason: resCrime.trim(),
@@ -377,10 +378,10 @@ function CasosPage() {
                  const creatorNick = getNickDisplay(c.creatorId, c.creatorNick, members);
                  const resolverNick = getNickDisplay(c.resolverId, c.resolverNick, members);
                  return (
-                   <tr key={c.id} className="border-b border-border hover:bg-secondary/20 transition-colors group">
-                     <td className="px-6 py-4 font-medium text-foreground">#{String(c.id || "").toUpperCase()}</td>
-                     <td className="px-6 py-4 text-muted-foreground">{String(c.creationDate || "-")}</td>
-                     <td className="px-6 py-4 font-bold text-foreground">{String(c.offenderNick || "-")}</td>
+                    <tr key={c.id} className="border-b border-border hover:bg-secondary/20 transition-colors group">
+                      <td className="px-6 py-4 font-medium text-foreground">#{String(c.id || "").toUpperCase()}</td>
+                      <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{formatBrasiliaDateTime(c.creationDate)}</td>
+                      <td className="px-6 py-4 font-bold text-foreground">{String(c.offenderNick || "-")}</td>
                      <td className="px-6 py-4 font-medium text-primary/90">{creatorNick}</td>
                      <td className="px-6 py-4">
                        <StatusBadge status={c.status} />
@@ -573,7 +574,7 @@ function CasosPage() {
             <div className="flex items-center justify-between border-b border-border/50 pb-4">
               <div className="flex flex-col">
                 <h3 className="text-xl font-bold text-foreground">Infrator: {viewCase.offenderNick}</h3>
-                 <p className="text-sm text-muted-foreground mt-1">Aberto por {getNickDisplay(viewCase.creatorId, viewCase.creatorNick, members)} em {viewCase.creationDate}</p>
+                 <p className="text-sm text-muted-foreground mt-1">Aberto por {getNickDisplay(viewCase.creatorId, viewCase.creatorNick, members)} em {formatBrasiliaDateTime(viewCase.creationDate)}</p>
               </div>
               <StatusBadge status={viewCase.status} />
             </div>
@@ -612,7 +613,7 @@ function CasosPage() {
                   </div>
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-muted-foreground">Data da Resolução</span>
-                    <span className="text-sm font-medium text-foreground">{viewCase.resolutionDate || "-"}</span>
+                    <span className="text-sm font-medium text-foreground">{formatBrasiliaDateTime(viewCase.resolutionDate)}</span>
                   </div>
                 </div>
                 {/* Relatório de resolução removido conforme solicitação */}
@@ -649,7 +650,7 @@ function CasosPage() {
                 
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Data da Decisão</span>
-                  <span className="text-sm font-medium text-foreground">{viewCase.resolutionDate || "-"}</span>
+                  <span className="text-sm font-medium text-foreground">{formatBrasiliaDateTime(viewCase.resolutionDate)}</span>
                 </div>
               </div>
             )}

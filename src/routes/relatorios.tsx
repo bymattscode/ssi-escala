@@ -6,6 +6,7 @@ import { BarChart3, Filter, History, Download, Printer, Users, ShieldAlert, Shie
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
+import { formatBrasiliaDateTime } from "../lib/dateUtils";
 
 export const Route = createFileRoute("/relatorios")({
   component: RelatoriosPage,
@@ -195,7 +196,7 @@ function RelatoriosPage() {
                     const displayName = user?.nick || (log.userId && log.userId !== "1" ? log.userId : "Sistema");
                     return (
                       <tr key={log.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
-                        <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{String(log.date || log.timestamp || "-")}</td>
+                        <td className="px-6 py-4 text-muted-foreground whitespace-nowrap font-mono text-xs">{formatBrasiliaDateTime(log.timestamp || log.date, true)}</td>
                         <td className="px-6 py-4 font-medium text-foreground">{String(displayName)}</td>
                         <td className="px-6 py-4">
                           <span className="px-2 py-1 bg-secondary/50 border border-border rounded-md text-xs font-medium text-foreground">

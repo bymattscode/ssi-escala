@@ -13,6 +13,7 @@ import { Schedule, Member } from "../lib/types";
 import { generateWeeklySchedule } from "../lib/scheduler";
 import { toast } from "sonner";
 import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
+import { formatBrasiliaDateTime } from "../lib/dateUtils";
 
 export const Route = createFileRoute("/escalas")({
   component: EscalasPage,
@@ -643,7 +644,7 @@ function EscalasPage() {
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-muted-foreground">Enviado em</span>
                     <span className="text-sm font-medium text-foreground">
-                      {viewSchedule.justificationDate ? new Date(viewSchedule.justificationDate).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "-"}
+                      {formatBrasiliaDateTime(viewSchedule.justificationDate)}
                     </span>
                   </div>
                 </div>
