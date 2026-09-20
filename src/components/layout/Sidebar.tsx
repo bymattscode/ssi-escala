@@ -144,8 +144,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
   return (
     <aside 
       className={`${
-        isCollapsed ? "md:w-20" : "md:w-72"
-      } w-72 bg-card/95 backdrop-blur-md border-r border-border h-[calc(100vh-4rem)] flex flex-col fixed left-0 top-16 z-20 transition-all duration-300 ease-in-out ${
+        isCollapsed ? "md:w-20" : "md:w-64"
+      } w-64 bg-card/95 backdrop-blur-md border-r border-border h-[calc(100vh-4rem)] flex flex-col fixed left-0 top-16 z-20 transition-all duration-300 ease-in-out ${
         isOpen ? "translate-x-0" : "-translate-x-full"
       } md:translate-x-0`}
     >

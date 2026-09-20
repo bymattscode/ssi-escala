@@ -259,7 +259,7 @@ function AppLayout() {
           />
         )}
         
-        <main className={`flex-1 p-4 sm:p-6 md:p-8 ${isSidebarCollapsed ? "md:ml-20" : "md:ml-72"} transition-all duration-300 ease-in-out w-full relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background`}>
+        <main className={`flex-1 p-4 sm:p-6 md:p-8 ${isSidebarCollapsed ? "md:ml-20" : "md:ml-64"} transition-all duration-300 ease-in-out w-full relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background`}>
           <Outlet />
         </main>
       </div>

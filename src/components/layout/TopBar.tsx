@@ -70,17 +70,17 @@ export function TopBar({ onMenuToggle, isCollapsed = false }: TopBarProps) {
           to="/"
           title="Ir para a página inicial"
           className={`${
-            isCollapsed ? "w-16 md:w-20 md:justify-center md:px-0" : "w-auto md:w-72 px-3.5"
-          } h-full border-r border-border flex items-center gap-3 transition-all duration-300 ease-in-out hover:bg-secondary/40 cursor-pointer shrink-0 select-none group`}
+            isCollapsed ? "w-16 md:w-20 md:justify-center md:px-0" : "w-auto md:w-64 px-3"
+          } h-full border-r border-border flex items-center gap-2.5 transition-all duration-300 ease-in-out hover:bg-secondary/40 cursor-pointer shrink-0 select-none group`}
         >
-          <div className="h-10 w-10 bg-primary/10 border border-primary/30 rounded-lg flex items-center justify-center overflow-hidden p-1 shrink-0 group-hover:border-primary/50 transition-colors">
+          <div className="h-9 w-9 bg-primary/10 border border-primary/30 rounded-lg flex items-center justify-center overflow-hidden p-1 shrink-0 group-hover:border-primary/50 transition-colors">
             <img src="/logo.png" alt="SSI Logo" className="h-full w-full object-contain" />
           </div>
           <div className={`flex flex-col min-w-0 ${isCollapsed ? "md:hidden" : "flex"}`}>
-            <h1 className="text-foreground font-bold text-base sm:text-lg leading-tight tracking-tight drop-shadow-md group-hover:text-primary transition-colors">
+            <h1 className="text-foreground font-bold text-base leading-tight tracking-tight drop-shadow-md group-hover:text-primary transition-colors">
               SSI
             </h1>
-            <span className="text-[10.5px] sm:text-[11px] text-muted-foreground/80 font-medium leading-tight whitespace-nowrap hidden sm:block">
+            <span className="text-[10.5px] text-muted-foreground/80 font-medium leading-tight whitespace-nowrap hidden sm:block">
               Setor de Segurança dos Instrutores
             </span>
           </div>
