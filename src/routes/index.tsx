@@ -36,7 +36,15 @@ function getNextSunday() {
 }
 
 function Dashboard() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
+  
+  const canSync = Boolean(
+    role === "Ministério" ||
+    role === "Presidente" ||
+    role === "Vice-Presidente" ||
+    user?.permissions?.includes("Configurações") ||
+    (user?.permissions as string[])?.includes("all")
+  );
   
   const [stats, setStats] = useState({
     totalMembers: 0,
@@ -86,6 +94,10 @@ function Dashboard() {
   };
 
   const handleManualSync = async () => {
+    if (!canSync) {
+      toast.error("Permissão negada. Apenas usuários com permissão de Configurações podem sincronizar.");
+      return;
+    }
     if (isSyncing) return;
     setIsSyncing(true);
     try {
@@ -135,17 +147,19 @@ function Dashboard() {
           <p className="text-muted-foreground mt-1">Visão geral do Setor de Segurança dos Instrutores.</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleManualSync}
-            disabled={isSyncing}
-            className="flex items-center justify-center gap-2 bg-secondary hover:bg-secondary/80 text-foreground border border-border px-4 py-2 rounded-lg font-medium transition-all hover:border-primary/50 text-sm shadow-sm disabled:opacity-50 group cursor-pointer"
-            title="Sincronizar dados em tempo real com o Google Sheets"
-          >
-            <RefreshCw className={`h-4 w-4 text-primary transition-transform ${isSyncing ? "animate-spin" : "group-hover:rotate-180 duration-500"}`} />
-            <span>{isSyncing ? "Sincronizando..." : "Sincronizar"}</span>
-          </button>
-        </div>
+        {canSync && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="flex items-center justify-center gap-2 bg-secondary hover:bg-secondary/80 text-foreground border border-border px-4 py-2 rounded-lg font-medium transition-all hover:border-primary/50 text-sm shadow-sm disabled:opacity-50 group cursor-pointer"
+              title="Sincronizar dados em tempo real com o Google Sheets"
+            >
+              <RefreshCw className={`h-4 w-4 text-primary transition-transform ${isSyncing ? "animate-spin" : "group-hover:rotate-180 duration-500"}`} />
+              <span>{isSyncing ? "Sincronizando..." : "Sincronizar"}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
