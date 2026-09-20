@@ -56,6 +56,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     };
     initSession();
+
+    const handleDataUpdated = async () => {
+      const savedSession = localStorage.getItem('ssi-auth-session');
+      if (!savedSession) return;
+      try {
+        const parsed = JSON.parse(savedSession);
+        if (parsed && parsed.nick) {
+          const members = await getMembers();
+          const cleanTarget = String(parsed.nick).trim().toLowerCase();
+          const isMin = cleanTarget === "ministério" || cleanTarget === "ministerio" || cleanTarget.includes("min. instrutores") || cleanTarget === "mininstrutores";
+          const foundUser = members.find(u => {
+            if (!u || !u.nick) return false;
+            const uNick = String(u.nick).trim().toLowerCase();
+            if (isMin && (uNick.includes("min") || u.role === "Ministério" || u.id === "SSI-MEM-MIN001")) return true;
+            return uNick === cleanTarget;
+          });
+          if (foundUser) {
+            setUser(foundUser);
+          }
+        }
+      } catch (e) {}
+    };
+
+    window.addEventListener('ssi-data-updated', handleDataUpdated);
+    return () => {
+      window.removeEventListener('ssi-data-updated', handleDataUpdated);
+    };
   }, []);
 
   const login = async (nick: string, trustedDevice?: boolean): Promise<boolean> => {

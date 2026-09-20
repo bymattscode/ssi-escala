@@ -4,6 +4,7 @@ import { Search, Plus, Filter, AlertCircle, CheckCircle2, Clock, XCircle, MoreVe
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getCases, getMembers, addCase, updateCase, deleteCase, addAuditLog } from "../lib/store";
+import { fetchAllFromRemote } from "../lib/syncManager";
 import { toast } from "sonner";
 import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
 
@@ -137,6 +138,15 @@ function CasosPage() {
 
   useEffect(() => {
     fetchData();
+    fetchAllFromRemote().then(() => fetchData()).catch(console.error);
+
+    const handleSync = () => {
+      fetchData();
+    };
+    window.addEventListener('ssi-data-updated', handleSync);
+    return () => {
+      window.removeEventListener('ssi-data-updated', handleSync);
+    };
   }, []);
 
   const handleCreate = async () => {

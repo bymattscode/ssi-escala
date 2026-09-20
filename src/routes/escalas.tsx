@@ -8,6 +8,7 @@ import { CalendarDays, Search, RotateCcw, AlertTriangle, CheckCircle2, Clock, XC
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getSchedules, getMembers, updateSchedule, addAuditLog } from "../lib/store";
+import { fetchAllFromRemote } from "../lib/syncManager";
 import { Schedule, Member } from "../lib/types";
 import { generateWeeklySchedule } from "../lib/scheduler";
 import { toast } from "sonner";
@@ -288,6 +289,19 @@ function EscalasPage() {
       runAutomation();
     });
     fetchMembers();
+    fetchAllFromRemote().then(() => {
+      fetchSchedules();
+      fetchMembers();
+    }).catch(console.error);
+
+    const handleSync = () => {
+      fetchSchedules();
+      fetchMembers();
+    };
+    window.addEventListener('ssi-data-updated', handleSync);
+    return () => {
+      window.removeEventListener('ssi-data-updated', handleSync);
+    };
   }, []);
 
   const handleGenerate = async () => {

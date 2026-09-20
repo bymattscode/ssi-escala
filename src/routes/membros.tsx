@@ -4,6 +4,7 @@ import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getMembers, updateMemberStatus, updateMember, deleteMember, addMember, addAuditLog } from "../lib/store";
+import { fetchAllFromRemote } from "../lib/syncManager";
 import { toast } from "sonner";
 import { EmptyState, SkeletonCard, ConfirmModal, FormField } from "../components/ui/ux";
 
@@ -193,6 +194,15 @@ function MembrosPage() {
 
   useEffect(() => {
     fetchMembers();
+    fetchAllFromRemote().then(() => fetchMembers()).catch(console.error);
+
+    const handleSync = () => {
+      fetchMembers();
+    };
+    window.addEventListener('ssi-data-updated', handleSync);
+    return () => {
+      window.removeEventListener('ssi-data-updated', handleSync);
+    };
   }, []);
 
   const [editMember, setEditMember] = useState<Member | null>(null);

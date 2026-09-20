@@ -3,6 +3,7 @@ import { Users, AlertTriangle, FileWarning, CalendarDays, ShieldAlert, BadgeChec
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { getMembers, getCases, getWarnings, getConfig, getAuditLogs, getSchedules } from "../lib/store";
+import { fetchAllFromRemote } from "../lib/syncManager";
 import { AuditLog } from "../lib/types";
 
 export const Route = createFileRoute("/")({
@@ -68,6 +69,15 @@ function Dashboard() {
       setRecentActivities(logs.slice(0, 5));
     };
     fetchStats();
+    fetchAllFromRemote().then(() => fetchStats()).catch(console.error);
+
+    const handleSync = () => {
+      fetchStats();
+    };
+    window.addEventListener('ssi-data-updated', handleSync);
+    return () => {
+      window.removeEventListener('ssi-data-updated', handleSync);
+    };
   }, []);
 
   return (

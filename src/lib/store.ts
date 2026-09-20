@@ -34,13 +34,20 @@ const initialize = () => {
     if (!localStorage.getItem(KEYS.MEMBERS)) {
       localStorage.setItem(KEYS.MEMBERS, JSON.stringify(mockMembers));
     } else {
-      // Limpar automaticamente dados fictícios de testes passados do cache e garantir membros oficiais
+      // Limpar automaticamente dados fictícios de testes passados e membros sabidamente desligados/inválidos
       try {
-        const fictional = ['viceadmin', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'policial123', 'ministério', 'ministerio'];
+        const fictionalOrDeleted = [
+          'viceadmin', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 
+          'policial123', 'ministério', 'ministerio', '@bann_id', ',raity', 'lgbq1234', '_brant'
+        ];
         let existing: Member[] = JSON.parse(localStorage.getItem(KEYS.MEMBERS) || '[]');
-        const cleanList = existing.filter(m => !m.nick || !fictional.includes(String(m.nick).trim().toLowerCase()));
+        const cleanList = existing.filter(m => {
+          if (!m || !m.nick) return false;
+          const nickLower = String(m.nick).trim().toLowerCase();
+          return !fictionalOrDeleted.includes(nickLower);
+        });
         
-        // Injetar ou atualizar contas essenciais (Admin, Min. Instrutores, e membros oficiais caso faltem no dispositivo)
+        // Garantir apenas as contas mestres essenciais do sistema (Admin e Min. Instrutores)
         for (const official of mockMembers) {
           const found = cleanList.find(m => String(m.nick).trim().toLowerCase() === String(official.nick).trim().toLowerCase() || m.id === official.id);
           if (!found) {
@@ -58,6 +65,52 @@ const initialize = () => {
         }
       } catch (e) {}
     }
+
+    // Limpar casos de teste antigos/mockados
+    try {
+      const mockTestCases = ['c1', 'c2', 'c3'];
+      const mockOffenders = ['echo', 'foxtrot', 'golf'];
+      let existingCases: Case[] = JSON.parse(localStorage.getItem(KEYS.CASES) || '[]');
+      const cleanCases = existingCases.filter(c => {
+        if (!c || !c.id) return false;
+        const idLower = String(c.id).trim().toLowerCase();
+        const offenderLower = String(c.offenderNick || '').trim().toLowerCase();
+        return !mockTestCases.includes(idLower) && !mockOffenders.includes(offenderLower);
+      });
+      if (cleanCases.length !== existingCases.length) {
+        localStorage.setItem(KEYS.CASES, JSON.stringify(cleanCases));
+      }
+    } catch (e) {}
+
+    // Limpar advertências de teste antigas/mockadas
+    try {
+      const mockTestWarnings = ['w1', 'w2', 'w3', 'w4'];
+      const mockWarnOffenders = ['echo', 'foxtrot', 'golf', 'delta'];
+      let existingWarnings: Warning[] = JSON.parse(localStorage.getItem(KEYS.WARNINGS) || '[]');
+      const cleanWarnings = existingWarnings.filter(w => {
+        if (!w || !w.id) return false;
+        const idLower = String(w.id).trim().toLowerCase();
+        const offenderLower = String(w.offenderNick || '').trim().toLowerCase();
+        return !mockTestWarnings.includes(idLower) && !mockWarnOffenders.includes(offenderLower);
+      });
+      if (cleanWarnings.length !== existingWarnings.length) {
+        localStorage.setItem(KEYS.WARNINGS, JSON.stringify(cleanWarnings));
+      }
+    } catch (e) {}
+
+    // Limpar escalas de teste antigas/mockadas
+    try {
+      let existingSchedules: Schedule[] = JSON.parse(localStorage.getItem(KEYS.SCHEDULES) || '[]');
+      const cleanSchedules = existingSchedules.filter(s => {
+        if (!s || !s.id) return false;
+        const idUpper = String(s.id).toUpperCase();
+        return !idUpper.includes('TESTE') && !['S1', 'S2', 'S3', 'S4', 'S5'].includes(idUpper);
+      });
+      if (cleanSchedules.length !== existingSchedules.length) {
+        localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(cleanSchedules));
+      }
+    } catch (e) {}
+
     if (!localStorage.getItem(KEYS.SCHEDULES)) localStorage.setItem(KEYS.SCHEDULES, JSON.stringify(mockSchedules));
     if (!localStorage.getItem(KEYS.CASES)) localStorage.setItem(KEYS.CASES, JSON.stringify(mockCases));
     if (!localStorage.getItem(KEYS.WARNINGS)) localStorage.setItem(KEYS.WARNINGS, JSON.stringify(mockWarnings));

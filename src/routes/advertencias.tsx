@@ -3,6 +3,7 @@ import { Warning, PunishmentType, Member } from "@/lib/types";
 import { Search, Plus, Filter, FileWarning, Eye, AlertTriangle, ShieldOff, Skull, Link as LinkIcon, X, Trash2 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { getWarnings, getMembers, addWarning, deleteWarning, addAuditLog } from "../lib/store";
+import { fetchAllFromRemote } from "../lib/syncManager";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
@@ -101,6 +102,15 @@ function AdvertenciasPage() {
 
   useEffect(() => {
     fetchData();
+    fetchAllFromRemote().then(() => fetchData()).catch(console.error);
+
+    const handleSync = () => {
+      fetchData();
+    };
+    window.addEventListener('ssi-data-updated', handleSync);
+    return () => {
+      window.removeEventListener('ssi-data-updated', handleSync);
+    };
   }, []);
 
   const validateAndPromptCreate = () => {

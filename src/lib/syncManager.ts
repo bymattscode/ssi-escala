@@ -600,6 +600,7 @@ export const syncModule = async (moduleName: string): Promise<{ success: boolean
       const syncedData = finalData.map(item => ({ ...item, syncStatus: "synced" }));
       if (typeof window !== "undefined" && localKey) {
         localStorage.setItem(localKey, JSON.stringify(syncedData));
+        window.dispatchEvent(new CustomEvent('ssi-data-updated', { detail: { source: 'module', module: moduleName } }));
       }
 
       const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
@@ -681,6 +682,7 @@ export const syncAll = async (): Promise<{ success: boolean; error?: string }> =
         if (typeof window !== "undefined") {
           const syncedData = mod.data.map((i: any) => ({ ...i, syncStatus: 'synced' }));
           localStorage.setItem(mod.key, JSON.stringify(syncedData));
+          window.dispatchEvent(new CustomEvent('ssi-data-updated', { detail: { source: 'all' } }));
         }
         await addSyncLog({ type: "success", message: `Módulo '${mod.name}' sincronizado na sincronização geral.` });
       } else {
@@ -746,6 +748,7 @@ export const fetchAllFromRemote = async (): Promise<boolean> => {
       localStorage.setItem(KEYS.CASES, JSON.stringify(mCases.merged));
       localStorage.setItem(KEYS.WARNINGS, JSON.stringify(mWarnings.merged));
       localStorage.setItem(KEYS.AUDIT, JSON.stringify(mLogs.merged));
+      window.dispatchEvent(new CustomEvent('ssi-data-updated', { detail: { source: 'remote' } }));
     }
     
     const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
@@ -828,29 +831,47 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
     if (!item) return true;
     const strId = String(item.id || "").toUpperCase();
     const strMemberId = String(item.memberId || item["ID do Membro"] || "").toUpperCase();
+    const strOffender = String(item.offenderNick || item["Infrator"] || item["Nick do Infrator"] || "").toLowerCase();
+    const strNick = String(item.nick || item["Nick"] || "").toLowerCase();
+
+    // Filtros de teste
     if (strId.includes("TESTE-0") || strId.includes("-TESTE-") || strMemberId.includes("TESTE-0") || strMemberId.includes("-TESTE-")) return true;
+    if (['c1', 'c2', 'c3', 'w1', 'w2', 'w3', 'w4'].includes(strId.toLowerCase())) return true;
+    if (['echo', 'foxtrot', 'golf'].includes(strOffender)) return true;
+    
+    // Nicks fictícios ou sabidamente desligados
+    const bannedNicks = ['viceadmin', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'policial123', '@bann_id', ',raity', 'lgbq1234', '_brant'];
+    if (bannedNicks.includes(strNick)) return true;
+
     return false;
   };
 
+  // 1. Google Sheets como Fonte da Verdade: Insere todos os dados remotos válidos
   for (const r of remote) {
     if (isDeleted(r) || isTestItem(r)) continue;
     const key = getUniqueKey(r);
     mergedMap.set(key, { ...r, syncStatus: 'synced' });
   }
   
+  // 2. Processa os itens locais
   for (const l of local) {
     if (isDeleted(l) || isTestItem(l)) continue;
     const key = getUniqueKey(l);
     const r = mergedMap.get(key);
+    
     if (!r) {
-      mergedMap.set(key, l);
+      // SÓ mantém o item local se ele tiver syncStatus === 'pending' (foi criado/editado offline e ainda não subiu).
+      // Se NÃO for pending e não está na planilha remota, FOI EXCLUÍDO na nuvem! Deve ser descartado.
+      if (l.syncStatus === 'pending') {
+        mergedMap.set(key, l);
+      }
     } else {
-      const localTime = l.updatedAt || 0;
-      const remoteTime = r.updatedAt || 0;
-      
-      if (l.syncStatus === 'pending' || localTime >= remoteTime) {
-        mergedMap.set(key, { ...r, ...l }); // Local vence: garante conservação e envio da escala gerada/editada localmente
+      // O item existe em ambos os lados
+      if (l.syncStatus === 'pending') {
+        // Alteração pendente local feita pelo usuário vence e preserva a pendência para upload
+        mergedMap.set(key, { ...r, ...l });
       } else {
+        // Para itens sincronizados, o DADO REMOTO É A FONTE DA VERDADE (cargos, status e datas da planilha prevalecem)
         conflictCount++;
         mergedMap.set(key, { ...l, ...r, syncStatus: 'synced' });
       }
