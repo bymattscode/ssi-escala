@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Users, AlertTriangle, FileWarning, CalendarDays, ShieldAlert, BadgeCheck, Book, ExternalLink, HardDrive } from "lucide-react";
+import { Users, AlertTriangle, FileWarning, CalendarDays, ShieldAlert, BadgeCheck, Book, ExternalLink, HardDrive, RefreshCw } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { getMembers, getCases, getWarnings, getConfig, getAuditLogs, getSchedules } from "../lib/store";
 import { fetchAllFromRemote } from "../lib/syncManager";
 import { AuditLog } from "../lib/types";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -38,38 +39,77 @@ function Dashboard() {
   
   const [stats, setStats] = useState({
     totalMembers: 0,
+    activeMembers: 0,
+    leaveMembers: 0,
     openCases: 0,
     resolvedCases: 0,
     punishments: 0,
     pendingJustifications: 0,
-    lastBackup: "-"
+    lastSync: "-"
   });
   
+  const [isSyncing, setIsSyncing] = useState(false);
   const [recentActivities, setRecentActivities] = useState<AuditLog[]>([]);
   const nextSunday = getNextSunday();
 
+  const fetchStats = async () => {
+    const members = await getMembers();
+    const cases = await getCases();
+    const warnings = await getWarnings();
+    const config = await getConfig();
+    const schedules = await getSchedules();
+    const logs = await getAuditLogs();
+
+    const sectorMembers = members.filter(m => 
+      m.role !== "Ministério" && 
+      !m.nick.toLowerCase().includes("ministério") && 
+      !m.nick.toLowerCase().includes("ministerio") && 
+      !m.nick.toLowerCase().includes("min. instrutores") && 
+      m.nick !== "Admin"
+    );
+    const activeCount = sectorMembers.filter(m => m.status === "Ativo").length;
+    const leaveCount = sectorMembers.filter(m => m.status === "Licença").length;
+
+    setStats({
+      totalMembers: sectorMembers.length,
+      activeMembers: activeCount,
+      leaveMembers: leaveCount,
+      openCases: cases.filter(c => c.status === "Aberto").length,
+      resolvedCases: cases.filter(c => c.status === "Resolvido").length,
+      punishments: warnings.length,
+      pendingJustifications: schedules.filter(s => s.status === "Justificado" && s.justificationStatus === "Pendente").length,
+      lastSync: config.lastRead || config.lastWrite || "-"
+    });
+
+    setRecentActivities(logs.slice(0, 5));
+  };
+
+  const handleManualSync = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    try {
+      const ok = await fetchAllFromRemote();
+      await fetchStats();
+      if (ok) {
+        toast.success("Dashboard sincronizado com a nuvem!");
+      } else {
+        toast.error("Não foi possível sincronizar no momento. Tente novamente.");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro de conexão ao sincronizar com a planilha.");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchStats = async () => {
-      const members = await getMembers();
-      const cases = await getCases();
-      const warnings = await getWarnings();
-      const config = await getConfig();
-      const schedules = await getSchedules();
-      const logs = await getAuditLogs();
-
-      setStats({
-        totalMembers: members.filter(m => m.status === "Ativo" && m.role !== "Ministério" && !m.nick.toLowerCase().includes("min. instrutores") && m.nick !== "Admin").length,
-        openCases: cases.filter(c => c.status === "Aberto").length,
-        resolvedCases: cases.filter(c => c.status === "Resolvido").length,
-        punishments: warnings.length,
-        pendingJustifications: schedules.filter(s => s.status === "Justificado" && s.justificationStatus === "Pendente").length,
-        lastBackup: config.lastWrite || "-"
-      });
-
-      setRecentActivities(logs.slice(0, 5));
-    };
     fetchStats();
-    fetchAllFromRemote().then(() => fetchStats()).catch(console.error);
+    setIsSyncing(true);
+    fetchAllFromRemote()
+      .then(() => fetchStats())
+      .catch((e) => console.error("Erro na sincronização inicial do dashboard:", e))
+      .finally(() => setIsSyncing(false));
 
     const handleSync = () => {
       fetchStats();
@@ -82,17 +122,57 @@ function Dashboard() {
 
   return (
     <div className="flex flex-col gap-8 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-2">Visão geral do Setor de Segurança dos Instrutores.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">Dashboard</h1>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Sincronizado
+            </span>
+          </div>
+          <p className="text-muted-foreground mt-1">Visão geral do Setor de Segurança dos Instrutores.</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            className="flex items-center justify-center gap-2 bg-secondary hover:bg-secondary/80 text-foreground border border-border px-4 py-2 rounded-lg font-medium transition-all hover:border-primary/50 text-sm shadow-sm disabled:opacity-50 group cursor-pointer"
+            title="Sincronizar dados em tempo real com o Google Sheets"
+          >
+            <RefreshCw className={`h-4 w-4 text-primary transition-transform ${isSyncing ? "animate-spin" : "group-hover:rotate-180 duration-500"}`} />
+            <span>{isSyncing ? "Sincronizando..." : "Sincronizar"}</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total de Membros" value={stats.totalMembers} icon={Users} description="Total atual" />
-        <StatCard title="Casos Abertos" value={stats.openCases} icon={AlertTriangle} description="Requer atenção da diretoria" />
-        <StatCard title="Casos Resolvidos" value={stats.resolvedCases} icon={BadgeCheck} description="Total histórico" />
+        <StatCard 
+          title="Total de Membros" 
+          value={stats.totalMembers} 
+          icon={Users} 
+          description={stats.totalMembers > 0 ? `${stats.activeMembers} ativos · ${stats.leaveMembers} em licença` : "Carregando..."} 
+        />
+        <StatCard 
+          title="Casos Abertos" 
+          value={stats.openCases} 
+          icon={AlertTriangle} 
+          description={stats.openCases > 0 ? "Requer atenção da diretoria" : "Nenhum caso em aberto"} 
+        />
+        <StatCard 
+          title="Casos Resolvidos" 
+          value={stats.resolvedCases} 
+          icon={BadgeCheck} 
+          description="Total histórico apurado" 
+        />
         {role !== "Fiscalizador" && (
-           <StatCard title="Punições Aplicadas" value={stats.punishments} icon={FileWarning} description="Total de registros" />
+           <StatCard 
+             title="Punições Aplicadas" 
+             value={stats.punishments} 
+             icon={FileWarning} 
+             description="Total de registros" 
+           />
         )}
       </div>
 
@@ -173,9 +253,9 @@ function Dashboard() {
              <div className="flex items-center justify-between">
                <div className="flex items-center gap-2 text-muted-foreground">
                  <HardDrive className="h-4 w-4" />
-                 <span className="text-sm font-medium">Último Backup:</span>
+                 <span className="text-sm font-medium">Última Sincronização:</span>
                </div>
-               <span className="text-sm font-medium text-foreground">{stats.lastBackup}</span>
+               <span className="text-sm font-medium text-foreground">{stats.lastSync}</span>
              </div>
           </div>
         </div>

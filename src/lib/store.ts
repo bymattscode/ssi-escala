@@ -186,8 +186,15 @@ const processSyncQueue = async () => {
   }
 };
 
+export const notifyDataUpdated = (module?: string) => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent('ssi-data-updated', { detail: { source: 'local', module } }));
+  }
+};
+
 const triggerAutoSync = (module: string) => {
   if (typeof window !== "undefined") {
+    notifyDataUpdated(module);
     if (autoSyncTimers[module]) {
       clearTimeout(autoSyncTimers[module] as any);
     }
@@ -632,7 +639,8 @@ export const addCase = async (newCase: Case): Promise<void> => {
 export const updateCase = async (id: string, updates: Partial<Case>): Promise<void> => {
   await delay(200);
   const cases = getParsedData<Case[]>(KEYS.CASES, []);
-  const idx = cases.findIndex(c => c.id === id);
+  const cleanTargetId = String(id).trim().toLowerCase().replace(/^#/, '');
+  const idx = cases.findIndex(c => String(c.id).trim().toLowerCase().replace(/^#/, '') === cleanTargetId);
   if (idx !== -1 && typeof window !== "undefined") {
     cases[idx] = { ...cases[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
     localStorage.setItem(KEYS.CASES, JSON.stringify(cases));
@@ -643,7 +651,8 @@ export const updateCase = async (id: string, updates: Partial<Case>): Promise<vo
 export const deleteCase = async (id: string): Promise<void> => {
   await delay(200);
   let cases = getParsedData<Case[]>(KEYS.CASES, []);
-  cases = cases.filter(c => c.id !== id);
+  const cleanTargetId = String(id).trim().toLowerCase().replace(/^#/, '');
+  cases = cases.filter(c => String(c.id).trim().toLowerCase().replace(/^#/, '') !== cleanTargetId);
   addDeletedKey(id);
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.CASES, JSON.stringify(cases));
@@ -673,7 +682,8 @@ export const addWarning = async (newWarning: Warning): Promise<void> => {
 export const updateWarning = async (id: string, updates: Partial<Warning>): Promise<void> => {
   await delay(200);
   const warnings = getParsedData<Warning[]>(KEYS.WARNINGS, []);
-  const idx = warnings.findIndex(w => w.id === id);
+  const cleanTargetId = String(id).trim().toLowerCase().replace(/^#/, '');
+  const idx = warnings.findIndex(w => String(w.id).trim().toLowerCase().replace(/^#/, '') === cleanTargetId);
   if (idx !== -1 && typeof window !== "undefined") {
     warnings[idx] = { ...warnings[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
     localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
@@ -684,7 +694,8 @@ export const updateWarning = async (id: string, updates: Partial<Warning>): Prom
 export const deleteWarning = async (id: string): Promise<void> => {
   await delay(200);
   let warnings = getParsedData<Warning[]>(KEYS.WARNINGS, []);
-  warnings = warnings.filter(w => w.id !== id);
+  const cleanTargetId = String(id).trim().toLowerCase().replace(/^#/, '');
+  warnings = warnings.filter(w => String(w.id).trim().toLowerCase().replace(/^#/, '') !== cleanTargetId);
   addDeletedKey(id);
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));

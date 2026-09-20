@@ -742,6 +742,9 @@ export const fetchAllFromRemote = async (): Promise<boolean> => {
     const localLogs = getParsedDataLocally(KEYS.AUDIT, []);
     const mLogs = mergeArrays(localLogs, remoteData.logs);
     
+    const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+    await updateConfig({ lastRead: now });
+
     // Save to local storage without overriding syncStatus='pending' on items that were NOT resolved by remote
     if (typeof window !== "undefined") {
       localStorage.setItem(KEYS.MEMBERS, JSON.stringify(mMembers.merged));
@@ -752,8 +755,6 @@ export const fetchAllFromRemote = async (): Promise<boolean> => {
       window.dispatchEvent(new CustomEvent('ssi-data-updated', { detail: { source: 'remote' } }));
     }
     
-    const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
-    await updateConfig({ lastRead: now });
     await addSyncLog({ type: "success", message: "Dados baixados e consolidados com a nuvem." });
     return true;
   } else {
