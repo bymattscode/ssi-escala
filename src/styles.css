@@ -102,6 +102,8 @@
 @layer base {
   * {
     border-color: var(--color-border);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
   }
 
   body {
@@ -111,5 +113,35 @@
   }
 }
 
+/* Sleek Dark Scrollbar - mais fino e integrado à paleta escura da página */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.22);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* Hide Lovable Badge */
 #lovable-badge, #lovable-badge-container, .lovable-badge, div[data-lovable-badge] { display: none !important; opacity: 0 !important; visibility: hidden !important; }
+
