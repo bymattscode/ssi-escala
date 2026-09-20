@@ -1,14 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { Case, CaseStatus, Member } from "@/lib/types";
 import { Search, Plus, Filter, AlertCircle, CheckCircle2, Clock, XCircle, MoreVertical, FileText, Gavel, X, AlertTriangle, Trash2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getCases, getMembers, addCase, updateCase, deleteCase, addAuditLog } from "../lib/store";
 import { toast } from "sonner";
 import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
 
+interface CasosSearchParams {
+  highlight?: string;
+}
+
 export const Route = createFileRoute("/casos")({
   component: CasosPage,
+  validateSearch: (search: Record<string, unknown>): CasosSearchParams => ({
+    highlight: typeof search.highlight === "string" ? search.highlight : undefined,
+  }),
 });
 
 function getMemberDetails(memberId?: any, members: Member[] = []) {
@@ -102,6 +109,9 @@ function CasosPage() {
   const [resCancelReason, setResCancelReason] = useState("");
   const [showConfirmResolve, setShowConfirmResolve] = useState(false);
 
+  const { highlight } = useSearch({ from: "/casos" });
+  const highlightHandled = useRef(false);
+
   const fetchData = async () => {
     setIsLoading(true);
     const c = await getCases();
@@ -109,6 +119,20 @@ function CasosPage() {
     setCases(c);
     setMembers(m);
     setIsLoading(false);
+
+    // Auto-open case detail modal when navigating from linked case
+    if (highlight && !highlightHandled.current) {
+      highlightHandled.current = true;
+      const cleanHighlight = String(highlight).trim().toLowerCase();
+      const found = c.find(
+        (cs) => String(cs.id).trim().toLowerCase() === cleanHighlight
+      );
+      if (found) {
+        setViewCase(found);
+      } else {
+        toast.info(`Caso "${highlight}" não encontrado na base de dados atual.`);
+      }
+    }
   };
 
   useEffect(() => {

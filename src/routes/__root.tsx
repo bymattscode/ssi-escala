@@ -131,9 +131,18 @@ function AppLayout() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    let isFirstSync = true;
     const runAutoBackgroundSync = async () => {
       try {
-        const { getConfig } = await import("../lib/store");
+        const { getConfig, getPendingCount } = await import("../lib/store");
+
+        // Skip full sync if there are pending local changes being pushed by individual module sync
+        const pendingCount = await getPendingCount();
+        if (pendingCount > 0) {
+          console.log(`[AutoSync Background] ${pendingCount} item(s) pendente(s) — aguardando sync individual completar.`);
+          return;
+        }
+
         const config = await getConfig();
         if (config.googleConnected) {
           console.log("[AutoSync Background] Sincronização automática ativa no app.");
@@ -145,9 +154,17 @@ function AppLayout() {
       }
     };
 
-    runAutoBackgroundSync();
+    // Initial delay to let module-level auto-syncs complete first
+    const initialTimer = setTimeout(() => {
+      runAutoBackgroundSync();
+      isFirstSync = false;
+    }, 5000);
+
     const interval = setInterval(runAutoBackgroundSync, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
   }, [isAuthenticated]);
 
   if (isLoading) {

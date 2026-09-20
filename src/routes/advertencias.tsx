@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Warning, PunishmentType, Member } from "@/lib/types";
 import { Search, Plus, Filter, FileWarning, Eye, AlertTriangle, ShieldOff, Skull, Link as LinkIcon, X, Trash2 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
@@ -69,6 +69,7 @@ function Modal({ isOpen, onClose, title, children }: { isOpen: boolean, onClose:
 }
 
 function AdvertenciasPage() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("Todas");
   const [directorFilter, setDirectorFilter] = useState<string>("Todos");
@@ -446,7 +447,19 @@ function AdvertenciasPage() {
                   Caso Vinculado
                 </h4>
                 <p className="text-sm text-muted-foreground">
-                  Esta advertência originou-se do caso <strong className="text-foreground">#{String(viewWarning.caseId).toUpperCase()}</strong>.
+                  Esta advertência originou-se do caso{" "}
+                  <button
+                    onClick={() => {
+                      setViewWarning(null);
+                      navigate({ to: "/casos", search: { highlight: viewWarning.caseId } });
+                    }}
+                    className="inline-flex items-center gap-1 text-primary font-bold hover:underline hover:text-primary/80 transition-colors cursor-pointer bg-transparent border-none p-0"
+                    title="Ir para o caso na Gestão de Casos"
+                  >
+                    #{String(viewWarning.caseId).toUpperCase()}
+                    <LinkIcon className="h-3 w-3" />
+                  </button>
+                  .
                 </p>
               </div>
             )}

@@ -33,7 +33,8 @@ const headerMaps = {
     description: "Descrição", creationDate: "Data", proofAttachment: "Anexo da Prova",
     orientation: "Orientação", crimeCommitted: "Crime Cometido",
     resolutionAttachment: "Anexo da Resolução", punishmentApplied: "Punição Aplicada",
-    resolverId: "Responsável", resolverNick: "Responsável", cancellationReason: "Motivo de Cancelamento"
+    resolverId: "Responsável", resolverNick: "Responsável", cancellationReason: "Motivo de Cancelamento",
+    resolutionDate: "Data da Resolução", orderNumber: "Número da Ordem"
   },
   advertencias: {
     id: "ID", date: "Data", offenderNick: "Nick do Infrator", punishmentType: "Tipo de Punição",
@@ -228,6 +229,9 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         "Punição Aplicada": item.punishmentApplied || "-",
         "Crime Cometido": item.crimeCommitted || "-",
         "Anexo da Resolução": item.resolutionAttachment || "-",
+        "Data da Resolução": item.resolutionDate || "-",
+        "Motivo de Cancelamento": item.cancellationReason || "-",
+        "Número da Ordem": item.orderNumber || "-",
         "ID": item.id || "-"
       };
     });
@@ -442,6 +446,9 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         punishmentApplied: item["Punição Aplicada"] && item["Punição Aplicada"] !== "-" ? item["Punição Aplicada"] : undefined,
         crimeCommitted: item["Crime Cometido"] && item["Crime Cometido"] !== "-" ? item["Crime Cometido"] : undefined,
         resolutionAttachment: item["Anexo da Resolução"] || item["Anexo de Resolução"] || undefined,
+        resolutionDate: item["Data da Resolução"] && item["Data da Resolução"] !== "-" ? item["Data da Resolução"] : undefined,
+        cancellationReason: item["Motivo de Cancelamento"] && item["Motivo de Cancelamento"] !== "-" ? item["Motivo de Cancelamento"] : undefined,
+        orderNumber: item["Número da Ordem"] && item["Número da Ordem"] !== "-" ? item["Número da Ordem"] : undefined,
         updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : 0
       };
     });
