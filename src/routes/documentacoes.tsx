@@ -1553,7 +1553,6 @@ const REGIMENTO_COMPANHIA: Chapter[] = [
   },
 ];
 
-const PREAMBULO_CPI = "O Código Penal dos Instrutores (CPI) tem como propósito definir os delitos ligados à conduta associativa, visando orientar os membros e tipificar suas transgressões.";
 
 const DOCUMENT_TABS = [
   {
@@ -1922,17 +1921,6 @@ function DocumentacoesPage() {
             </div>
           </div>
 
-          {/* PREÂMBULO (Apenas no Código Penal) */}
-          {activeDoc === "penal" && !searchTerm && (
-            <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
-              <span className="text-[11px] font-bold text-primary uppercase tracking-wider block mb-1.5">
-                Preâmbulo
-              </span>
-              <p className="text-muted-foreground text-sm leading-relaxed">
-                {PREAMBULO_CPI}
-              </p>
-            </div>
-          )}
 
           {/* LISTAGEM DOS CAPÍTULOS E ARTIGOS */}
           {filteredChapters.length === 0 ? (
