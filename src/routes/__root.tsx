@@ -145,6 +145,24 @@ function AppLayout() {
     });
   };
 
+  const handleMenuToggle = () => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setIsMobileMenuOpen((prev) => !prev);
+    } else {
+      toggleSidebarCollapse();
+    }
+  };
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) return;
     let isFirstSync = true;
@@ -225,13 +243,12 @@ function AppLayout() {
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-background font-sans text-foreground">
-      <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+      <TopBar onMenuToggle={handleMenuToggle} />
       <div className="flex flex-1 mt-16 w-full relative">
         <Sidebar 
           isOpen={isMobileMenuOpen} 
           onClose={() => setIsMobileMenuOpen(false)} 
           isCollapsed={isSidebarCollapsed}
-          onToggleCollapse={toggleSidebarCollapse}
         />
         
         {isMobileMenuOpen && (

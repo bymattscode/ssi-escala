@@ -59,15 +59,9 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
 
   return (
     <header className="h-16 bg-[#020817]/95 backdrop-blur-xl border-b border-border flex items-center justify-between px-4 sm:px-6 fixed top-0 left-0 z-30 w-full shadow-[0_4px_30px_-4px_rgba(0,0,0,0.5)]">
-      <div className="flex items-center gap-2 sm:gap-4">
-        <button 
-          onClick={onMenuToggle}
-          className="md:hidden p-2 -ml-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-md transition-colors"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+      <div className="flex items-center gap-2 sm:gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-primary/10 border border-primary/30 rounded-lg flex items-center justify-center overflow-hidden p-1">
+          <div className="h-10 w-10 bg-primary/10 border border-primary/30 rounded-lg flex items-center justify-center overflow-hidden p-1 shrink-0">
             <img src="/logo.png" alt="SSI Logo" className="h-full w-full object-contain" />
           </div>
           <div className="flex flex-col">
@@ -75,6 +69,19 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
             <span className="text-xs text-muted-foreground/80 font-medium leading-tight hidden sm:block">Setor de Segurança dos Instrutores</span>
           </div>
         </div>
+
+        {/* Separador vertical estilo RCCSystem */}
+        <div className="h-6 w-px bg-border/80 mx-1 shrink-0" />
+
+        {/* Botão de alternar menu estilo RCCSystem */}
+        <button 
+          onClick={onMenuToggle}
+          aria-label="Alternar Menu"
+          title="Alternar Menu Lateral"
+          className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-md transition-all duration-200 cursor-pointer flex items-center justify-center"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
       </div>
 
       <div className="flex items-center gap-4 sm:gap-6">

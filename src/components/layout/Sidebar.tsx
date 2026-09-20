@@ -8,9 +8,7 @@ import {
   Settings, 
   BarChart3, 
   BookOpen, 
-  BookMarked,
-  PanelLeftClose,
-  PanelLeftOpen
+  BookMarked
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -33,7 +31,7 @@ interface SidebarProps {
   onToggleCollapse?: () => void;
 }
 
-export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) {
   const location = useLocation();
   const { user } = useAuth();
 
@@ -104,28 +102,6 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false, onToggleCollapse
           );
         })}
       </nav>
-
-      {/* Botão de recolher/expandir sidebar no desktop */}
-      <div className="p-3 border-t border-border mt-auto hidden md:block">
-        <button
-          onClick={onToggleCollapse}
-          className={`flex items-center ${
-            isCollapsed ? "justify-center" : "justify-between px-3"
-          } w-full py-2.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors group cursor-pointer border border-transparent hover:border-border/60`}
-          title={isCollapsed ? "Expandir Menu Lateral" : "Recolher Menu Lateral (apenas ícones)"}
-        >
-          {!isCollapsed && (
-            <span className="whitespace-nowrap font-medium text-muted-foreground group-hover:text-foreground">
-              Recolher Menu
-            </span>
-          )}
-          {isCollapsed ? (
-            <PanelLeftOpen className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:scale-110" />
-          ) : (
-            <PanelLeftClose className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-transform group-hover:scale-110" />
-          )}
-        </button>
-      </div>
     </aside>
   );
 }
