@@ -1,9 +1,9 @@
-import { createFileRoute, useSearch } from "@tanstack/react-router";
-import { Case, CaseStatus, Member } from "@/lib/types";
-import { Search, Plus, Filter, AlertCircle, CheckCircle2, Clock, XCircle, MoreVertical, FileText, Gavel, X, AlertTriangle, Trash2 } from "lucide-react";
+import { createFileRoute, useSearch, useNavigate } from "@tanstack/react-router";
+import { Case, CaseStatus, Member, Warning, PunishmentType } from "@/lib/types";
+import { Search, Plus, Filter, AlertCircle, CheckCircle2, Clock, XCircle, MoreVertical, FileText, Gavel, X, AlertTriangle, Trash2, FileWarning } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { getCases, getMembers, addCase, updateCase, deleteCase, addAuditLog } from "../lib/store";
+import { getCases, getMembers, addCase, updateCase, deleteCase, addAuditLog, addWarning } from "../lib/store";
 import { fetchAllFromRemote } from "../lib/syncManager";
 import { toast } from "sonner";
 import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
@@ -78,6 +78,7 @@ function getNickDisplay(idOrNick?: any, explicitNick?: any, members: Member[] = 
 }
 
 function CasosPage() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("Todos");
   const [cases, setCases] = useState<Case[]>([]);
@@ -107,6 +108,7 @@ function CasosPage() {
   const [resPunishment, setResPunishment] = useState("Sem Punição");
   const [resDecision, setResDecision] = useState("Resolver");
   const [resAttachment, setResAttachment] = useState("");
+  const [resNotes, setResNotes] = useState("");
   const [resCancelReason, setResCancelReason] = useState("");
   const [showConfirmResolve, setShowConfirmResolve] = useState(false);
 
@@ -231,9 +233,47 @@ function CasosPage() {
       `Caso #${resolveCase.id} foi ${resDecision === "Resolver" ? "resolvido" : "cancelado"} por ${resolverNickValue}.`, 
       resolveCase.id
     );
+
+    // Se o caso foi resolvido com aplicação de punição, gera automaticamente o registro em Punições (advertências)
+    if (resDecision === "Resolver" && resPunishment !== "Sem Punição") {
+      const warningNotes = [
+        resNotes ? resNotes.trim() : "",
+        resAttachment ? `Anexo da resolução: ${resAttachment.trim()}` : ""
+      ].filter(Boolean).join(" | ");
+
+      const newWarning: Warning = {
+        id: `SSI-PUN-${Date.now().toString(36).toUpperCase()}`,
+        date: new Date().toISOString().slice(0, 10),
+        offenderNick: resolveCase.offenderNick.trim(),
+        punishmentType: resPunishment as PunishmentType,
+        reason: resCrime.trim(),
+        directorId: resolverIdValue,
+        directorNick: resolverNickValue,
+        caseId: resolveCase.id,
+        notes: warningNotes || undefined
+      };
+
+      await addWarning(newWarning);
+      await addAuditLog(
+        resolverIdValue,
+        role,
+        "Registro de Punição",
+        "Punições",
+        `Punição (${resPunishment}) gerada automaticamente a partir da resolução do Caso #${resolveCase.id} para ${resolveCase.offenderNick} por ${resolverNickValue}.`,
+        newWarning.id
+      );
+    }
     
     setResolveCase(null);
-    toast.success(resDecision === "Resolver" ? "Análise concluída: Caso julgado e resolvido com sucesso!" : "Caso cancelado e arquivado no histórico.");
+    if (resDecision === "Resolver") {
+      if (resPunishment !== "Sem Punição") {
+        toast.success(`Caso resolvido! Punição (${resPunishment}) lançada automaticamente no Registro de Punições.`);
+      } else {
+        toast.success("Análise concluída: Caso resolvido com sucesso (Sem Punição).");
+      }
+    } else {
+      toast.success("Caso cancelado e arquivado no histórico.");
+    }
     fetchData();
     
     // Reset
@@ -242,6 +282,7 @@ function CasosPage() {
     setResPunishment("Sem Punição");
     setResDecision("Resolver");
     setResAttachment("");
+    setResNotes("");
     setResCancelReason("");
   };
 
@@ -467,6 +508,7 @@ function CasosPage() {
               <label className="text-sm font-medium text-foreground">Punição Aplicada</label>
               <select disabled={resDecision === "Cancelar"} value={resPunishment} onChange={e => setResPunishment(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50">
                 <option value="Sem Punição" className="bg-background text-foreground">Sem Punição</option>
+                <option value="Observação" className="bg-background text-foreground">Observação</option>
                 <option value="Advertência Interna" className="bg-background text-foreground">Advertência Interna</option>
                 <option value="Medalhas Negativas" className="bg-background text-foreground">Medalhas Negativas</option>
                 <option value="Rebaixamento" className="bg-background text-foreground">Rebaixamento</option>
@@ -488,11 +530,30 @@ function CasosPage() {
               <input type="text" value={resCancelReason} onChange={e => setResCancelReason(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors border-red-500/50" placeholder="Ex: Provas insuficientes..." />
             </div>
           )}
+
+          {resDecision === "Resolver" && resPunishment !== "Sem Punição" && (
+            <div className="bg-primary/10 border border-primary/20 rounded-md p-2.5 text-xs text-primary flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span>Esta punição será <strong>lançada automaticamente</strong> no Registro de Punições vinculada a este caso.</span>
+            </div>
+          )}
           
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-foreground">Anexo da Resolução (opcional)</label>
             <input type="text" value={resAttachment} onChange={e => setResAttachment(e.target.value)} className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors" placeholder="URL do relatório ou provas..." />
           </div>
+
+          {resDecision === "Resolver" && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-foreground">Observações / Orientações (opcional)</label>
+              <textarea 
+                value={resNotes} 
+                onChange={e => setResNotes(e.target.value)} 
+                className="bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors min-h-[60px]" 
+                placeholder="Observações adicionais para o infrator ou para o registro de punição..." 
+              />
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-border">
              <button onClick={() => setResolveCase(null)} className="px-4 py-2 rounded-md font-medium text-muted-foreground hover:bg-secondary transition-colors">
@@ -562,6 +623,22 @@ function CasosPage() {
                     </a>
                   </div>
                 )}
+
+                {viewCase.punishmentApplied && viewCase.punishmentApplied !== "Sem Punição" && (
+                  <div className="mt-2 pt-2 border-t border-border/40">
+                    <button
+                      onClick={() => {
+                        setViewCase(null);
+                        navigate({ to: "/advertencias" });
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold hover:bg-primary/20 bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-md transition-colors cursor-pointer"
+                      title="Abrir o Registro de Punições"
+                    >
+                      <FileWarning className="h-3.5 w-3.5" />
+                      Ver Punição em Registro de Punições
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -592,7 +669,7 @@ function CasosPage() {
         title={resDecision === "Resolver" ? "Confirmar Resolução de Caso?" : "Confirmar Cancelamento de Caso?"}
         description={
           resDecision === "Resolver" 
-            ? `Deseja encerrar este caso aplicando a decisão: "${resCrime}" com punição "${resPunishment}" para ${resolveCase?.offenderNick}?` 
+            ? `Deseja encerrar este caso aplicando a decisão: "${resCrime}" com punição "${resPunishment}" para ${resolveCase?.offenderNick}?${resPunishment !== "Sem Punição" ? " A punição será lançada automaticamente no Registro de Punições." : ""}` 
             : `Deseja cancelar e invalidar este caso? Esta ação será registrada no histórico de auditoria.`
         }
         confirmText={resDecision === "Resolver" ? "Confirmar Decisão" : "Confirmar Cancelamento"}
