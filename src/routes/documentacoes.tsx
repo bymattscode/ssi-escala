@@ -1074,10 +1074,6 @@ function DocumentacoesPage() {
     setTimeout(() => setCopiedArticle(null), 2000);
   };
 
-  const totalArticles = useMemo(() => {
-    return currentChapters.reduce((acc, chap) => acc + countChapterArticles(chap), 0);
-  }, [currentChapters]);
-
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
       {/* Cabeçalho da Seção */}
@@ -1088,11 +1084,8 @@ function DocumentacoesPage() {
               <BookOpen className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-2.5">
+              <h1 className="text-3xl font-bold text-foreground tracking-tight">
                 Documentações
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 uppercase tracking-wide">
-                  Legislação Oficial
-                </span>
               </h1>
               <p className="text-muted-foreground text-sm mt-0.5">
                 Biblioteca jurídica e regimental da Companhia e do Setor de Segurança dos Instrutores.
@@ -1100,16 +1093,6 @@ function DocumentacoesPage() {
             </div>
           </div>
         </div>
-
-        {/* Estatísticas / Indicador de Documento */}
-        {(activeDoc === "ssi" || activeDoc === "penal") && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/40 border border-border px-3.5 py-1.5 rounded-lg w-fit">
-            <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="font-semibold text-foreground">{currentChapters.length} Capítulos</span>
-            <span className="text-muted-foreground/60">•</span>
-            <span className="font-semibold text-foreground">{totalArticles} Artigos</span>
-          </div>
-        )}
       </div>
 
       {/* Seletor de Documentos (3 Tipos) */}
