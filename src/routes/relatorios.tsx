@@ -8,6 +8,29 @@ import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 import { formatBrasiliaDateTime } from "../lib/dateUtils";
 
+function getActionBadge(action?: string) {
+  const act = String(action || "-");
+  const actLower = act.toLowerCase();
+  
+  let colorClasses = "bg-secondary/70 text-foreground border-border";
+  
+  if (actLower.includes("exclusão") || actLower.includes("cancelamento") || actLower.includes("desligamento") || actLower.includes("revogação")) {
+    colorClasses = "bg-rose-500/10 text-rose-400 border-rose-500/25";
+  } else if (actLower.includes("registro") || actLower.includes("criação") || actLower.includes("abertura")) {
+    colorClasses = "bg-blue-500/10 text-blue-400 border-blue-500/25";
+  } else if (actLower.includes("resolução") || actLower.includes("backup") || actLower.includes("sincronização") || actLower.includes("retorno")) {
+    colorClasses = "bg-emerald-500/10 text-emerald-400 border-emerald-500/25";
+  } else if (actLower.includes("edição") || actLower.includes("alteração") || actLower.includes("escala") || actLower.includes("justificativa") || actLower.includes("licença")) {
+    colorClasses = "bg-primary/10 text-primary border-primary/25";
+  }
+
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap border shadow-sm ${colorClasses}`}>
+      {act}
+    </span>
+  );
+}
+
 export const Route = createFileRoute("/relatorios")({
   component: RelatoriosPage,
 });
@@ -182,12 +205,12 @@ function RelatoriosPage() {
               <table className="w-full text-sm text-left">
                 <thead className="text-xs text-muted-foreground uppercase bg-secondary/30 border-b border-border">
                   <tr>
-                    <th className="px-6 py-4 font-medium">Data/Hora</th>
-                    <th className="px-6 py-4 font-medium">Usuário</th>
-                    <th className="px-6 py-4 font-medium">Ação</th>
-                    <th className="px-6 py-4 font-medium">Módulo</th>
+                    <th className="px-6 py-4 font-medium whitespace-nowrap">Data/Hora</th>
+                    <th className="px-6 py-4 font-medium whitespace-nowrap">Usuário</th>
+                    <th className="px-6 py-4 font-medium whitespace-nowrap">Ação</th>
+                    <th className="px-6 py-4 font-medium whitespace-nowrap">Módulo</th>
                     <th className="px-6 py-4 font-medium">Detalhes</th>
-                    <th className="px-6 py-4 font-medium">Ref ID</th>
+                    <th className="px-6 py-4 font-medium whitespace-nowrap">Ref ID</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -197,17 +220,15 @@ function RelatoriosPage() {
                     return (
                       <tr key={log.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                         <td className="px-6 py-4 text-muted-foreground whitespace-nowrap font-mono text-xs">{formatBrasiliaDateTime(log.timestamp || log.date, true)}</td>
-                        <td className="px-6 py-4 font-medium text-foreground">{String(displayName)}</td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-secondary/50 border border-border rounded-md text-xs font-medium text-foreground">
-                            {String(log.action || "-")}
-                          </span>
+                        <td className="px-6 py-4 font-medium text-foreground whitespace-nowrap">{String(displayName)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getActionBadge(log.action)}
                         </td>
-                        <td className="px-6 py-4 font-medium text-muted-foreground">{String(log.module || "-")}</td>
-                        <td className="px-6 py-4 text-muted-foreground truncate max-w-xs" title={typeof log.details === 'object' ? JSON.stringify(log.details) : String(log.details || "")}>
+                        <td className="px-6 py-4 font-medium text-muted-foreground whitespace-nowrap">{String(log.module || "-")}</td>
+                        <td className="px-6 py-4 text-muted-foreground truncate max-w-sm" title={typeof log.details === 'object' ? JSON.stringify(log.details) : String(log.details || "")}>
                           {typeof log.details === 'object' ? JSON.stringify(log.details) : String(log.details || "-")}
                         </td>
-                        <td className="px-6 py-4 text-xs font-mono text-muted-foreground">{String(log.targetId || "-")}</td>
+                        <td className="px-6 py-4 text-xs font-mono text-muted-foreground whitespace-nowrap">{String(log.targetId || "-")}</td>
                       </tr>
                     );
                   })}
