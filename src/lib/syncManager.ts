@@ -844,7 +844,7 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
     if (strId.startsWith("SSI-CASO-MS") || strId.startsWith("SSI-PUN-MS")) return true;
 
     // Nicks fictícios ou sabidamente desligados
-    const bannedNicks = ['viceadmin', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'policial123', '@bann_id', ',raity', 'lgbq1234', '_brant'];
+    const bannedNicks = ['viceadmin', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'policial123', '@bann_id', ',raity', 'lgbq1234', '_brant', 'edinho1283', 'merek'];
     if (bannedNicks.includes(strNick)) return true;
 
     return false;

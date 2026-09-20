@@ -38,7 +38,8 @@ const initialize = () => {
       try {
         const fictionalOrDeleted = [
           'viceadmin', 'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 
-          'policial123', 'ministério', 'ministerio', '@bann_id', ',raity', 'lgbq1234', '_brant'
+          'policial123', 'ministério', 'ministerio', '@bann_id', ',raity', 'lgbq1234', '_brant',
+          'edinho1283', 'merek'
         ];
         let existing: Member[] = JSON.parse(localStorage.getItem(KEYS.MEMBERS) || '[]');
         const cleanList = existing.filter(m => {
@@ -320,6 +321,7 @@ export const getMembers = async (): Promise<Member[]> => {
     
     // Se foi desligado ou excluído anteriormente, ignorar para sempre!
     if (deletedKeys.includes(cleanId) || deletedKeys.includes(cleanNick)) continue;
+    if (['@bann_id', ',raity', 'lgbq1234', '_brant', 'edinho1283', 'merek'].includes(cleanNick)) continue;
 
     const cleanEntry = m.entryDate ? String(m.entryDate).split('T')[0] : "";
     const cleanPromo = m.promotionDate ? String(m.promotionDate).split('T')[0] : "";
