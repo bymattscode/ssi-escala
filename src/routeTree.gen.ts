@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as RelatorioAvaliacoesRouteImport } from './routes/relatorio-avaliacoes'
+import { Route as MensagensPrivadasRouteImport } from './routes/mensagens-privadas'
 import { Route as MembrosRouteImport } from './routes/membros'
 import { Route as ManualDeFuncaoRouteImport } from './routes/manual-de-funcao'
 import { Route as LoginRouteImport } from './routes/login'
@@ -17,12 +19,23 @@ import { Route as EscalasRouteImport } from './routes/escalas'
 import { Route as DocumentacoesRouteImport } from './routes/documentacoes'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as CasosRouteImport } from './routes/casos'
+import { Route as AvaliacaoMensalRouteImport } from './routes/avaliacao-mensal'
 import { Route as AdvertenciasRouteImport } from './routes/advertencias'
 import { Route as IndexRouteImport } from './routes/index'
 
 const RelatoriosRoute = RelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RelatorioAvaliacoesRoute = RelatorioAvaliacoesRouteImport.update({
+  id: '/relatorio-avaliacoes',
+  path: '/relatorio-avaliacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MensagensPrivadasRoute = MensagensPrivadasRouteImport.update({
+  id: '/mensagens-privadas',
+  path: '/mensagens-privadas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MembrosRoute = MembrosRouteImport.update({
@@ -60,6 +73,11 @@ const CasosRoute = CasosRouteImport.update({
   path: '/casos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AvaliacaoMensalRoute = AvaliacaoMensalRouteImport.update({
+  id: '/avaliacao-mensal',
+  path: '/avaliacao-mensal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdvertenciasRoute = AdvertenciasRouteImport.update({
   id: '/advertencias',
   path: '/advertencias',
@@ -74,6 +92,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/advertencias': typeof AdvertenciasRoute
+  '/avaliacao-mensal': typeof AvaliacaoMensalRoute
   '/casos': typeof CasosRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/documentacoes': typeof DocumentacoesRoute
@@ -81,11 +100,14 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/manual-de-funcao': typeof ManualDeFuncaoRoute
   '/membros': typeof MembrosRoute
+  '/mensagens-privadas': typeof MensagensPrivadasRoute
+  '/relatorio-avaliacoes': typeof RelatorioAvaliacoesRoute
   '/relatorios': typeof RelatoriosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/advertencias': typeof AdvertenciasRoute
+  '/avaliacao-mensal': typeof AvaliacaoMensalRoute
   '/casos': typeof CasosRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/documentacoes': typeof DocumentacoesRoute
@@ -93,12 +115,15 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/manual-de-funcao': typeof ManualDeFuncaoRoute
   '/membros': typeof MembrosRoute
+  '/mensagens-privadas': typeof MensagensPrivadasRoute
+  '/relatorio-avaliacoes': typeof RelatorioAvaliacoesRoute
   '/relatorios': typeof RelatoriosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/advertencias': typeof AdvertenciasRoute
+  '/avaliacao-mensal': typeof AvaliacaoMensalRoute
   '/casos': typeof CasosRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/documentacoes': typeof DocumentacoesRoute
@@ -106,6 +131,8 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/manual-de-funcao': typeof ManualDeFuncaoRoute
   '/membros': typeof MembrosRoute
+  '/mensagens-privadas': typeof MensagensPrivadasRoute
+  '/relatorio-avaliacoes': typeof RelatorioAvaliacoesRoute
   '/relatorios': typeof RelatoriosRoute
 }
 export interface FileRouteTypes {
@@ -113,6 +140,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/advertencias'
+    | '/avaliacao-mensal'
     | '/casos'
     | '/configuracoes'
     | '/documentacoes'
@@ -120,11 +148,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/manual-de-funcao'
     | '/membros'
+    | '/mensagens-privadas'
+    | '/relatorio-avaliacoes'
     | '/relatorios'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/advertencias'
+    | '/avaliacao-mensal'
     | '/casos'
     | '/configuracoes'
     | '/documentacoes'
@@ -132,11 +163,14 @@ export interface FileRouteTypes {
     | '/login'
     | '/manual-de-funcao'
     | '/membros'
+    | '/mensagens-privadas'
+    | '/relatorio-avaliacoes'
     | '/relatorios'
   id:
     | '__root__'
     | '/'
     | '/advertencias'
+    | '/avaliacao-mensal'
     | '/casos'
     | '/configuracoes'
     | '/documentacoes'
@@ -144,12 +178,15 @@ export interface FileRouteTypes {
     | '/login'
     | '/manual-de-funcao'
     | '/membros'
+    | '/mensagens-privadas'
+    | '/relatorio-avaliacoes'
     | '/relatorios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdvertenciasRoute: typeof AdvertenciasRoute
+  AvaliacaoMensalRoute: typeof AvaliacaoMensalRoute
   CasosRoute: typeof CasosRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   DocumentacoesRoute: typeof DocumentacoesRoute
@@ -157,6 +194,8 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ManualDeFuncaoRoute: typeof ManualDeFuncaoRoute
   MembrosRoute: typeof MembrosRoute
+  MensagensPrivadasRoute: typeof MensagensPrivadasRoute
+  RelatorioAvaliacoesRoute: typeof RelatorioAvaliacoesRoute
   RelatoriosRoute: typeof RelatoriosRoute
 }
 
@@ -167,6 +206,20 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/relatorios'
       preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/relatorio-avaliacoes': {
+      id: '/relatorio-avaliacoes'
+      path: '/relatorio-avaliacoes'
+      fullPath: '/relatorio-avaliacoes'
+      preLoaderRoute: typeof RelatorioAvaliacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mensagens-privadas': {
+      id: '/mensagens-privadas'
+      path: '/mensagens-privadas'
+      fullPath: '/mensagens-privadas'
+      preLoaderRoute: typeof MensagensPrivadasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/membros': {
@@ -218,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CasosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/avaliacao-mensal': {
+      id: '/avaliacao-mensal'
+      path: '/avaliacao-mensal'
+      fullPath: '/avaliacao-mensal'
+      preLoaderRoute: typeof AvaliacaoMensalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/advertencias': {
       id: '/advertencias'
       path: '/advertencias'
@@ -238,6 +298,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdvertenciasRoute: AdvertenciasRoute,
+  AvaliacaoMensalRoute: AvaliacaoMensalRoute,
   CasosRoute: CasosRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   DocumentacoesRoute: DocumentacoesRoute,
@@ -245,6 +306,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ManualDeFuncaoRoute: ManualDeFuncaoRoute,
   MembrosRoute: MembrosRoute,
+  MensagensPrivadasRoute: MensagensPrivadasRoute,
+  RelatorioAvaliacoesRoute: RelatorioAvaliacoesRoute,
   RelatoriosRoute: RelatoriosRoute,
 }
 export const routeTree = rootRouteImport

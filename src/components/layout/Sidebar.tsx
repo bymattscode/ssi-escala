@@ -3,12 +3,15 @@ import {
   LayoutDashboard, 
   CalendarDays, 
   Users, 
-  AlertTriangle, 
-  FileWarning, 
-  Settings, 
-  BarChart3, 
   BookOpen, 
   BookMarked,
+  Award,
+  AlertTriangle, 
+  ClipboardList,
+  FileWarning, 
+  MessageSquareLock,
+  BarChart3, 
+  Settings,
   type LucideIcon
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -18,6 +21,8 @@ interface NavItem {
   label: string;
   href: string;
   isGeneral?: boolean;
+  requiredRoles?: string[];
+  permissionKey?: string;
 }
 
 interface NavSection {
@@ -29,30 +34,69 @@ const navSections: NavSection[] = [
   {
     title: "Geral",
     items: [
-      { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-    ],
-  },
-  {
-    title: "Documentações",
-    items: [
+      { icon: LayoutDashboard, label: "Dashboard", href: "/", isGeneral: true },
+      { icon: CalendarDays, label: "Escala Semanal", href: "/escalas", isGeneral: true },
+      { icon: Users, label: "Listagem de Membros", href: "/membros", isGeneral: true },
       { icon: BookOpen, label: "Documentações", href: "/documentacoes", isGeneral: true },
-      { icon: BookMarked, label: "Manual de Função", href: "/manual-de-funcao", isGeneral: true },
+      { icon: BookMarked, label: "Manual de Funções", href: "/manual-de-funcao", isGeneral: true },
+      { icon: Award, label: "Avaliação Mensal", href: "/avaliacao-mensal", isGeneral: true },
     ],
   },
   {
-    title: "Operacional",
+    title: "Fiscalizadores",
     items: [
-      { icon: CalendarDays, label: "Escala Semanal", href: "/escalas" },
-      { icon: Users, label: "Listagem de Membros", href: "/membros" },
-      { icon: AlertTriangle, label: "Gestão de Casos", href: "/casos" },
-      { icon: FileWarning, label: "Registro de Punições", href: "/advertencias" },
+      { 
+        icon: AlertTriangle, 
+        label: "Gestão de Casos", 
+        href: "/casos", 
+        requiredRoles: ["Fiscalizador", "Diretor"],
+        permissionKey: "Gestão de Casos"
+      },
+      { 
+        icon: ClipboardList, 
+        label: "Relatório de Avaliações", 
+        href: "/relatorio-avaliacoes", 
+        requiredRoles: ["Fiscalizador", "Diretor"],
+        permissionKey: "Relatório de Avaliações"
+      },
     ],
   },
   {
-    title: "Administrativo",
+    title: "Diretores",
     items: [
-      { icon: BarChart3, label: "Relatórios e Auditoria", href: "/relatorios" },
-      { icon: Settings, label: "Configurações", href: "/configuracoes" },
+      { 
+        icon: FileWarning, 
+        label: "Registro de Punições", 
+        href: "/advertencias", 
+        requiredRoles: ["Diretor"],
+        permissionKey: "Registro de Punições"
+      },
+      { 
+        icon: MessageSquareLock, 
+        label: "Central de Mensagens Privadas", 
+        href: "/mensagens-privadas", 
+        requiredRoles: ["Diretor"],
+        permissionKey: "Central de Mensagens Privadas"
+      },
+    ],
+  },
+  {
+    title: "Presidência",
+    items: [
+      { 
+        icon: BarChart3, 
+        label: "Relatórios e Auditoria", 
+        href: "/relatorios", 
+        requiredRoles: ["Presidente", "Vice-Presidente", "Ministério"],
+        permissionKey: "Relatórios e Auditoria"
+      },
+      { 
+        icon: Settings, 
+        label: "Configurações", 
+        href: "/configuracoes", 
+        requiredRoles: ["Presidente", "Vice-Presidente", "Ministério"],
+        permissionKey: "Configurações"
+      },
     ],
   },
 ];
@@ -69,16 +113,25 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
   const { user } = useAuth();
 
   const canAccessItem = (item: NavItem) => {
-    // Documentações, Manual de Função e Dashboard são acessíveis a todos os membros logados
-    if (item.isGeneral || item.href === "/" || item.href === "/documentacoes" || item.href === "/manual-de-funcao") {
+    if (item.isGeneral || item.href === "/") {
       return true;
     }
-    if (!user || !user.permissions) {
-      return item.label === "Dashboard";
-    }
+    if (!user) return false;
+
     const isAdmin = user.role === "Ministério" || user.role === "Presidente" || user.role === "Vice-Presidente";
-    if (isAdmin || (user.permissions as string[]).includes('all')) return true;
-    return user.permissions.includes(item.label as any);
+    if (isAdmin || (user.permissions as string[])?.includes("all")) {
+      return true;
+    }
+
+    if (item.requiredRoles && item.requiredRoles.includes(user.role)) {
+      return true;
+    }
+
+    if (item.permissionKey && (user.permissions as string[])?.includes(item.permissionKey)) {
+      return true;
+    }
+
+    return false;
   };
 
   const filteredSections = navSections

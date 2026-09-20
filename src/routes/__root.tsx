@@ -221,22 +221,23 @@ function AppLayout() {
   }
 
   // --- SEGURANÇA DE FLUXO BY perfil: Bloqueio contra navegação direta indevida via URL ---
-  const routePermissions: Record<string, string> = {
-    '/escalas': 'Escala Semanal',
-    '/membros': 'Listagem de Membros',
-    '/casos': 'Gestão de Casos',
-    '/advertencias': 'Registro de Punições',
-    '/relatorios': 'Relatórios e Auditoria',
-    '/configuracoes': 'Configurações'
+  const routeRoleRules: Record<string, { roles: string[]; perm?: string }> = {
+    '/casos': { roles: ['Fiscalizador', 'Diretor', 'Presidente', 'Vice-Presidente', 'Ministério'], perm: 'Gestão de Casos' },
+    '/relatorio-avaliacoes': { roles: ['Fiscalizador', 'Diretor', 'Presidente', 'Vice-Presidente', 'Ministério'], perm: 'Relatório de Avaliações' },
+    '/advertencias': { roles: ['Diretor', 'Presidente', 'Vice-Presidente', 'Ministério'], perm: 'Registro de Punições' },
+    '/mensagens-privadas': { roles: ['Diretor', 'Presidente', 'Vice-Presidente', 'Ministério'], perm: 'Central de Mensagens Privadas' },
+    '/relatorios': { roles: ['Presidente', 'Vice-Presidente', 'Ministério'], perm: 'Relatórios e Auditoria' },
+    '/configuracoes': { roles: ['Presidente', 'Vice-Presidente', 'Ministério'], perm: 'Configurações' },
   };
 
-  const requiredPermission = routePermissions[location.pathname];
-  if (requiredPermission && user) {
+  const rule = routeRoleRules[location.pathname];
+  if (rule && user) {
     const isAdmin = user.role === "Ministério" || user.role === "Presidente" || user.role === "Vice-Presidente";
     const perms = (user.permissions as string[]) || [];
-    const hasPerm = isAdmin || perms.includes(requiredPermission) || perms.includes('all');
+    const hasRole = rule.roles.includes(user.role);
+    const hasPerm = isAdmin || hasRole || perms.includes('all') || (rule.perm && perms.includes(rule.perm));
     if (!hasPerm) {
-      setTimeout(() => console.warn(`Acesso restrito ao módulo ${requiredPermission}`), 100);
+      setTimeout(() => console.warn(`Acesso restrito ao módulo ${location.pathname}`), 100);
       return <Navigate to="/" />;
     }
   }
