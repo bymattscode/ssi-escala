@@ -70,13 +70,21 @@ function RelatoriosPage() {
 
   // Simple stats for reports
   const stats = useMemo(() => {
-    const visibleMembers = members.filter(m => m.status === "Ativo" && m.role !== "Ministério" && !m.nick.toLowerCase().includes("min. instrutores") && m.nick !== "Admin");
-    const activeMembers = visibleMembers.length;
+    const sectorMembers = members.filter(m => 
+      m.role !== "Ministério" && 
+      !m.nick.toLowerCase().includes("ministério") && 
+      !m.nick.toLowerCase().includes("ministerio") && 
+      !m.nick.toLowerCase().includes("min. instrutores") && 
+      m.nick !== "Admin"
+    );
+    const totalMembers = sectorMembers.length;
+    const activeMembers = sectorMembers.filter(m => m.status === "Ativo").length;
+    const leaveMembers = sectorMembers.filter(m => m.status === "Licença").length;
     const resolvedCases = cases.filter(c => c.status === "Resolvido").length;
     const totalWarnings = warnings.length;
     
     // Member performance (mock logic for report)
-    const productivity = visibleMembers.map(m => {
+    const productivity = sectorMembers.map(m => {
       const memberCases = cases.filter(c => c.creatorId === m.id).length;
       const memberWarnings = warnings.filter(w => w.offenderNick === m.nick).length;
       const memberSchedules = schedules.filter(s => s.memberId === m.id).length;
@@ -84,7 +92,7 @@ function RelatoriosPage() {
       return { member: m, memberCases, memberWarnings, memberSchedules, delayedSchedules };
     });
 
-    return { activeMembers, resolvedCases, totalWarnings, productivity };
+    return { totalMembers, activeMembers, leaveMembers, resolvedCases, totalWarnings, productivity };
   }, [members, cases, warnings, schedules]);
 
   const filteredLogs = useMemo(() => {
@@ -253,11 +261,13 @@ function RelatoriosPage() {
                 <Users className="w-32 h-32" />
               </div>
               <div className="flex items-center gap-2 text-blue-500">
-                <UserCheck className="h-5 w-5" />
-                <h3 className="font-bold">Membros Ativos</h3>
+                <Users className="h-5 w-5" />
+                <h3 className="font-bold">Total de Membros</h3>
               </div>
-              <p className="text-4xl font-black text-foreground mt-2">{stats.activeMembers}</p>
-              <p className="text-sm text-muted-foreground mt-1">Total de fiscais e diretores ativos</p>
+              <p className="text-4xl font-black text-foreground mt-2">{stats.totalMembers}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {stats.activeMembers} ativos · {stats.leaveMembers} em licença
+              </p>
             </div>
 
             <div className="bg-card border border-border rounded-xl p-5 shadow-sm flex flex-col gap-2 relative overflow-hidden group">
@@ -287,7 +297,7 @@ function RelatoriosPage() {
 
           <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
             <div className="p-4 border-b border-border bg-secondary/10">
-              <h3 className="font-bold text-foreground">Relatório de Produtividade (Membros Ativos)</h3>
+              <h3 className="font-bold text-foreground">Relatório de Produtividade da Equipe</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
@@ -304,7 +314,16 @@ function RelatoriosPage() {
                 <tbody>
                   {stats.productivity.map((p) => (
                     <tr key={p.member.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
-                      <td className="px-6 py-4 font-bold text-foreground">{p.member.nick}</td>
+                      <td className="px-6 py-4 font-bold text-foreground">
+                        <div className="flex items-center gap-2">
+                          <span>{p.member.nick}</span>
+                          {p.member.status === "Licença" && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                              Licença
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 text-muted-foreground">{p.member.role}</td>
                       <td className="px-6 py-4 text-center font-medium">{p.memberCases}</td>
                       <td className="px-6 py-4 text-center font-medium text-green-500">{p.memberSchedules - p.delayedSchedules}</td>
