@@ -1,12 +1,17 @@
 import { UserCircle, HardDrive, Shield, CheckCircle2, RefreshCw, ChevronDown, Menu, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { getConfig, updateConfig, addSyncLog } from "../../lib/store";
 import { backupToRemote } from "../../lib/syncManager";
 
-export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
+interface TopBarProps {
+  onMenuToggle?: () => void;
+  isCollapsed?: boolean;
+}
+
+export function TopBar({ onMenuToggle, isCollapsed = false }: TopBarProps) {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [lastBackup, setLastBackup] = useState<string>("-");
   const [showRoleMenu, setShowRoleMenu] = useState(false);
@@ -58,33 +63,41 @@ export function TopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
   };
 
   return (
-    <header className="h-16 bg-[#020817]/95 backdrop-blur-xl border-b border-border flex items-center justify-between px-4 sm:px-6 fixed top-0 left-0 z-30 w-full shadow-[0_4px_30px_-4px_rgba(0,0,0,0.5)]">
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-primary/10 border border-primary/30 rounded-lg flex items-center justify-center overflow-hidden p-1 shrink-0">
+    <header className="h-16 bg-[#020817]/95 backdrop-blur-xl border-b border-border flex items-center justify-between fixed top-0 left-0 z-30 w-full shadow-[0_4px_30px_-4px_rgba(0,0,0,0.5)]">
+      {/* Bloco Esquerdo: Retângulo da Marca (perfeitamente alinhado com a Sidebar) + Botão de Menu */}
+      <div className="flex items-center h-full">
+        <Link
+          to="/"
+          title="Ir para a página inicial"
+          className={`${
+            isCollapsed ? "w-16 md:w-20 md:justify-center md:px-0" : "w-auto md:w-64 px-3 sm:px-4"
+          } h-full border-r border-border flex items-center gap-3 transition-all duration-300 ease-in-out hover:bg-secondary/40 cursor-pointer shrink-0 select-none group`}
+        >
+          <div className="h-10 w-10 bg-primary/10 border border-primary/30 rounded-lg flex items-center justify-center overflow-hidden p-1 shrink-0 group-hover:border-primary/50 transition-colors">
             <img src="/logo.png" alt="SSI Logo" className="h-full w-full object-contain" />
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-foreground font-bold text-lg leading-tight tracking-tight drop-shadow-md">SSI</h1>
-            <span className="text-xs text-muted-foreground/80 font-medium leading-tight hidden sm:block">Setor de Segurança dos Instrutores</span>
+          <div className={`flex flex-col min-w-0 ${isCollapsed ? "md:hidden" : "flex"}`}>
+            <h1 className="text-foreground font-bold text-base sm:text-lg leading-tight tracking-tight drop-shadow-md group-hover:text-primary transition-colors">
+              SSI
+            </h1>
+            <span className="text-[11px] text-muted-foreground/80 font-medium leading-tight truncate hidden sm:block">
+              Setor de Segurança dos Instrutores
+            </span>
           </div>
-        </div>
-
-        {/* Separador vertical estilo RCCSystem */}
-        <div className="h-6 w-px bg-border/80 mx-1 shrink-0" />
+        </Link>
 
         {/* Botão de alternar menu estilo RCCSystem */}
         <button 
           onClick={onMenuToggle}
           aria-label="Alternar Menu"
           title="Alternar Menu Lateral"
-          className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-md transition-all duration-200 cursor-pointer flex items-center justify-center"
+          className="p-2 ml-2 sm:ml-3 text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-md transition-all duration-200 cursor-pointer flex items-center justify-center"
         >
           <Menu className="h-5 w-5" />
         </button>
       </div>
 
-      <div className="flex items-center gap-4 sm:gap-6">
+      <div className="flex items-center gap-4 sm:gap-6 pr-4 sm:pr-6">
         <div className="group relative flex flex-col items-end">
           <button
             onClick={handleBackup}

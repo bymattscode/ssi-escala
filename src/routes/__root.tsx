@@ -244,7 +244,7 @@ function AppLayout() {
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-background font-sans text-foreground">
-      <TopBar onMenuToggle={handleMenuToggle} />
+      <TopBar onMenuToggle={handleMenuToggle} isCollapsed={isSidebarCollapsed} />
       <div className="flex flex-1 mt-16 w-full relative">
         <Sidebar 
           isOpen={isMobileMenuOpen} 
