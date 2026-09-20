@@ -147,7 +147,7 @@ function AppLayout() {
         if (config.googleConnected) {
           console.log("[AutoSync Background] Sincronização automática ativa no app.");
           const { syncAll } = await import("../lib/syncManager");
-          await syncAll();
+          await syncAll({ silent: true });
         }
       } catch (e) {
         console.error("Falha na sincronização silenciosa de fundo:", e);

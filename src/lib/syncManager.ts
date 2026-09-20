@@ -619,12 +619,14 @@ export const syncModule = async (moduleName: string): Promise<{ success: boolean
   }
 };
 
-export const syncAll = async (): Promise<{ success: boolean; error?: string }> => {
+export const syncAll = async (options?: { silent?: boolean }): Promise<{ success: boolean; error?: string }> => {
   try {
     const readResponse = await fetchGoogleSheets({ action: "readAll" });
     if (!readResponse.success) {
       const err = `Falha ao obter dados remotos: ${readResponse.error || "Sem resposta do Google Sheets"}`;
-      toast.error(err);
+      if (!options?.silent) {
+        toast.error(err);
+      }
       return { success: false, error: err };
     }
 
@@ -653,7 +655,6 @@ export const syncAll = async (): Promise<{ success: boolean; error?: string }> =
     const totalConflicts = mMembers.conflictCount + mSchedules.conflictCount + mCases.conflictCount + mWarnings.conflictCount;
     if (totalConflicts > 0) {
       await addSyncLog({ type: "warning", message: `⚠️ ${totalConflicts} conflito(s) resolvidos na sincronização total (Last-Write-Wins).` });
-      toast.warning(`${totalConflicts} conflito(s) resolvido(s).`);
     }
 
     // 3. Push all merged data back module by module com intervalo entre eles e salvamento imediato por módulo
@@ -873,10 +874,10 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
       // O item existe em ambos os lados
       if (l.syncStatus === 'pending') {
         // Alteração pendente local feita pelo usuário vence e preserva a pendência para upload
+        conflictCount++;
         mergedMap.set(key, { ...r, ...l });
       } else {
-        // Para itens sincronizados, o DADO REMOTO É A FONTE DA VERDADE (cargos, status e datas da planilha prevalecem)
-        conflictCount++;
+        // Para itens já sincronizados, o DADO REMOTO É A FONTE DA VERDADE (não há conflito)
         mergedMap.set(key, { ...l, ...r, syncStatus: 'synced' });
       }
     }
