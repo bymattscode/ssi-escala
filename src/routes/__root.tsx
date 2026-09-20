@@ -127,7 +127,23 @@ import { AuthProvider, useAuth } from "../contexts/AuthContext";
 function AppLayout() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ssi-sidebar-collapsed") === "true";
+    }
+    return false;
+  });
   const location = useLocation();
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("ssi-sidebar-collapsed", String(next));
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -211,7 +227,12 @@ function AppLayout() {
     <div className="flex flex-col min-h-screen w-full bg-background font-sans text-foreground">
       <TopBar onMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
       <div className="flex flex-1 mt-16 w-full relative">
-        <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+        <Sidebar 
+          isOpen={isMobileMenuOpen} 
+          onClose={() => setIsMobileMenuOpen(false)} 
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={toggleSidebarCollapse}
+        />
         
         {isMobileMenuOpen && (
           <div 
@@ -220,7 +241,7 @@ function AppLayout() {
           />
         )}
         
-        <main className="flex-1 p-4 sm:p-6 md:p-8 md:ml-64 w-full relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background">
+        <main className={`flex-1 p-4 sm:p-6 md:p-8 ${isSidebarCollapsed ? "md:ml-20" : "md:ml-64"} transition-all duration-300 ease-in-out w-full relative bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-background to-background`}>
           <Outlet />
         </main>
       </div>

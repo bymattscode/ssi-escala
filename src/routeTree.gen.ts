@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as MembrosRouteImport } from './routes/membros'
+import { Route as ManualDeFuncaoRouteImport } from './routes/manual-de-funcao'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EscalasRouteImport } from './routes/escalas'
+import { Route as DocumentacoesRouteImport } from './routes/documentacoes'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as CasosRouteImport } from './routes/casos'
 import { Route as AdvertenciasRouteImport } from './routes/advertencias'
@@ -28,6 +30,11 @@ const MembrosRoute = MembrosRouteImport.update({
   path: '/membros',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManualDeFuncaoRoute = ManualDeFuncaoRouteImport.update({
+  id: '/manual-de-funcao',
+  path: '/manual-de-funcao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -36,6 +43,11 @@ const LoginRoute = LoginRouteImport.update({
 const EscalasRoute = EscalasRouteImport.update({
   id: '/escalas',
   path: '/escalas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentacoesRoute = DocumentacoesRouteImport.update({
+  id: '/documentacoes',
+  path: '/documentacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
@@ -64,8 +76,10 @@ export interface FileRoutesByFullPath {
   '/advertencias': typeof AdvertenciasRoute
   '/casos': typeof CasosRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/documentacoes': typeof DocumentacoesRoute
   '/escalas': typeof EscalasRoute
   '/login': typeof LoginRoute
+  '/manual-de-funcao': typeof ManualDeFuncaoRoute
   '/membros': typeof MembrosRoute
   '/relatorios': typeof RelatoriosRoute
 }
@@ -74,8 +88,10 @@ export interface FileRoutesByTo {
   '/advertencias': typeof AdvertenciasRoute
   '/casos': typeof CasosRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/documentacoes': typeof DocumentacoesRoute
   '/escalas': typeof EscalasRoute
   '/login': typeof LoginRoute
+  '/manual-de-funcao': typeof ManualDeFuncaoRoute
   '/membros': typeof MembrosRoute
   '/relatorios': typeof RelatoriosRoute
 }
@@ -85,8 +101,10 @@ export interface FileRoutesById {
   '/advertencias': typeof AdvertenciasRoute
   '/casos': typeof CasosRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/documentacoes': typeof DocumentacoesRoute
   '/escalas': typeof EscalasRoute
   '/login': typeof LoginRoute
+  '/manual-de-funcao': typeof ManualDeFuncaoRoute
   '/membros': typeof MembrosRoute
   '/relatorios': typeof RelatoriosRoute
 }
@@ -97,8 +115,10 @@ export interface FileRouteTypes {
     | '/advertencias'
     | '/casos'
     | '/configuracoes'
+    | '/documentacoes'
     | '/escalas'
     | '/login'
+    | '/manual-de-funcao'
     | '/membros'
     | '/relatorios'
   fileRoutesByTo: FileRoutesByTo
@@ -107,8 +127,10 @@ export interface FileRouteTypes {
     | '/advertencias'
     | '/casos'
     | '/configuracoes'
+    | '/documentacoes'
     | '/escalas'
     | '/login'
+    | '/manual-de-funcao'
     | '/membros'
     | '/relatorios'
   id:
@@ -117,8 +139,10 @@ export interface FileRouteTypes {
     | '/advertencias'
     | '/casos'
     | '/configuracoes'
+    | '/documentacoes'
     | '/escalas'
     | '/login'
+    | '/manual-de-funcao'
     | '/membros'
     | '/relatorios'
   fileRoutesById: FileRoutesById
@@ -128,8 +152,10 @@ export interface RootRouteChildren {
   AdvertenciasRoute: typeof AdvertenciasRoute
   CasosRoute: typeof CasosRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
+  DocumentacoesRoute: typeof DocumentacoesRoute
   EscalasRoute: typeof EscalasRoute
   LoginRoute: typeof LoginRoute
+  ManualDeFuncaoRoute: typeof ManualDeFuncaoRoute
   MembrosRoute: typeof MembrosRoute
   RelatoriosRoute: typeof RelatoriosRoute
 }
@@ -150,6 +176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MembrosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/manual-de-funcao': {
+      id: '/manual-de-funcao'
+      path: '/manual-de-funcao'
+      fullPath: '/manual-de-funcao'
+      preLoaderRoute: typeof ManualDeFuncaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -162,6 +195,13 @@ declare module '@tanstack/react-router' {
       path: '/escalas'
       fullPath: '/escalas'
       preLoaderRoute: typeof EscalasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/documentacoes': {
+      id: '/documentacoes'
+      path: '/documentacoes'
+      fullPath: '/documentacoes'
+      preLoaderRoute: typeof DocumentacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes': {
@@ -200,8 +240,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdvertenciasRoute: AdvertenciasRoute,
   CasosRoute: CasosRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
+  DocumentacoesRoute: DocumentacoesRoute,
   EscalasRoute: EscalasRoute,
   LoginRoute: LoginRoute,
+  ManualDeFuncaoRoute: ManualDeFuncaoRoute,
   MembrosRoute: MembrosRoute,
   RelatoriosRoute: RelatoriosRoute,
 }
