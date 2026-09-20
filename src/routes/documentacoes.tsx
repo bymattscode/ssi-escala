@@ -1001,7 +1001,6 @@ function countChapterArticles(chap: Chapter): number {
 function DocumentacoesPage() {
   const [activeDoc, setActiveDoc] = useState<DocumentType>("ssi");
   const [searchTerm, setSearchTerm] = useState("");
-  const [isIndexOpen, setIsIndexOpen] = useState(true);
   const [activeChapterId, setActiveChapterId] = useState<string>("capitulo-1");
   const [copiedArticle, setCopiedArticle] = useState<string | null>(null);
 
@@ -1223,9 +1222,9 @@ function DocumentacoesPage() {
 
           {/* Área Principal de Leitura */}
           <div className="flex-1 w-full flex flex-col gap-8 min-w-0">
-            {/* Barra de Ferramentas e Busca */}
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-card/60 border border-border rounded-xl p-3 shadow-sm">
-              <div className="relative flex-1">
+            {/* Barra de Busca */}
+            <div className="bg-card/60 border border-border rounded-xl p-3 shadow-sm">
+              <div className="relative w-full">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
@@ -1243,21 +1242,6 @@ function DocumentacoesPage() {
                   </button>
                 )}
               </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsIndexOpen(!isIndexOpen)}
-                  className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-xs font-semibold text-foreground flex items-center gap-1.5 transition-colors"
-                >
-                  <ListTree className="h-3.5 w-3.5 text-primary" />
-                  <span>{isIndexOpen ? "Ocultar Índice" : "Exibir Índice"}</span>
-                  <ChevronDown
-                    className={`h-3 w-3 text-muted-foreground transition-transform duration-200 ${
-                      isIndexOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-              </div>
             </div>
 
             {/* PREÂMBULO (Apenas no Código Penal) */}
@@ -1269,51 +1253,6 @@ function DocumentacoesPage() {
                 <p className="text-muted-foreground text-sm leading-relaxed">
                   {PREAMBULO_CPI}
                 </p>
-              </div>
-            )}
-
-            {/* ÍNDICE ACORDEÃO */}
-            {isIndexOpen && (
-              <div className="bg-card/70 border border-border rounded-xl overflow-hidden shadow-sm transition-all duration-300">
-                <div
-                  onClick={() => setIsIndexOpen(!isIndexOpen)}
-                  className="flex items-center justify-between px-5 py-3.5 bg-secondary/50 hover:bg-secondary/70 cursor-pointer select-none transition-colors border-b border-border/50"
-                >
-                  <div className="flex items-center gap-2.5 text-xs font-bold text-primary uppercase tracking-wider">
-                    <ListTree className="h-4 w-4" />
-                    <span>Índice Geral do Documento</span>
-                  </div>
-                  <ChevronDown
-                    className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
-                      isIndexOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </div>
-
-                <div className="divide-y divide-border/40 text-xs">
-                  {currentChapters.map((chap) => {
-                    const count = countChapterArticles(chap);
-                    return (
-                      <button
-                        key={chap.id}
-                        onClick={() => scrollToSection(chap.id)}
-                        className="w-full flex items-center justify-between px-5 py-2.5 text-left hover:bg-primary/10 hover:text-primary transition-colors group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-black bg-secondary text-muted-foreground group-hover:text-primary">
-                            {chap.romanNumber}
-                          </span>
-                          <span className="font-bold tracking-wide uppercase text-foreground group-hover:text-primary">
-                            CAPÍTULO {chap.romanNumber} — {chap.title}
-                          </span>
-                        </div>
-                        <span className="text-[11px] text-muted-foreground">
-                          {count} {count === 1 ? "artigo" : "artigos"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
             )}
 
