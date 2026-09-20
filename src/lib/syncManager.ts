@@ -408,7 +408,7 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         creatorNick: creatorNick !== "-" ? creatorNick : undefined,
         offenderNick: item["Infrator"] || item["Nick do Infrator"] || "-",
         description: item["Descrição"] || "-",
-        creationDate: cleanTimestampFromDate(item["Data"] || item["Data de Criação"], "creationDate") || new Date().toISOString().split("T")[0],
+        creationDate: (item["Data"] || item["Data de Criação"]) ? formatBrasiliaDateTime(item["Data"] || item["Data de Criação"]) : (cleanTimestampFromDate(item["Data"] || item["Data de Criação"], "creationDate") || new Date().toISOString().split("T")[0]),
         orientation: item["Orientação"] || "-",
         proofAttachment: item["Anexo da Prova"] || item["Anexo de Prova"] || undefined,
         resolverId,
@@ -416,7 +416,7 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         punishmentApplied: item["Punição Aplicada"] && item["Punição Aplicada"] !== "-" ? item["Punição Aplicada"] : undefined,
         crimeCommitted: item["Crime Cometido"] && item["Crime Cometido"] !== "-" ? item["Crime Cometido"] : undefined,
         resolutionAttachment: item["Anexo da Resolução"] || item["Anexo de Resolução"] || undefined,
-        resolutionDate: item["Data da Resolução"] && item["Data da Resolução"] !== "-" ? item["Data da Resolução"] : undefined,
+        resolutionDate: item["Data da Resolução"] && item["Data da Resolução"] !== "-" ? formatBrasiliaDateTime(item["Data da Resolução"]) : undefined,
         cancellationReason: item["Motivo de Cancelamento"] && item["Motivo de Cancelamento"] !== "-" ? item["Motivo de Cancelamento"] : undefined,
         orderNumber: item["Número da Ordem"] && item["Número da Ordem"] !== "-" ? item["Número da Ordem"] : undefined,
         updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : 0

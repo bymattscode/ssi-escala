@@ -1,9 +1,15 @@
 /**
  * Utilitários para formatação e manipulação de datas no fuso horário de Brasília (UTC-3).
  * Formato padrão: dia/mês/ano (DD/MM/YYYY) e horário oficial de Brasília.
+ * 
+ * Implementação puramente determinística baseada no offset fixo UTC-3 (Horário Oficial do Brasil,
+ * sem horário de verão desde 2019), garantindo compatibilidade total em qualquer navegador,
+ * ambiente SSR, mobile e Cloudflare Workers sem risco de falhas de tabelas ICU.
  */
 
 export const TIMEZONE_BRASILIA = 'America/Sao_Paulo';
+
+const pad = (n: number): string => String(n).padStart(2, '0');
 
 /**
  * Formata apenas a data para o padrão brasileiro: DD/MM/YYYY.
@@ -16,6 +22,11 @@ export function formatBrasiliaDate(val?: any): string {
   // Já formatado em DD/MM/YYYY
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
     return str;
+  }
+
+  // Se já for DD/MM/YYYY HH:mm... retorna apenas o dia
+  if (/^\d{2}\/\d{2}\/\d{4}\s+/.test(str)) {
+    return str.split(/\s+/)[0];
   }
 
   // Data pura no formato YYYY-MM-DD
@@ -36,7 +47,7 @@ export function formatBrasiliaDate(val?: any): string {
   let date: Date | null = null;
   if (typeof val === "number" || /^\d{11,}$/.test(str)) {
     date = new Date(Number(val));
-  } else if (str.includes("T") || str.includes(":") || str.includes("Z")) {
+  } else if (str.includes("T") || str.endsWith("Z")) {
     date = new Date(str);
   } else if (str.includes("/")) {
     const parts = str.split(" ")[0].split("/");
@@ -47,19 +58,17 @@ export function formatBrasiliaDate(val?: any): string {
   }
 
   if (!date || isNaN(date.getTime())) {
-    return str;
+    const fallback = new Date(str);
+    if (!isNaN(fallback.getTime())) {
+      date = fallback;
+    } else {
+      return str;
+    }
   }
 
-  try {
-    return new Intl.DateTimeFormat('pt-BR', {
-      timeZone: TIMEZONE_BRASILIA,
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }).format(date);
-  } catch (e) {
-    return str;
-  }
+  // Converte deterministamente para UTC-3
+  const b = new Date(date.getTime() - 3 * 3600 * 1000);
+  return `${pad(b.getUTCDate())}/${pad(b.getUTCMonth() + 1)}/${b.getUTCFullYear()}`;
 }
 
 /**
@@ -74,6 +83,17 @@ export function formatBrasiliaDateTime(val?: any, includeSeconds = false): strin
 
   // Se já for DD/MM/YYYY e não tiver hora
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    return str;
+  }
+
+  // Se já for DD/MM/YYYY HH:mm ou DD/MM/YYYY HH:mm:ss
+  if (/^\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}(:\d{2})?$/.test(str)) {
+    if (includeSeconds && str.split(":").length === 2) {
+      return `${str}:00`;
+    }
+    if (!includeSeconds && str.split(":").length === 3) {
+      return str.substring(0, str.lastIndexOf(":"));
+    }
     return str;
   }
 
@@ -93,21 +113,26 @@ export function formatBrasiliaDateTime(val?: any, includeSeconds = false): strin
   let date: Date | null = null;
   if (typeof val === "number" || /^\d{11,}$/.test(str)) {
     date = new Date(Number(val));
-  } else if (str.includes("T") || str.includes("Z")) {
+  } else if (str.includes("T") || str.endsWith("Z")) {
     date = new Date(str);
   } else if (str.includes(" ")) {
     // Formato "YYYY-MM-DD HH:mm:ss" ou "DD/MM/YYYY HH:mm:ss"
-    const [dPart, tPart] = str.split(" ");
+    const [dPart, tPart] = str.split(/\s+/);
     if (dPart.includes("-")) {
-      date = new Date(`${dPart}T${tPart || "00:00:00"}`);
+      date = new Date(`${dPart}T${tPart || "00:00:00"}-03:00`);
     } else if (dPart.includes("/")) {
-      const [d, m, y] = dPart.split("/");
-      date = new Date(`${y}-${m}-${d}T${tPart || "00:00:00"}`);
+      const parts = dPart.split("/");
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          date = new Date(`${parts[0]}-${parts[1]}-${parts[2]}T${tPart || "00:00:00"}-03:00`);
+        } else {
+          date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T${tPart || "00:00:00"}-03:00`);
+        }
+      }
     }
   }
 
   if (!date || isNaN(date.getTime())) {
-    // Tenta fallback com Date parse direto
     const fallback = new Date(str);
     if (!isNaN(fallback.getTime())) {
       date = fallback;
@@ -116,22 +141,16 @@ export function formatBrasiliaDateTime(val?: any, includeSeconds = false): strin
     }
   }
 
-  try {
-    const formatter = new Intl.DateTimeFormat('pt-BR', {
-      timeZone: TIMEZONE_BRASILIA,
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      ...(includeSeconds ? { second: '2-digit' } : {}),
-      hour12: false
-    });
+  // Converte deterministamente para UTC-3 (Horário Oficial de Brasília)
+  const b = new Date(date.getTime() - 3 * 3600 * 1000);
+  const day = pad(b.getUTCDate());
+  const month = pad(b.getUTCMonth() + 1);
+  const year = b.getUTCFullYear();
+  const hours = pad(b.getUTCHours());
+  const minutes = pad(b.getUTCMinutes());
+  const seconds = pad(b.getUTCSeconds());
 
-    return formatter.format(date).replace(',', '');
-  } catch (e) {
-    return str;
-  }
+  return `${day}/${month}/${year} ${hours}:${minutes}${includeSeconds ? `:${seconds}` : ''}`;
 }
 
 /**
@@ -139,23 +158,8 @@ export function formatBrasiliaDateTime(val?: any, includeSeconds = false): strin
  */
 export function getBrasiliaIsoNow(): string {
   const now = new Date();
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  
-  // Converte a data atual para o fuso de Brasília
-  const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: TIMEZONE_BRASILIA,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-  
-  const parts = formatter.formatToParts(now);
-  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '00';
-  
-  return `${getPart('year')}-${getPart('month')}-${getPart('day')}T${getPart('hour')}:${getPart('minute')}`;
+  const b = new Date(now.getTime() - 3 * 3600 * 1000);
+  return `${b.getUTCFullYear()}-${pad(b.getUTCMonth() + 1)}-${pad(b.getUTCDate())}T${pad(b.getUTCHours())}:${pad(b.getUTCMinutes())}`;
 }
 
 /**
@@ -163,11 +167,6 @@ export function getBrasiliaIsoNow(): string {
  */
 export function getBrasiliaDateNow(): string {
   const now = new Date();
-  const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: TIMEZONE_BRASILIA,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
-  return formatter.format(now);
+  const b = new Date(now.getTime() - 3 * 3600 * 1000);
+  return `${b.getUTCFullYear()}-${pad(b.getUTCMonth() + 1)}-${pad(b.getUTCDate())}`;
 }

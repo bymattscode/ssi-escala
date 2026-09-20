@@ -218,7 +218,7 @@ function CasosPage() {
       status: resDecision === "Resolver" ? "Resolvido" : "Cancelado",
       resolverId: resolverIdValue,
       resolverNick: resolverNickValue,
-      resolutionDate: new Date().toISOString(),
+      resolutionDate: formatBrasiliaDateTime(new Date().toISOString()),
       punishmentApplied: resDecision === "Resolver" ? resPunishment : undefined,
       crimeCommitted: resDecision === "Resolver" ? resCrime.trim() : undefined,
       orderNumber: resDecision === "Resolver" ? resOrder : undefined,
