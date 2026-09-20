@@ -12,10 +12,7 @@ import {
   Copy, 
   Check, 
   ArrowUp,
-  FileText,
   Clock,
-  ExternalLink,
-  Sparkles,
   Info
 } from "lucide-react";
 
@@ -430,8 +427,8 @@ const DOCUMENT_TABS = [
     id: "ssi" as DocumentType,
     title: "Regimento Interno do SSI",
     subtitle: "Normas, cargos e diretrizes do Setor de Segurança",
-    badge: "Vigente",
-    badgeVariant: "success",
+    badge: null,
+    badgeVariant: null,
     icon: ShieldCheck,
     chaptersCount: 5,
     articlesCount: 20,
@@ -511,16 +508,16 @@ function DocumentacoesPage() {
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
       {/* Cabeçalho da Seção */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
         <div>
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-amber-500 shadow-sm">
+            <div className="h-10 w-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary shadow-sm">
               <BookOpen className="h-5 w-5" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-2.5">
                 Documentações
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 uppercase tracking-wide">
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 uppercase tracking-wide">
                   Legislação Oficial
                 </span>
               </h1>
@@ -531,15 +528,13 @@ function DocumentacoesPage() {
           </div>
         </div>
 
-        {/* Estatísticas / Ações Rápidas */}
+        {/* Estatísticas / Indicador de Documento */}
         {activeDoc === "ssi" && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/40 border border-border/60 px-3.5 py-1.5 rounded-lg w-fit">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/40 border border-border px-3.5 py-1.5 rounded-lg w-fit">
+            <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="font-semibold text-foreground">5 Capítulos</span>
             <span className="text-muted-foreground/60">•</span>
             <span className="font-semibold text-foreground">20 Artigos</span>
-            <span className="text-muted-foreground/60">•</span>
-            <span>Edição Vigente</span>
           </div>
         )}
       </div>
@@ -559,8 +554,8 @@ function DocumentacoesPage() {
               }}
               className={`p-4 rounded-xl border text-left transition-all duration-200 relative flex flex-col justify-between gap-3 group select-none ${
                 isSelected
-                  ? "bg-card border-amber-500/70 shadow-md ring-1 ring-amber-500/30"
-                  : "bg-card/60 hover:bg-card border-border/70 hover:border-amber-500/40 opacity-80 hover:opacity-100"
+                  ? "bg-card border-primary/50 shadow-sm ring-1 ring-primary/20"
+                  : "bg-card/50 hover:bg-card border-border hover:border-border/80 opacity-80 hover:opacity-100"
               }`}
             >
               <div className="flex items-start justify-between gap-2">
@@ -568,8 +563,8 @@ function DocumentacoesPage() {
                   <div
                     className={`h-9 w-9 rounded-lg flex items-center justify-center transition-colors ${
                       isSelected
-                        ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                        : "bg-secondary text-muted-foreground group-hover:text-amber-400 group-hover:bg-amber-500/10"
+                        ? "bg-primary/15 text-primary border border-primary/30"
+                        : "bg-secondary text-muted-foreground group-hover:text-primary group-hover:bg-primary/10"
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -577,7 +572,7 @@ function DocumentacoesPage() {
                   <div>
                     <h3
                       className={`text-sm font-bold leading-snug transition-colors ${
-                        isSelected ? "text-amber-400" : "text-foreground group-hover:text-amber-300"
+                        isSelected ? "text-primary" : "text-foreground group-hover:text-foreground"
                       }`}
                     >
                       {doc.title}
@@ -585,15 +580,11 @@ function DocumentacoesPage() {
                   </div>
                 </div>
 
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
-                    doc.badgeVariant === "success"
-                      ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                      : "bg-secondary text-muted-foreground border border-border/50"
-                  }`}
-                >
-                  {doc.badge}
-                </span>
+                {doc.badge && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-secondary text-muted-foreground border border-border/50">
+                    {doc.badge}
+                  </span>
+                )}
               </div>
 
               <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
@@ -601,7 +592,7 @@ function DocumentacoesPage() {
               </p>
 
               {isSelected && (
-                <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600 rounded-t-full" />
+                <div className="absolute bottom-0 left-4 right-4 h-0.5 bg-primary rounded-t-full" />
               )}
             </button>
           );
@@ -611,22 +602,32 @@ function DocumentacoesPage() {
       {/* Conteúdo Dinâmico Conforme Documento Selecionado */}
       {activeDoc === "ssi" ? (
         <div className="flex flex-col lg:flex-row gap-6 items-start mt-2">
-          {/* Navegador Lateral Fixo de Capítulos (Desktop) - Estilo Print RCC */}
-          <aside className="hidden lg:flex flex-col w-64 shrink-0 sticky top-20 bg-card/80 border border-border/80 rounded-xl p-4 shadow-sm backdrop-blur-md">
+          {/* Navegador Lateral Fixo de Capítulos (Desktop) */}
+          <aside className="hidden lg:flex flex-col w-64 shrink-0 sticky top-20 bg-card/80 border border-border rounded-xl p-4 shadow-sm backdrop-blur-md">
             <div className="flex items-center gap-2 pb-3 mb-2 border-b border-border/60 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              <ListTree className="h-4 w-4 text-amber-400" />
+              <ListTree className="h-4 w-4 text-primary" />
               <span>Capítulos do Regimento</span>
             </div>
 
             <nav className="flex flex-col gap-1.5">
               <button
                 onClick={() => scrollToSection("secao-apresentacao")}
-                className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-lg text-left transition-all hover:bg-secondary text-muted-foreground hover:text-foreground"
+                className={`flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-lg text-left transition-all ${
+                  activeChapterId === "secao-apresentacao"
+                    ? "bg-primary/15 text-primary font-semibold border border-primary/30"
+                    : "hover:bg-secondary/60 text-muted-foreground hover:text-foreground border border-transparent"
+                }`}
               >
-                <span className="w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-[10px] font-mono text-muted-foreground">
-                  00
+                <span
+                  className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                    activeChapterId === "secao-apresentacao"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  0
                 </span>
-                <span className="truncate">Apresentação</span>
+                <span className="truncate">APRESENTAÇÃO</span>
               </button>
 
               {REGIMENTO_SSI.map((chap) => {
@@ -637,15 +638,15 @@ function DocumentacoesPage() {
                     onClick={() => scrollToSection(chap.id)}
                     className={`flex items-start gap-2.5 px-3 py-2 text-xs font-medium rounded-lg text-left transition-all group ${
                       isActive
-                        ? "bg-amber-500/15 text-amber-300 font-semibold border border-amber-500/30"
+                        ? "bg-primary/15 text-primary font-semibold border border-primary/30"
                         : "hover:bg-secondary/60 text-muted-foreground hover:text-foreground border border-transparent"
                     }`}
                   >
                     <span
                       className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-black shrink-0 ${
                         isActive
-                          ? "bg-amber-500 text-slate-950"
-                          : "bg-secondary text-muted-foreground group-hover:text-amber-400"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-muted-foreground group-hover:text-primary"
                       }`}
                     >
                       {chap.romanNumber}
@@ -656,17 +657,16 @@ function DocumentacoesPage() {
               })}
             </nav>
 
-            <div className="mt-4 pt-3 border-t border-border/60 text-[11px] text-muted-foreground flex flex-col gap-1">
+            <div className="mt-4 pt-3 border-t border-border/60 text-[11px] text-muted-foreground flex flex-col gap-0.5">
               <span className="font-semibold text-foreground">Setor de Segurança</span>
               <span>Companhia dos Instrutores</span>
-              <span className="text-amber-400/90 font-mono text-[10px]">PM RCC</span>
             </div>
           </aside>
 
           {/* Área Principal de Leitura */}
           <div className="flex-1 w-full flex flex-col gap-8 min-w-0">
             {/* Barra de Ferramentas e Busca */}
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-card/60 border border-border/70 rounded-xl p-3 shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-card/60 border border-border rounded-xl p-3 shadow-sm">
               <div className="relative flex-1">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -674,7 +674,7 @@ function DocumentacoesPage() {
                   placeholder="Buscar por artigo, termo ou penalidade (ex: licença, advertência, diretor, meta)..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-background border border-border/70 rounded-lg text-xs md:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                  className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-xs md:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
                 />
                 {searchTerm && (
                   <button
@@ -689,9 +689,9 @@ function DocumentacoesPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsIndexOpen(!isIndexOpen)}
-                  className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 border border-border/60 text-xs font-semibold text-foreground flex items-center gap-1.5 transition-colors"
+                  className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 border border-border text-xs font-semibold text-foreground flex items-center gap-1.5 transition-colors"
                 >
-                  <ListTree className="h-3.5 w-3.5 text-amber-400" />
+                  <ListTree className="h-3.5 w-3.5 text-primary" />
                   <span>{isIndexOpen ? "Ocultar Índice" : "Exibir Índice"}</span>
                   <ChevronDown
                     className={`h-3 w-3 text-muted-foreground transition-transform duration-200 ${
@@ -702,50 +702,42 @@ function DocumentacoesPage() {
               </div>
             </div>
 
-            {/* CARD: APRESENTAÇÃO INSTITUCIONAL (Estilo Exemplo RCC - Imagem 3) */}
+            {/* CARD: APRESENTAÇÃO INSTITUCIONAL */}
             <div
               id="secao-apresentacao"
-              className="relative bg-card/90 border-2 border-amber-500/70 hover:border-amber-400 transition-all rounded-xl p-6 sm:p-8 pt-8 shadow-lg backdrop-blur-sm"
+              className="relative bg-card border border-border hover:border-primary/40 transition-all rounded-xl p-6 sm:p-7 pt-7 shadow-sm"
             >
-              {/* Badge Dourado de Apresentação Centralizado no Topo */}
+              {/* Badge de Apresentação Centralizado no Topo */}
               <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
-                <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 text-slate-950 font-black text-xs uppercase px-6 py-1 rounded-md shadow-md border border-amber-300/40 tracking-wider">
-                  Apresentação
+                <div className="bg-primary text-primary-foreground font-black text-xs uppercase px-5 py-1 rounded-md shadow-sm tracking-wider">
+                  APRESENTAÇÃO
                 </div>
               </div>
 
-              <div className="text-slate-200 text-sm leading-relaxed space-y-3 pt-2">
+              <div className="text-muted-foreground text-sm leading-relaxed space-y-2.5 pt-1">
                 <p>
-                  <strong className="text-white font-bold">
+                  <strong className="text-foreground font-semibold">
                     O Regimento Interno do Setor de Segurança dos Instrutores (SSI)
                   </strong>{" "}
-                  é o diploma legal e normativo de direitos, prerrogativas e deveres que rege a conduta,
-                  a rotina operacional e a fiscalização interna de todos os membros vinculados ao
-                  subgrupo. Esse documento serve para orientar e disciplinar as ações dos policiais de
-                  acordo com as diretrizes da Companhia dos Instrutores e da Polícia Militar Revolução
-                  Contra o Crime (RCC).
+                  estabelece as normas, prerrogativas e deveres que regem a conduta e as atribuições de
+                  todos os seus integrantes na Companhia dos Instrutores.
                 </p>
                 <p>
-                  Sua finalidade elementar é combater ações ilícitas, promover a segurança interna,
-                  resguardar a idoneidade das aplicações de cursos, capacitações e backups, assegurando
-                  a ordem, a transparência e a justiça hierárquica. Por isso, fundamentados nos pilares
-                  institucionais, promulgamos o presente{" "}
-                  <strong className="text-amber-400 font-bold uppercase">
-                    Regimento Interno do SSI
-                  </strong>
-                  .
+                  Tem por finalidade promover a segurança interna, fiscalizar o cumprimento das
+                  diretrizes de ensino e garantir a ordem, a disciplina e a transparência em todas as
+                  rotinas do setor.
                 </p>
               </div>
             </div>
 
-            {/* ÍNDICE ACORDEÃO (Estilo Exemplo RCC - Imagem 3) */}
+            {/* ÍNDICE ACORDEÃO */}
             {isIndexOpen && (
-              <div className="bg-card/70 border border-amber-500/40 rounded-xl overflow-hidden shadow-sm transition-all duration-300">
+              <div className="bg-card/70 border border-border rounded-xl overflow-hidden shadow-sm transition-all duration-300">
                 <div
                   onClick={() => setIsIndexOpen(!isIndexOpen)}
                   className="flex items-center justify-between px-5 py-3.5 bg-secondary/50 hover:bg-secondary/70 cursor-pointer select-none transition-colors border-b border-border/50"
                 >
-                  <div className="flex items-center gap-2.5 text-xs font-bold text-amber-400 uppercase tracking-wider">
+                  <div className="flex items-center gap-2.5 text-xs font-bold text-primary uppercase tracking-wider">
                     <ListTree className="h-4 w-4" />
                     <span>Índice Geral do Documento</span>
                   </div>
@@ -759,30 +751,30 @@ function DocumentacoesPage() {
                 <div className="divide-y divide-border/40 text-xs">
                   <button
                     onClick={() => scrollToSection("secao-apresentacao")}
-                    className="w-full flex items-center justify-between px-5 py-2.5 text-left hover:bg-amber-500/10 hover:text-amber-300 transition-colors group"
+                    className="w-full flex items-center justify-between px-5 py-2.5 text-left hover:bg-primary/10 hover:text-primary transition-colors group"
                   >
                     <div className="flex items-center gap-3">
-                      <span className="font-mono text-muted-foreground group-hover:text-amber-400">
-                        01
+                      <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold bg-secondary text-muted-foreground group-hover:text-primary">
+                        0
                       </span>
-                      <span className="font-bold tracking-wide uppercase text-foreground group-hover:text-amber-300">
-                        Apresentação
+                      <span className="font-bold tracking-wide uppercase text-foreground group-hover:text-primary">
+                        APRESENTAÇÃO
                       </span>
                     </div>
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-amber-400" />
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary" />
                   </button>
 
-                  {REGIMENTO_SSI.map((chap, idx) => (
+                  {REGIMENTO_SSI.map((chap) => (
                     <button
                       key={chap.id}
                       onClick={() => scrollToSection(chap.id)}
-                      className="w-full flex items-center justify-between px-5 py-2.5 text-left hover:bg-amber-500/10 hover:text-amber-300 transition-colors group"
+                      className="w-full flex items-center justify-between px-5 py-2.5 text-left hover:bg-primary/10 hover:text-primary transition-colors group"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="font-mono text-muted-foreground group-hover:text-amber-400">
-                          {String(idx + 2).padStart(2, "0")}
+                        <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-black bg-secondary text-muted-foreground group-hover:text-primary">
+                          {chap.romanNumber}
                         </span>
-                        <span className="font-bold tracking-wide uppercase text-foreground group-hover:text-amber-300">
+                        <span className="font-bold tracking-wide uppercase text-foreground group-hover:text-primary">
                           CAPÍTULO {chap.romanNumber} — {chap.title}
                         </span>
                       </div>
@@ -795,9 +787,9 @@ function DocumentacoesPage() {
               </div>
             )}
 
-            {/* LISTAGEM DOS CAPÍTULOS E ARTIGOS (Estilo Exemplo RCC - Imagens 2 & 4) */}
+            {/* LISTAGEM DOS CAPÍTULOS E ARTIGOS */}
             {filteredChapters.length === 0 ? (
-              <div className="bg-card border border-border/70 rounded-xl p-8 text-center flex flex-col items-center justify-center">
+              <div className="bg-card border border-border rounded-xl p-8 text-center flex flex-col items-center justify-center">
                 <Search className="h-8 w-8 text-muted-foreground mb-3" />
                 <h3 className="font-bold text-foreground text-sm">Nenhum artigo encontrado</h3>
                 <p className="text-xs text-muted-foreground mt-1 max-w-sm">
@@ -817,17 +809,17 @@ function DocumentacoesPage() {
                   <section
                     key={chapter.id}
                     id={chapter.id}
-                    className="relative bg-card/90 border-2 border-amber-500/70 hover:border-amber-400/90 transition-all rounded-xl p-6 sm:p-8 pt-9 shadow-lg backdrop-blur-sm scroll-mt-24"
+                    className="relative bg-card border border-border hover:border-primary/40 transition-all rounded-xl p-6 sm:p-8 pt-9 shadow-sm scroll-mt-24"
                   >
-                    {/* Badge Dourado do Capítulo Centralizado no Topo (Identico aos Prints 2 e 3) */}
+                    {/* Badge do Capítulo Centralizado no Topo */}
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10 w-max max-w-[90%] text-center">
-                      <div className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 text-slate-950 font-black text-xs uppercase px-5 sm:px-7 py-1 rounded-md shadow-md border border-amber-300/40 tracking-wider truncate">
-                        CAPÍTULO {chapter.romanNumber} {chapter.title}
+                      <div className="bg-primary text-primary-foreground font-black text-xs uppercase px-5 sm:px-7 py-1 rounded-md shadow-sm border border-primary/30 tracking-wider truncate">
+                        CAPÍTULO {chapter.romanNumber} — {chapter.title}
                       </div>
                     </div>
 
                     {/* Lista de Artigos Dentro do Card */}
-                    <div className="flex flex-col gap-6 divide-y divide-border/30 pt-1">
+                    <div className="flex flex-col gap-6 divide-y divide-border/40 pt-1">
                       {chapter.articles.map((article, artIdx) => {
                         const articleId = `${chapter.id}-${article.number.replace(/\s+/g, "-")}`;
                         const isCopied = copiedArticle === articleId;
@@ -839,8 +831,8 @@ function DocumentacoesPage() {
                           >
                             {/* Artigo Caput */}
                             <div className="flex items-start justify-between gap-3">
-                              <p className="text-slate-200 text-sm md:text-[15px] leading-relaxed">
-                                <span className="text-[#6790cb] dark:text-[#7aa2dd] font-bold text-base select-text mr-1.5">
+                              <p className="text-foreground/90 text-sm md:text-[15px] leading-relaxed">
+                                <span className="text-primary font-bold text-base select-text mr-1.5">
                                   {article.number}
                                 </span>
                                 {article.text}
@@ -866,13 +858,13 @@ function DocumentacoesPage() {
 
                             {/* Parágrafos e Incisos */}
                             {article.subItems && article.subItems.length > 0 && (
-                              <div className="flex flex-col gap-2 pl-4 sm:pl-6 border-l-2 border-amber-500/30 ml-1 mt-1">
+                              <div className="flex flex-col gap-2 pl-4 sm:pl-6 border-l-2 border-primary/30 ml-1 mt-1">
                                 {article.subItems.map((sub, sIdx) => (
                                   <p
                                     key={sIdx}
-                                    className="text-slate-300 text-xs md:text-sm leading-relaxed"
+                                    className="text-foreground/80 text-xs md:text-sm leading-relaxed"
                                   >
-                                    <span className="text-[#6790cb] dark:text-[#7aa2dd] font-bold mr-1.5 select-text">
+                                    <span className="text-primary font-bold mr-1.5 select-text">
                                       {sub.label}
                                     </span>
                                     {sub.text}
@@ -893,9 +885,9 @@ function DocumentacoesPage() {
             <div className="flex justify-center pt-6">
               <button
                 onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary hover:bg-secondary/80 border border-border/60 text-xs font-semibold text-foreground transition-all shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary hover:bg-secondary/80 border border-border text-xs font-semibold text-foreground transition-all shadow-sm"
               >
-                <ArrowUp className="h-4 w-4 text-amber-400" />
+                <ArrowUp className="h-4 w-4 text-primary" />
                 <span>Voltar ao Início do Documento</span>
               </button>
             </div>
@@ -903,12 +895,12 @@ function DocumentacoesPage() {
         </div>
       ) : activeDoc === "companhia" ? (
         /* PLACEHOLDER: REGIMENTO INTERNO DA COMPANHIA */
-        <div className="bg-card border border-border/70 rounded-2xl p-8 sm:p-14 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden mt-4">
-          <div className="h-20 w-20 bg-amber-500/10 border border-amber-500/20 rounded-3xl flex items-center justify-center text-amber-400 mb-5 shadow-inner">
+        <div className="bg-card border border-border rounded-2xl p-8 sm:p-14 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden mt-4">
+          <div className="h-20 w-20 bg-primary/10 border border-primary/20 rounded-3xl flex items-center justify-center text-primary mb-5 shadow-inner">
             <Building2 className="h-10 w-10" />
           </div>
 
-          <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 uppercase tracking-wider mb-3">
+          <span className="text-xs font-bold px-3 py-1 rounded-full bg-secondary text-muted-foreground border border-border/50 uppercase tracking-wider mb-3">
             Aguardando Homologação
           </span>
 
@@ -925,7 +917,7 @@ function DocumentacoesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-xl mt-8 pt-8 border-t border-border/50 text-left">
             <div className="bg-secondary/30 border border-border/50 rounded-xl p-4 flex flex-col gap-1.5">
               <span className="text-xs font-bold text-foreground flex items-center gap-2">
-                <Info className="h-3.5 w-3.5 text-amber-400" />
+                <Info className="h-3.5 w-3.5 text-primary" />
                 Estrutura Prevista
               </span>
               <p className="text-xs text-muted-foreground">
@@ -935,7 +927,7 @@ function DocumentacoesPage() {
 
             <div className="bg-secondary/30 border border-border/50 rounded-xl p-4 flex flex-col gap-1.5">
               <span className="text-xs font-bold text-foreground flex items-center gap-2">
-                <Clock className="h-3.5 w-3.5 text-blue-400" />
+                <Clock className="h-3.5 w-3.5 text-primary" />
                 Status Atual
               </span>
               <p className="text-xs text-muted-foreground">
@@ -954,12 +946,12 @@ function DocumentacoesPage() {
         </div>
       ) : (
         /* PLACEHOLDER: CÓDIGO PENAL DOS INSTRUTORES */
-        <div className="bg-card border border-border/70 rounded-2xl p-8 sm:p-14 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden mt-4">
-          <div className="h-20 w-20 bg-rose-500/10 border border-rose-500/20 rounded-3xl flex items-center justify-center text-rose-400 mb-5 shadow-inner">
+        <div className="bg-card border border-border rounded-2xl p-8 sm:p-14 flex flex-col items-center justify-center text-center shadow-sm relative overflow-hidden mt-4">
+          <div className="h-20 w-20 bg-primary/10 border border-primary/20 rounded-3xl flex items-center justify-center text-primary mb-5 shadow-inner">
             <Scale className="h-10 w-10" />
           </div>
 
-          <span className="text-xs font-bold px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/30 uppercase tracking-wider mb-3">
+          <span className="text-xs font-bold px-3 py-1 rounded-full bg-secondary text-muted-foreground border border-border/50 uppercase tracking-wider mb-3">
             Em Revisão Jurídica
           </span>
 
@@ -976,7 +968,7 @@ function DocumentacoesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-xl mt-8 pt-8 border-t border-border/50 text-left">
             <div className="bg-secondary/30 border border-border/50 rounded-xl p-4 flex flex-col gap-1.5">
               <span className="text-xs font-bold text-foreground flex items-center gap-2">
-                <ShieldCheck className="h-3.5 w-3.5 text-rose-400" />
+                <ShieldCheck className="h-3.5 w-3.5 text-primary" />
                 Vínculo com o SSI
               </span>
               <p className="text-xs text-muted-foreground">
@@ -987,7 +979,7 @@ function DocumentacoesPage() {
 
             <div className="bg-secondary/30 border border-border/50 rounded-xl p-4 flex flex-col gap-1.5">
               <span className="text-xs font-bold text-foreground flex items-center gap-2">
-                <Clock className="h-3.5 w-3.5 text-amber-400" />
+                <Clock className="h-3.5 w-3.5 text-primary" />
                 Previsão de Lançamento
               </span>
               <p className="text-xs text-muted-foreground">
