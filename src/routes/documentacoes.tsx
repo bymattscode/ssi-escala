@@ -610,26 +610,6 @@ function DocumentacoesPage() {
             </div>
 
             <nav className="flex flex-col gap-1.5">
-              <button
-                onClick={() => scrollToSection("secao-apresentacao")}
-                className={`flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-lg text-left transition-all ${
-                  activeChapterId === "secao-apresentacao"
-                    ? "bg-primary/15 text-primary font-semibold border border-primary/30"
-                    : "hover:bg-secondary/60 text-muted-foreground hover:text-foreground border border-transparent"
-                }`}
-              >
-                <span
-                  className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                    activeChapterId === "secao-apresentacao"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground"
-                  }`}
-                >
-                  0
-                </span>
-                <span className="truncate">APRESENTAÇÃO</span>
-              </button>
-
               {REGIMENTO_SSI.map((chap) => {
                 const isActive = activeChapterId === chap.id;
                 return (
@@ -702,34 +682,6 @@ function DocumentacoesPage() {
               </div>
             </div>
 
-            {/* CARD: APRESENTAÇÃO INSTITUCIONAL */}
-            <div
-              id="secao-apresentacao"
-              className="relative bg-card border border-border hover:border-primary/40 transition-all rounded-xl p-6 sm:p-7 pt-7 shadow-sm"
-            >
-              {/* Badge de Apresentação Centralizado no Topo */}
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
-                <div className="bg-primary text-primary-foreground font-black text-xs uppercase px-5 py-1 rounded-md shadow-sm tracking-wider">
-                  APRESENTAÇÃO
-                </div>
-              </div>
-
-              <div className="text-muted-foreground text-sm leading-relaxed space-y-2.5 pt-1">
-                <p>
-                  <strong className="text-foreground font-semibold">
-                    O Regimento Interno do Setor de Segurança dos Instrutores (SSI)
-                  </strong>{" "}
-                  estabelece as normas, prerrogativas e deveres que regem a conduta e as atribuições de
-                  todos os seus integrantes na Companhia dos Instrutores.
-                </p>
-                <p>
-                  Tem por finalidade promover a segurança interna, fiscalizar o cumprimento das
-                  diretrizes de ensino e garantir a ordem, a disciplina e a transparência em todas as
-                  rotinas do setor.
-                </p>
-              </div>
-            </div>
-
             {/* ÍNDICE ACORDEÃO */}
             {isIndexOpen && (
               <div className="bg-card/70 border border-border rounded-xl overflow-hidden shadow-sm transition-all duration-300">
@@ -749,20 +701,6 @@ function DocumentacoesPage() {
                 </div>
 
                 <div className="divide-y divide-border/40 text-xs">
-                  <button
-                    onClick={() => scrollToSection("secao-apresentacao")}
-                    className="w-full flex items-center justify-between px-5 py-2.5 text-left hover:bg-primary/10 hover:text-primary transition-colors group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold bg-secondary text-muted-foreground group-hover:text-primary">
-                        0
-                      </span>
-                      <span className="font-bold tracking-wide uppercase text-foreground group-hover:text-primary">
-                        APRESENTAÇÃO
-                      </span>
-                    </div>
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/60 group-hover:text-primary" />
-                  </button>
 
                   {REGIMENTO_SSI.map((chap) => (
                     <button
