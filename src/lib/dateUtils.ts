@@ -170,3 +170,95 @@ export function getBrasiliaDateNow(): string {
   const b = new Date(now.getTime() - 3 * 3600 * 1000);
   return `${b.getUTCFullYear()}-${pad(b.getUTCMonth() + 1)}-${pad(b.getUTCDate())}`;
 }
+
+/**
+ * Regra oficial do SSI para prazos de escalas:
+ * - O prazo sempre é 2 dias depois do dia da função às 23:59.
+ * - Exceção: Avaliadores e Capacitadores entregam impreterivelmente até Terça (23:59).
+ */
+export function getScheduleDeadlineText(referenceDay: string): string {
+  const ref = String(referenceDay || "").trim().toLowerCase();
+
+  // Avaliadores e Capacitadores: sempre terça 23:59
+  if (ref.includes("aval") || ref.includes("cap")) {
+    return "Terça (23:59)";
+  }
+
+  // 2 dias após o dia da função:
+  if (ref.startsWith("domingo")) return "Terça (23:59)";
+  if (ref.startsWith("segunda")) return "Quarta (23:59)";
+  if (ref.startsWith("terça") || ref.startsWith("terca")) return "Quinta (23:59)";
+  if (ref.startsWith("quarta")) return "Sexta (23:59)";
+  if (ref.startsWith("quinta")) return "Sábado (23:59)";
+  if (ref.startsWith("sexta")) return "Domingo (23:59)";
+  if (ref.startsWith("sábado") || ref.startsWith("sabado")) return "Segunda (23:59)";
+
+  return "Terça (23:59)";
+}
+
+/**
+ * Calcula a data e hora ISO precisa (23:59:59.999 no horário de Brasília) do prazo da escala.
+ */
+export function calculateScheduleDeadlineDate(referenceDay: string, scheduleDate?: string, week?: string): string {
+  const ref = String(referenceDay || "").trim().toLowerCase();
+
+  // Se scheduleDate estiver no formato YYYY-MM-DD
+  if (scheduleDate && /^\d{4}-\d{2}-\d{2}$/.test(scheduleDate)) {
+    const [y, m, d] = scheduleDate.split("-").map(Number);
+    
+    if (ref.includes("aval") || ref.includes("cap")) {
+      // Data base de domingo da semana (dia 0). Terça é domingo + 2 dias
+      const baseObj = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+      const dayOfWeek = baseObj.getUTCDay(); // 0 = Domingo
+      const daysUntilTuesday = (2 - dayOfWeek + 7) % 7;
+      const targetDate = new Date(baseObj.getTime() + daysUntilTuesday * 24 * 3600 * 1000);
+      
+      const ty = targetDate.getUTCFullYear();
+      const tm = targetDate.getUTCMonth();
+      const td = targetDate.getUTCDate();
+      return new Date(Date.UTC(ty, tm, td, 23 + 3, 59, 59, 999)).toISOString();
+    }
+
+    // 2 dias depois do dia da escala
+    const targetDate = new Date(Date.UTC(y, m - 1, d + 2, 12, 0, 0));
+    const ty = targetDate.getUTCFullYear();
+    const tm = targetDate.getUTCMonth();
+    const td = targetDate.getUTCDate();
+    return new Date(Date.UTC(ty, tm, td, 23 + 3, 59, 59, 999)).toISOString();
+  }
+
+  // Fallback: calcular baseado na semana atual de Brasília
+  const now = new Date();
+  const b = new Date(now.getTime() - 3 * 3600 * 1000);
+  const currentDayOfWeek = b.getUTCDay();
+  const sunday = new Date(Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate() - currentDayOfWeek, 12, 0, 0));
+
+  const dayOffsets: Record<string, number> = {
+    domingo: 0,
+    segunda: 1,
+    terça: 2,
+    terca: 2,
+    quarta: 3,
+    quinta: 4,
+    sexta: 5,
+    sábado: 6,
+    sabado: 6,
+  };
+
+  let offset = 0;
+  for (const [key, val] of Object.entries(dayOffsets)) {
+    if (ref.startsWith(key)) {
+      offset = val;
+      break;
+    }
+  }
+
+  if (ref.includes("aval") || ref.includes("cap")) {
+    const tuesday = new Date(sunday.getTime() + 2 * 24 * 3600 * 1000);
+    return new Date(Date.UTC(tuesday.getUTCFullYear(), tuesday.getUTCMonth(), tuesday.getUTCDate(), 23 + 3, 59, 59, 999)).toISOString();
+  }
+
+  // Domingo + offset + 2 dias
+  const deadlineDay = new Date(sunday.getTime() + (offset + 2) * 24 * 3600 * 1000);
+  return new Date(Date.UTC(deadlineDay.getUTCFullYear(), deadlineDay.getUTCMonth(), deadlineDay.getUTCDate(), 23 + 3, 59, 59, 999)).toISOString();
+}

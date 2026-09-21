@@ -11,7 +11,7 @@ import {
   KEYS
 } from './store';
 import { toast } from 'sonner';
-import { formatBrasiliaDate, formatBrasiliaDateTime } from './dateUtils';
+import { formatBrasiliaDate, formatBrasiliaDateTime, getScheduleDeadlineText, calculateScheduleDeadlineDate } from './dateUtils';
 
 // Mapeamento de chaves (Frontend <-> Google Sheets)
 const headerMaps = {
@@ -184,7 +184,7 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         "Semana": item.week || "-",
         "Dia de Referência": item.referenceDay || "-",
         "Data da Escala": scaleDateStr,
-        "Prazo": item.deadline || "-",
+        "Prazo": getScheduleDeadlineText(item.referenceDay) || item.deadline || "-",
         "Print da Função": item.comments || "-",
         "Data da Resposta": responseDateStr,
         "Status": item.status || "Pendente",
@@ -348,6 +348,9 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
       
       const id = internalId || `SSI-ESC-${nick || "UNK"}-${week}-${String(type).replace(/\s+/g, '').substring(0,3).toUpperCase()}-${Math.random().toString(36).substring(2,6)}`;
 
+      const deadline = getScheduleDeadlineText(referenceDay);
+      const deadlineDate = calculateScheduleDeadlineDate(referenceDay, scheduleDate, week);
+
       return {
         id,
         week,
@@ -355,7 +358,8 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         referenceDay,
         scheduleDate,
         responseDate,
-        deadline: `${referenceDay} (23:59)`,
+        deadline,
+        deadlineDate,
         status,
         type,
         conclusionId,

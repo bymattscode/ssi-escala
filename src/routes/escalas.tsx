@@ -13,7 +13,7 @@ import { Schedule, Member } from "../lib/types";
 import { generateWeeklySchedule } from "../lib/scheduler";
 import { toast } from "sonner";
 import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
-import { formatBrasiliaDateTime } from "../lib/dateUtils";
+import { formatBrasiliaDateTime, getScheduleDeadlineText } from "../lib/dateUtils";
 
 export const Route = createFileRoute("/escalas")({
   component: EscalasPage,
@@ -141,10 +141,18 @@ function EscalaTable({
                 <td className="px-4 py-4 text-muted-foreground whitespace-nowrap">{schedule.type}</td>
                 <td className="px-4 py-4 text-foreground font-medium whitespace-nowrap">{schedule.referenceDay}</td>
                 <td className="px-4 py-4 text-muted-foreground whitespace-nowrap">
-                  <div className="flex flex-col items-start leading-tight">
-                    <span>{schedule.deadline.split(' (')[0]}</span>
-                    <span className="text-xs">({schedule.deadline.split('(')[1] || '23:59)'}</span>
-                  </div>
+                  {(() => {
+                    const deadlineText = schedule.deadline && !schedule.deadline.includes("Avaliadores") && !schedule.deadline.includes("Capacitadores") && !schedule.deadline.includes("feira") && schedule.deadline.includes("(")
+                      ? schedule.deadline
+                      : getScheduleDeadlineText(schedule.referenceDay);
+                    const [dayName, timePart] = deadlineText.split(' (');
+                    return (
+                      <div className="flex flex-col items-start leading-tight">
+                        <span className="font-medium text-foreground">{dayName}</span>
+                        <span className="text-xs text-muted-foreground">({timePart || '23:59)'}</span>
+                      </div>
+                    );
+                  })()}
                 </td>
                 <td className="px-4 py-4">
                   <StatusBadge status={schedule.status} />

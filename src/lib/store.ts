@@ -1,5 +1,6 @@
 import { Member, Schedule, Case, Warning, AuditLog, AuditAction, AuditModule, Role, AuthorizedUser } from './types';
 import { mockMembers, mockSchedules, mockCases, mockWarnings } from './mockData';
+import { getScheduleDeadlineText, calculateScheduleDeadlineDate } from './dateUtils';
 
 export const AUTHORIZED_USERS: AuthorizedUser[] = [
   { habboNick: 'Admin', group: 'SSI', role: 'Presidente', status: 'Ativo', permissions: ['all'] },
@@ -475,13 +476,36 @@ export const getSchedules = async (): Promise<Schedule[]> => {
       needsSave = true;
       updated.type = "Fiscalizador" as any;
       updated.referenceDay = "Avaliadores";
-      updated.deadline = "Terça-feira (23:59)";
     }
     if (updated.type === "Fiscalização dos Capacitadores" || (updated.referenceDay === "Semanal" && updated.id.includes("CAP"))) {
       needsSave = true;
       updated.type = "Fiscalizador" as any;
       updated.referenceDay = "Capacitadores";
-      updated.deadline = "Terça-feira (23:59)";
+    }
+
+    // Regra oficial de prazos:
+    // O prazo sempre é 2 dias depois do dia da função às 23:59.
+    // Menos Avaliadores e Capacitadores, cuja função é entregue até Terça às 23:59.
+    const correctDeadline = getScheduleDeadlineText(updated.referenceDay);
+    const correctDeadlineDate = calculateScheduleDeadlineDate(updated.referenceDay, updated.scheduleDate, updated.week);
+
+    if (
+      updated.deadline !== correctDeadline ||
+      !updated.deadlineDate ||
+      updated.deadline.includes("feira") ||
+      updated.deadline.includes("Avaliadores (23:59)") ||
+      updated.deadline.includes("Capacitadores (23:59)") ||
+      updated.deadline === `${updated.referenceDay} (23:59)`
+    ) {
+      needsSave = true;
+      updated.deadline = correctDeadline;
+      updated.deadlineDate = correctDeadlineDate;
+
+      // Se havia sido marcado como Atrasado ou Não Justificado pelo prazo incorreto anterior (ex: domingo 23:59),
+      // mas o novo prazo (terça 23:59) ainda não passou, restaurar para Pendente:
+      if ((updated.status === "Atrasado" || updated.status === "Não Justificado") && new Date(correctDeadlineDate) > now) {
+        updated.status = "Pendente";
+      }
     }
 
     // Automação: Atualizar status de escalas vencidas

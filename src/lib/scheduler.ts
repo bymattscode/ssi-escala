@@ -2,6 +2,7 @@ import { addDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Member, Schedule, Role } from "./types";
 import { addSchedules, deleteSchedulesForWeekAndType } from "./store";
+import { getScheduleDeadlineText } from "./dateUtils";
 
 const DAYS_OF_WEEK = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
@@ -36,7 +37,7 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
     const member = activeMembers[memberIndex % activeMembers.length];
     memberIndex++;
 
-    const deadlineFormatted = `${format(deadlineDay, "EEEE", { locale: ptBR })} (23:59)`;
+    const deadlineFormatted = getScheduleDeadlineText(DAYS_OF_WEEK[i]);
     
     const newSchedule: Schedule = {
       id: `SSI-ESC-${Date.now().toString(36).toUpperCase()}-${i}-${typeCode}`,
@@ -44,7 +45,7 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
       memberId: member.id,
       referenceDay: DAYS_OF_WEEK[i],
       scheduleDate: format(currentDay, "yyyy-MM-dd"),
-      deadline: deadlineFormatted.charAt(0).toUpperCase() + deadlineFormatted.slice(1),
+      deadline: deadlineFormatted,
       deadlineDate: deadlineDay.toISOString(),
       status: "Pendente",
       responsibleId,
@@ -69,7 +70,7 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
       memberId: memberAval.id,
       referenceDay: "Avaliadores",
       scheduleDate: format(startDate, "yyyy-MM-dd"),
-      deadline: "Terça-feira (23:59)",
+      deadline: "Terça (23:59)",
       deadlineDate: tuesday.toISOString(),
       status: "Pendente",
       responsibleId,
@@ -82,7 +83,7 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
       memberId: memberCap.id,
       referenceDay: "Capacitadores",
       scheduleDate: format(startDate, "yyyy-MM-dd"),
-      deadline: "Terça-feira (23:59)",
+      deadline: "Terça (23:59)",
       deadlineDate: tuesday.toISOString(),
       status: "Pendente",
       responsibleId,
