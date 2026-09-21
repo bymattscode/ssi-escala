@@ -216,28 +216,6 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
 
       {/* Main Generator Card */}
       <div className="bg-card border border-border/80 rounded-2xl shadow-xl shadow-black/20 overflow-hidden">
-        {/* Banner com Identidade Visual dos Instrutores */}
-        <div className="relative overflow-hidden bg-gradient-to-b from-[#0e172e] via-[#091022] to-[#060b17] border-b border-border/80 pt-8 pb-6 px-6 text-center">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent pointer-events-none" />
-          
-          <div className="relative flex flex-col items-center justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#1e2a4d]/70 border border-blue-500/30 flex items-center justify-center shadow-lg shadow-blue-950/50 mb-3 overflow-hidden">
-              <img 
-                src="https://i.imgur.com/WVgmuES.gif" 
-                alt="Insignia dos Instrutores" 
-                className="w-full h-full object-cover"
-                onError={(e) => { e.currentTarget.style.display = "none"; }}
-              />
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black text-white tracking-widest uppercase drop-shadow-md">
-              INSTRUTORES
-            </h2>
-            <p className="text-xs text-blue-400/90 font-medium tracking-wide mt-0.5">
-              Setor de Segurança dos Instrutores • Gerador de MPs
-            </p>
-          </div>
-        </div>
-
         {/* Tab Navigation (Idêntico ao Gerador Original) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 p-2.5 bg-[#080d1a] border-b border-border/70">
           <button
