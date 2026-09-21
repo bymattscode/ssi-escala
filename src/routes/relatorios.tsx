@@ -75,12 +75,12 @@ function RelatoriosPage() {
     }
 
     // 2. Se log.userId bate com um membro por ID
-    const memberById = members.find(m => m.id === log.userId);
-    if (memberById) return memberById.nick;
+    const memberById = members.find(m => m && m.id === log.userId);
+    if (memberById?.nick) return memberById.nick;
 
     // 3. Se log.userId bate com o nick de algum membro
-    const memberByNick = members.find(m => m.nick.toLowerCase() === String(log.userId).toLowerCase());
-    if (memberByNick) return memberByNick.nick;
+    const memberByNick = members.find(m => m && m.nick && m.nick.toLowerCase() === String(log.userId).toLowerCase());
+    if (memberByNick?.nick) return memberByNick.nick;
 
     // 4. Se log.userId é uma string com nome real (não é "1", "desconhecido" nem "-")
     if (log.userId && log.userId !== "1" && log.userId !== "desconhecido" && log.userId !== "-" && !log.userId.startsWith("SSI-MEM-")) {
@@ -91,8 +91,8 @@ function RelatoriosPage() {
     if (log.details && typeof log.details === "string") {
       const match = log.details.match(/\bpor\s+([A-Za-z0-9_.-]+)/i);
       if (match && match[1]) {
-        const found = members.find(m => m.nick.toLowerCase() === match[1].toLowerCase());
-        if (found) return found.nick;
+        const found = members.find(m => m && m.nick && m.nick.toLowerCase() === match[1].toLowerCase());
+        if (found?.nick) return found.nick;
         if (match[1].length >= 2 && !["uma", "um", "este", "esta", "definido", "todos"].includes(match[1].toLowerCase())) {
           return match[1];
         }
@@ -101,11 +101,11 @@ function RelatoriosPage() {
 
     // 6. Para logs legados onde userId === "1": tentar inferir pelo cargo registrado (log.userRole)
     if (log.userRole && log.userRole !== "Convidado") {
-      const sameRoleMembers = members.filter(m => m.role === log.userRole && m.status === "Ativo");
-      if (sameRoleMembers.length === 1) {
+      const sameRoleMembers = members.filter(m => m && m.role === log.userRole && m.status === "Ativo");
+      if (sameRoleMembers.length === 1 && sameRoleMembers[0].nick) {
         return sameRoleMembers[0].nick;
       }
-      if (sameRoleMembers.length > 0) {
+      if (sameRoleMembers.length > 0 && sameRoleMembers[0].nick) {
         return sameRoleMembers[0].nick;
       }
     }

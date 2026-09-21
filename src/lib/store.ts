@@ -228,8 +228,10 @@ export const addAuditLog = async (
   let resolvedNick = userNick;
   if (!resolvedNick) {
     const allMembers = getParsedData<Member[]>(KEYS.MEMBERS, []);
-    const member = allMembers.find(m => m.id === userId || m.nick?.toLowerCase() === userId?.toLowerCase());
-    if (member) {
+    const member = Array.isArray(allMembers) 
+      ? allMembers.find(m => m && (m.id === userId || (m.nick && m.nick.toLowerCase() === userId?.toLowerCase())))
+      : null;
+    if (member && member.nick) {
       resolvedNick = member.nick;
     } else if (userId && userId !== "1" && userId !== "desconhecido") {
       resolvedNick = userId;

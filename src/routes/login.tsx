@@ -45,8 +45,8 @@ const resolveUser = (members: any[], inputNick: string) => {
 };
 
 function Login() {
-  const { login } = useAuth();
-  const navigate = useNavigate({ from: "/login" });
+  const { login, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   
   const [nick, setNick] = useState("");
   const [step, setStep] = useState<"input_nick" | "input_code" | "validate_habbo" | "show_new_code">("input_nick");
@@ -61,6 +61,12 @@ function Login() {
   
   const [copied, setCopied] = useState(false);
   const [trustedDevice, setTrustedDevice] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate({ to: "/" });
+    }
+  }, [isAuthenticated, navigate]);
   
   // Warm up local cache by fetching remote members if not present
   useEffect(() => {

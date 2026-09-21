@@ -259,11 +259,13 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
 
   if (module === "logs") {
     const allMembers = getParsedDataLocally<any[]>(KEYS.MEMBERS, []);
-    const memberMap = new Map(allMembers.map(m => [m.id, m.nick]));
+    const validMembers = Array.isArray(allMembers) ? allMembers.filter(m => m && typeof m === 'object' && m.id) : [];
+    const memberMap = new Map(validMembers.map(m => [m.id, m.nick || m.id]));
 
-    return listToTranslate.map(item => {
+    return (Array.isArray(listToTranslate) ? listToTranslate : []).map(item => {
+      if (!item || typeof item !== 'object') return {};
       const dateTimeStr = formatBrasiliaDateTime(item.timestamp || item.date, true);
-      const userNick = item.userNick || memberMap.get(item.userId) || item.userId || "-";
+      const userNick = item.userNick || memberMap.get(item.userId) || (item.userId && item.userId !== "1" ? item.userId : undefined) || "-";
 
       return {
         "ID do Usuário": userNick,
@@ -453,12 +455,13 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
 
   if (module === "logs") {
     const allMembers = getParsedDataLocally<any[]>(KEYS.MEMBERS, []);
-    const nickMap = new Map(allMembers.map(m => [String(m.nick).trim().toLowerCase(), m.id]));
+    const validMembers = Array.isArray(allMembers) ? allMembers.filter(m => m && typeof m === 'object') : [];
 
-    return data.map((item: any) => {
+    return (Array.isArray(data) ? data : []).map((item: any) => {
+      if (!item || typeof item !== 'object') return {};
       const uNick = String(item["ID do Usuário"] || item["Usuário"] || item["Usuario"] || item["Nick"] || "").trim();
-      const member = allMembers.find(m => String(m.nick).trim().toLowerCase() === uNick.toLowerCase() || m.id === uNick);
-      const userId = member ? member.id : (uNick !== "-" && uNick !== "" ? uNick : "desconhecido");
+      const member = validMembers.find(m => (m.nick && String(m.nick).trim().toLowerCase() === uNick.toLowerCase()) || (m.id && m.id === uNick));
+      const userId = member ? member.id : (uNick !== "-" && uNick !== "" && uNick !== "desconhecido" ? uNick : "desconhecido");
       const userNick = member ? member.nick : (uNick !== "-" && uNick !== "" && uNick !== "desconhecido" ? uNick : undefined);
       
       const timeStr = item["Data e Hora"] || item["Timestamp"] || item["Data"] || "-";

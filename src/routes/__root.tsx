@@ -45,30 +45,61 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
+  const handleResetStorage = () => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {}
+      window.location.href = "/login";
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+      <div className="max-w-lg text-center bg-card/60 backdrop-blur-xl border border-border p-8 rounded-2xl shadow-2xl">
+        <div className="h-14 w-14 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4 text-red-400">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <h1 className="text-xl font-bold tracking-tight text-foreground mb-2">
+          Falha ao carregar a página
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <p className="text-sm text-muted-foreground mb-4">
+          Ocorreu uma instabilidade temporária ao processar os dados desta tela.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+
+        {error?.message && (
+          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-left text-xs font-mono text-red-400 overflow-x-auto max-h-32 select-all">
+            <span className="font-bold block mb-1">Erro detectado:</span>
+            {error.message}
+          </div>
+        )}
+
+        <div className="flex flex-wrap justify-center gap-3">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 shadow-sm"
           >
-            Try again
+            Tentar novamente
+          </button>
+          <button
+            onClick={handleResetStorage}
+            className="inline-flex items-center justify-center rounded-lg bg-secondary text-foreground hover:bg-secondary/80 px-4 py-2.5 text-sm font-medium border border-border transition-colors shadow-sm"
+          >
+            Limpar cache e reiniciar
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex items-center justify-center rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
-            Go home
+            Ir para o início
           </a>
         </div>
       </div>
