@@ -68,6 +68,51 @@ function RelatoriosPage() {
 
   const getMemberDetails = (id: string) => members.find(m => m.id === id) || null;
 
+  const resolveUserDisplayName = (log: AuditLog): string => {
+    // 1. Se tem userNick explícito e válido
+    if (log.userNick && log.userNick !== "-" && log.userNick !== "desconhecido" && log.userNick !== "1") {
+      return log.userNick;
+    }
+
+    // 2. Se log.userId bate com um membro por ID
+    const memberById = members.find(m => m.id === log.userId);
+    if (memberById) return memberById.nick;
+
+    // 3. Se log.userId bate com o nick de algum membro
+    const memberByNick = members.find(m => m.nick.toLowerCase() === String(log.userId).toLowerCase());
+    if (memberByNick) return memberByNick.nick;
+
+    // 4. Se log.userId é uma string com nome real (não é "1", "desconhecido" nem "-")
+    if (log.userId && log.userId !== "1" && log.userId !== "desconhecido" && log.userId !== "-" && !log.userId.startsWith("SSI-MEM-")) {
+      return log.userId;
+    }
+
+    // 5. Tenta extrair do campo details se contiver " por [Nick]"
+    if (log.details && typeof log.details === "string") {
+      const match = log.details.match(/\bpor\s+([A-Za-z0-9_.-]+)/i);
+      if (match && match[1]) {
+        const found = members.find(m => m.nick.toLowerCase() === match[1].toLowerCase());
+        if (found) return found.nick;
+        if (match[1].length >= 2 && !["uma", "um", "este", "esta", "definido", "todos"].includes(match[1].toLowerCase())) {
+          return match[1];
+        }
+      }
+    }
+
+    // 6. Para logs legados onde userId === "1": tentar inferir pelo cargo registrado (log.userRole)
+    if (log.userRole && log.userRole !== "Convidado") {
+      const sameRoleMembers = members.filter(m => m.role === log.userRole && m.status === "Ativo");
+      if (sameRoleMembers.length === 1) {
+        return sameRoleMembers[0].nick;
+      }
+      if (sameRoleMembers.length > 0) {
+        return sameRoleMembers[0].nick;
+      }
+    }
+
+    return "Sistema";
+  };
+
   // Simple stats for reports
   const stats = useMemo(() => {
     const sectorMembers = members.filter(m => 
@@ -103,9 +148,18 @@ function RelatoriosPage() {
       result = result.filter(log => log.module === moduleFilter);
     }
     
-    // Filter by Member (UserId)
+    // Filter by Member (UserId / Nick / DisplayName)
     if (memberFilter !== "Todos") {
-      result = result.filter(log => log.userId === memberFilter);
+      const targetLower = memberFilter.toLowerCase();
+      result = result.filter(log => {
+        const disp = resolveUserDisplayName(log).toLowerCase();
+        if (disp === targetLower) return true;
+        if (log.userNick && log.userNick.toLowerCase() === targetLower) return true;
+        if (log.userId && log.userId.toLowerCase() === targetLower) return true;
+        const member = members.find(m => m.id === log.userId);
+        if (member && member.nick.toLowerCase() === targetLower) return true;
+        return false;
+      });
     }
 
     // Filter by Date
@@ -114,7 +168,7 @@ function RelatoriosPage() {
       const oneDay = 24 * 60 * 60 * 1000;
       
       result = result.filter(log => {
-        const diff = now - log.timestamp;
+        const diff = now - (log.timestamp || 0);
         if (periodFilter === "Hoje") return diff <= oneDay;
         if (periodFilter === "7D") return diff <= 7 * oneDay;
         if (periodFilter === "30D") return diff <= 30 * oneDay;
@@ -123,8 +177,8 @@ function RelatoriosPage() {
     }
     
     // Sort descending by timestamp
-    return result.sort((a, b) => b.timestamp - a.timestamp);
-  }, [logs, moduleFilter, memberFilter, periodFilter]);
+    return result.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  }, [logs, moduleFilter, memberFilter, periodFilter, members]);
 
   if (!isAdmin) {
     return (
@@ -182,12 +236,13 @@ function RelatoriosPage() {
               <select 
                 value={memberFilter} 
                 onChange={e => setMemberFilter(e.target.value)}
-                className="bg-background border border-border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-primary/50 max-w-[150px] truncate"
+                className="bg-background border border-border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-primary/50 max-w-[160px] truncate"
               >
                 <option value="Todos">Todos os Membros</option>
-                {members.filter(m => m.role === "Presidente" || m.role === "Vice-Presidente" || m.role === "Diretor").map(m => (
-                  <option key={m.id} value={m.id}>{m.nick}</option>
+                {members.filter(m => m.status === "Ativo" && m.nick !== "Admin" && !m.nick.toLowerCase().includes("min. instrutores")).map(m => (
+                  <option key={m.id} value={m.nick}>{m.nick}</option>
                 ))}
+                <option value="Sistema">Sistema</option>
               </select>
             </div>
 
@@ -223,12 +278,34 @@ function RelatoriosPage() {
                 </thead>
                 <tbody>
                   {filteredLogs.map((log) => {
-                    const user = getMemberDetails(log.userId);
-                    const displayName = user?.nick || (log.userId && log.userId !== "1" ? log.userId : "Sistema");
+                    const displayName = resolveUserDisplayName(log);
                     return (
                       <tr key={log.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                         <td className="px-6 py-4 text-muted-foreground whitespace-nowrap font-mono text-xs">{formatBrasiliaDateTime(log.timestamp || log.date, true)}</td>
-                        <td className="px-6 py-4 font-medium text-foreground whitespace-nowrap">{String(displayName)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-7 w-7 rounded-full bg-secondary/80 border border-border/80 flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+                              {displayName !== "Sistema" ? (
+                                <img 
+                                  src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${displayName}&headonly=1&size=m`} 
+                                  alt={displayName} 
+                                  className="h-8 w-8 object-cover -mt-1"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLElement).style.display = 'none';
+                                  }} 
+                                />
+                              ) : (
+                                <span className="text-[9px] font-bold text-muted-foreground">SYS</span>
+                              )}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-semibold text-foreground text-sm leading-tight">{String(displayName)}</span>
+                              {log.userRole && log.userRole !== "-" && displayName !== "Sistema" && (
+                                <span className="text-[10.5px] text-muted-foreground/80 leading-tight">{log.userRole}</span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {getActionBadge(log.action)}
                         </td>

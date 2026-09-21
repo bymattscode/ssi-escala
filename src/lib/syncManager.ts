@@ -456,8 +456,10 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
     const nickMap = new Map(allMembers.map(m => [String(m.nick).trim().toLowerCase(), m.id]));
 
     return data.map((item: any) => {
-      const uNick = String(item["ID do Usuário"] || "").trim();
-      const userId = uNick !== "-" && uNick !== "" ? (nickMap.get(uNick.toLowerCase()) || uNick) : "desconhecido";
+      const uNick = String(item["ID do Usuário"] || item["Usuário"] || item["Usuario"] || item["Nick"] || "").trim();
+      const member = allMembers.find(m => String(m.nick).trim().toLowerCase() === uNick.toLowerCase() || m.id === uNick);
+      const userId = member ? member.id : (uNick !== "-" && uNick !== "" ? uNick : "desconhecido");
+      const userNick = member ? member.nick : (uNick !== "-" && uNick !== "" && uNick !== "desconhecido" ? uNick : undefined);
       
       const timeStr = item["Data e Hora"] || item["Timestamp"] || item["Data"] || "-";
       let timestamp = Date.now();
@@ -481,6 +483,7 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
         date: String(timeStr).split(" ")[0] || "-",
         timestamp,
         userId,
+        userNick,
         userRole: item["Cargo do Usuário"] || "-",
         action: item["Ação"] || "-",
         module: item["Módulo"] || "-",

@@ -180,7 +180,7 @@ function CasosPage() {
       proofAttachment: newProof
     };
     await addCase(newCase);
-    await addAuditLog(creatorIdValue, role, "Abertura de Caso", "Casos", `Caso #${newCase.id} aberto contra ${newOffender} por ${creatorNickValue}.`, newCase.id);
+    await addAuditLog(creatorIdValue, role, "Abertura de Caso", "Casos", `Caso #${newCase.id} aberto contra ${newOffender} por ${creatorNickValue}.`, newCase.id, creatorNickValue);
     setIsCreateOpen(false);
     toast.success("Caso aberto com sucesso!");
     fetchData();
@@ -232,7 +232,8 @@ function CasosPage() {
       resDecision === "Resolver" ? "Resolução de Caso" : "Cancelamento de Caso", 
       "Casos", 
       `Caso #${resolveCase.id} foi ${resDecision === "Resolver" ? "resolvido" : "cancelado"} por ${resolverNickValue}.`, 
-      resolveCase.id
+      resolveCase.id,
+      resolverNickValue
     );
 
     // Se o caso foi resolvido com aplicação de punição, gera automaticamente o registro em Punições (advertências)
@@ -261,7 +262,8 @@ function CasosPage() {
         "Registro de Punição",
         "Punições",
         `Punição (${resPunishment}) gerada automaticamente a partir da resolução do Caso #${resolveCase.id} para ${resolveCase.offenderNick} por ${resolverNickValue}.`,
-        newWarning.id
+        newWarning.id,
+        resolverNickValue
       );
     }
     
@@ -292,7 +294,7 @@ function CasosPage() {
     const actorId = user?.id || userName || "Desconhecido";
     const actorNick = userName || user?.nick || "Desconhecido";
     await deleteCase(caseToDelete.id);
-    await addAuditLog(actorId, role, "Exclusão de Caso" as any, "Casos", `Caso #${caseToDelete.id} foi excluído definitivamente por ${actorNick}.`, caseToDelete.id);
+    await addAuditLog(actorId, role, "Exclusão de Caso" as any, "Casos", `Caso #${caseToDelete.id} foi excluído definitivamente por ${actorNick}.`, caseToDelete.id, actorNick);
     setCaseToDelete(null);
     toast.success("Caso excluído permanentemente com sucesso!");
     fetchData();

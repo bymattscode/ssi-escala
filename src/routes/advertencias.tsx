@@ -149,7 +149,7 @@ function AdvertenciasPage() {
     };
 
     await addWarning(newWarning);
-    await addAuditLog(creatorId, role, "Registro de Punição", "Punições", `Punição (${newType}) registrada para ${newOffender} por ${creatorNick}.`, newWarning.id);
+    await addAuditLog(creatorId, role, "Registro de Punição", "Punições", `Punição (${newType}) registrada para ${newOffender} por ${creatorNick}.`, newWarning.id, creatorNick);
     toast.success("Punição disciplinar registrada no histórico com sucesso!");
     setIsCreateOpen(false);
     fetchData();
@@ -167,7 +167,7 @@ function AdvertenciasPage() {
     const actorId = user?.id || userName || "Desconhecido";
     const actorNick = userName || user?.nick || "Desconhecido";
     await deleteWarning(warningToDelete.id);
-    await addAuditLog(actorId, role, "Exclusão de Punição" as any, "Punições", `Punição #${warningToDelete.id} foi excluída definitivamente por ${actorNick}.`, warningToDelete.id);
+    await addAuditLog(actorId, role, "Exclusão de Punição" as any, "Punições", `Punição #${warningToDelete.id} foi excluída definitivamente por ${actorNick}.`, warningToDelete.id, actorNick);
     setWarningToDelete(null);
     toast.success("Punição excluída permanentemente com sucesso!");
     fetchData();

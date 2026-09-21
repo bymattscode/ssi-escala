@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
-import { getConfig, updateConfig, addSyncLog } from "../../lib/store";
+import { getConfig, updateConfig, addSyncLog, addAuditLog } from "../../lib/store";
 import { backupToRemote } from "../../lib/syncManager";
 
 interface TopBarProps {
@@ -50,6 +50,15 @@ export function TopBar({ onMenuToggle, isCollapsed = false }: TopBarProps) {
         const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
         await updateConfig({ lastWrite: now });
         setLastBackup(now);
+        await addAuditLog(
+          user?.id || user?.nick || userName || "Sistema", 
+          role, 
+          "Backup do Sistema" as any, 
+          "Sistema", 
+          `Backup manual do sistema para o Google Sheets sincronizado com sucesso por ${userName || user?.nick}.`, 
+          undefined, 
+          userName || user?.nick
+        );
         toast.success("Backup concluído e sincronizado na planilha Google Sheets com sucesso!");
       } else {
         toast.error("Ocorreu uma falha ao comunicar com a planilha. Verifique a configuração.");

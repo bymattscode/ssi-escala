@@ -116,6 +116,7 @@ export interface AuditLog {
   date: string;
   timestamp: number;
   userId: string; // Quem fez a ação
+  userNick?: string; // Nickname direto de quem executou a ação
   userRole: Role;
   action: AuditAction;
   module: AuditModule;

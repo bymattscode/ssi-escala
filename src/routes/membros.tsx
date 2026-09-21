@@ -166,9 +166,11 @@ function MembrosPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [revokeTarget, setRevokeTarget] = useState<Member | null>(null);
-  const { role } = useAuth();
+  const { user, role, userName } = useAuth();
   
   const isAdmin = role === "Ministério" || role === "Presidente" || role === "Vice-Presidente";
+  const currentUserId = user?.id || user?.nick || userName || "Sistema";
+  const currentUserNick = user?.nick || userName || "Sistema";
 
   const fetchMembers = async () => {
     setIsLoading(true);
@@ -241,7 +243,7 @@ function MembrosPage() {
   const handleReactivate = async (m: Member) => {
     if (!isAdmin) return;
     await updateMemberStatus(m.id, "Ativo");
-    await addAuditLog("1", role, "Retorno de Licença", "Membros", `O membro ${m.nick} retornou da licença.`, m.id);
+    await addAuditLog(currentUserId, role, "Retorno de Licença", "Membros", `O membro ${m.nick} retornou da licença.`, m.id, currentUserNick);
     toast.success("Membro reativado com sucesso!");
     fetchMembers();
   };
@@ -254,7 +256,7 @@ function MembrosPage() {
   const confirmRevokeAccess = async () => {
     if (!revokeTarget || !isAdmin) return;
     await updateMember(revokeTarget.id, { accessCode: "" });
-    await addAuditLog("1", role, "Revogação de Acesso", "Membros", `O código de acesso de ${revokeTarget.nick} foi revogado.`, revokeTarget.id);
+    await addAuditLog(currentUserId, role, "Revogação de Acesso", "Membros", `O código de acesso de ${revokeTarget.nick} foi revogado.`, revokeTarget.id, currentUserNick);
     toast.success("Código de acesso revogado com sucesso!");
     setRevokeTarget(null);
     fetchMembers();
@@ -278,7 +280,7 @@ function MembrosPage() {
       permissions: editPermissions,
       accessCode: editAccessCode.trim() || undefined
     });
-    await addAuditLog("1", role, "Edição de Membro", "Membros", `Os dados de ${editMember.nick} foram atualizados.`, editMember.id);
+    await addAuditLog(currentUserId, role, "Edição de Membro", "Membros", `Os dados de ${editMember.nick} foram atualizados.`, editMember.id, currentUserNick);
     toast.success("Membro atualizado com sucesso!");
     setEditMember(null);
     fetchMembers();
@@ -312,11 +314,11 @@ function MembrosPage() {
         leaveStartDate: leaveStart,
         leaveEndDate: leaveEnd
       });
-      await addAuditLog("1", role, "Membro em Licença", "Membros", `O membro ${deactivateMember.nick} entrou em licença de ${leaveStart} até ${leaveEnd}.`, deactivateMember.id);
+      await addAuditLog(currentUserId, role, "Membro em Licença", "Membros", `O membro ${deactivateMember.nick} entrou em licença de ${leaveStart} até ${leaveEnd}.`, deactivateMember.id, currentUserNick);
       toast.success("Status atualizado: Membro colocado em licença com sucesso!");
     } else {
       await deleteMember(deactivateMember.id);
-      await addAuditLog("1", role, "Desligamento de Membro", "Membros", `O membro ${deactivateMember.nick} foi desligado do setor.`, deactivateMember.id);
+      await addAuditLog(currentUserId, role, "Desligamento de Membro", "Membros", `O membro ${deactivateMember.nick} foi desligado do setor.`, deactivateMember.id, currentUserNick);
       toast.success("Membro desligado do setor e removido da listagem ativa.");
     }
     setDeactivateMember(null);
@@ -327,7 +329,7 @@ function MembrosPage() {
     if (!isAdmin) return;
     const next = current === "Ativo" ? "Inativo" : "Ativo";
     await updateMemberStatus(id, next as "Ativo" | "Inativo");
-    await addAuditLog("1", role, "Alteração de Status", "Membros", `O status do membro foi alterado para ${next}.`, id);
+    await addAuditLog(currentUserId, role, "Alteração de Status", "Membros", `O status do membro foi alterado para ${next}.`, id, currentUserNick);
     toast.success(`Membro marcado como ${next}`);
     fetchMembers();
   };
@@ -365,7 +367,7 @@ function MembrosPage() {
       permissions: newMemberPermissions
     };
     await addMember(newMember);
-    await addAuditLog("1", role, "Criação de Membro", "Membros", `O membro ${newMember.nick} foi adicionado como ${newMemberRole}.`, newMember.id);
+    await addAuditLog(currentUserId, role, "Criação de Membro", "Membros", `O membro ${newMember.nick} foi adicionado como ${newMemberRole}.`, newMember.id, currentUserNick);
     toast.success("Membro adicionado e sincronizado!");
     setIsAddingMember(false);
     fetchMembers();

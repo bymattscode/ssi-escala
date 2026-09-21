@@ -220,15 +220,28 @@ export const addAuditLog = async (
   action: AuditAction,
   module: AuditModule,
   details: string,
-  targetId?: string
+  targetId?: string,
+  userNick?: string
 ): Promise<void> => {
   const logs = getParsedData<AuditLog[]>(KEYS.AUDIT, []);
   
+  let resolvedNick = userNick;
+  if (!resolvedNick) {
+    const allMembers = getParsedData<Member[]>(KEYS.MEMBERS, []);
+    const member = allMembers.find(m => m.id === userId || m.nick?.toLowerCase() === userId?.toLowerCase());
+    if (member) {
+      resolvedNick = member.nick;
+    } else if (userId && userId !== "1" && userId !== "desconhecido") {
+      resolvedNick = userId;
+    }
+  }
+
   const newLog: AuditLog = {
     id: `SSI-LOG-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`,
     date: new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" }),
     timestamp: Date.now(),
-    userId,
+    userId: userId || "Sistema",
+    userNick: resolvedNick,
     userRole,
     action,
     module,

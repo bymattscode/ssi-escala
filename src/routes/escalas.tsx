@@ -226,8 +226,10 @@ function EscalasPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showConfirmGenerate, setShowConfirmGenerate] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { role, userName } = useAuth();
+  const { user, role, userName } = useAuth();
   const isAdmin = role === "Ministério" || role === "Presidente" || role === "Vice-Presidente";
+  const currentUserId = user?.id || user?.nick || userName || "Sistema";
+  const currentUserNick = user?.nick || userName || "Sistema";
   
   // Modals state
   const [justifyingSchedule, setJustifyingSchedule] = useState<Schedule | null>(null);
@@ -319,10 +321,10 @@ function EscalasPage() {
     toast.info("Gerando escala automática...");
     
     try {
-      await generateWeeklySchedule(weekStart, members, "Fiscalizador", "1");
-      await generateWeeklySchedule(weekStart, members, "Diretor", "1");
+      await generateWeeklySchedule(weekStart, members, "Fiscalizador", currentUserId);
+      await generateWeeklySchedule(weekStart, members, "Diretor", currentUserId);
       
-      await addAuditLog("1", role, "Geração de Escala", "Escalas", `Escalas automáticas geradas para a semana ${selectedWeek}.`);
+      await addAuditLog(currentUserId, role, "Geração de Escala", "Escalas", `Escalas automáticas geradas para a semana ${selectedWeek}.`, undefined, currentUserNick);
       
       await fetchSchedules();
       toast.success("Escalas geradas com sucesso para a semana!");
@@ -350,7 +352,7 @@ function EscalasPage() {
       responseDate: isCompleted ? new Date().toISOString() : undefined 
     });
     
-    await addAuditLog("1", role, "Alteração de Status", "Escalas", `Status da escala #${id} alterado para ${next}.`, id);
+    await addAuditLog(currentUserId, role, "Alteração de Status", "Escalas", `Status da escala #${id} alterado para ${next}.`, id, currentUserNick);
     
     toast.success(`Status da escala atualizado para: ${next}`);
     fetchSchedules();
@@ -358,7 +360,7 @@ function EscalasPage() {
 
   const handleMemberChange = async (scheduleId: string, newMemberId: string) => {
     await updateSchedule(scheduleId, { memberId: newMemberId });
-    await addAuditLog("1", role, "Edição de Membro", "Escalas", `Membro atribuído à escala #${scheduleId}.`, scheduleId);
+    await addAuditLog(currentUserId, role, "Edição de Membro", "Escalas", `Membro atribuído à escala #${scheduleId}.`, scheduleId, currentUserNick);
     toast.success("Membro atribuído com sucesso!");
     fetchSchedules();
   };
@@ -382,7 +384,7 @@ function EscalasPage() {
       responseDate: nowIso
     });
     
-    await addAuditLog("1", role, "Envio de Justificativa", "Escalas", `Justificativa enviada para a escala #${justifyingSchedule.id}.`, justifyingSchedule.id);
+    await addAuditLog(currentUserId, role, "Envio de Justificativa", "Escalas", `Justificativa enviada para a escala #${justifyingSchedule.id}.`, justifyingSchedule.id, currentUserNick);
     
     toast.success("Justificativa registrada com sucesso! Status da escala atualizado para Justificado.");
     setJustifyingSchedule(null);
@@ -406,7 +408,7 @@ function EscalasPage() {
       responseDate: new Date().toISOString(),
     });
     
-    await addAuditLog("1", role, "Alteração de Status", "Escalas", `Função registrada como Concluído na escala #${registeringSchedule.id}.`, registeringSchedule.id);
+    await addAuditLog(currentUserId, role, "Alteração de Status", "Escalas", `Função registrada como Concluído na escala #${registeringSchedule.id}.`, registeringSchedule.id, currentUserNick);
     
     toast.success("Registro operacional enviado e validado! Status atualizado para Concluído.");
     setRegisteringSchedule(null);
