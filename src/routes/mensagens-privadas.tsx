@@ -130,16 +130,21 @@ const CRIMES_CPI: CrimeCpiMapping[] = [
 ];
 
 function findCrimeMapping(text: string): CrimeCpiMapping | undefined {
-  const clean = text.trim().toLowerCase();
-  if (!clean) return undefined;
+  const normalize = (str: string) =>
+    str
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
 
-  return CRIMES_CPI.find(
-    (c) =>
-      c.value.toLowerCase() === clean ||
-      c.label.toLowerCase() === clean ||
-      clean.includes(c.label.toLowerCase()) ||
-      c.label.toLowerCase().includes(clean)
-  );
+  const clean = normalize(text);
+  if (!clean || clean.length < 3) return undefined;
+
+  return CRIMES_CPI.find((c) => {
+    const val = normalize(c.value);
+    const lab = normalize(c.label);
+    return clean === val || clean === lab || clean.includes(val) || val.includes(clean) || clean.includes(lab) || lab.includes(clean);
+  });
 }
 
 function getTodayFormatted(): string {
@@ -508,78 +513,23 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
 
               {/* Crime Cometido */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Crime cometido:
-                  </label>
-                  <span className="text-[11px] text-primary/90 font-medium flex items-center gap-1">
-                    <BookOpen className="h-3 w-3" />
-                    Sincronizado com o CPI
-                  </span>
-                </div>
-
-                {/* Seleção em Dropdown de Crimes do CPI */}
-                <div className="relative">
-                  <select
-                    value={CRIMES_CPI.some(c => c.value === crime) ? crime : ""}
-                    onChange={(e) => handleSelectCrime(e.target.value)}
-                    className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground transition-all cursor-pointer appearance-none pr-10"
-                  >
-                    <option value="" disabled className="bg-[#0b1120] text-muted-foreground">
-                      Selecione um crime do Código Penal...
-                    </option>
-                    {CRIMES_CPI.map((c) => (
-                      <option key={c.value} value={c.value} className="bg-[#0b1120] text-foreground">
-                        {c.label} ({c.secao})
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
-                    <ChevronDown className="h-4 w-4" />
-                  </div>
-                </div>
-
-                {/* Campo de texto para personalização */}
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Crime cometido:
+                </label>
                 <input
                   type="text"
                   value={crime}
                   onChange={handleCrimeInputChange}
-                  placeholder="Ou digite o crime cometido..."
-                  className="w-full bg-secondary/30 border border-border/60 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 transition-all font-sans"
+                  placeholder="Ex: Postagem incorreta"
+                  className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all"
                 />
-
-                {/* Sugestões Rápidas de Crimes do CPI */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {CRIMES_CPI.slice(0, 7).map((c) => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      onClick={() => handleSelectCrime(c.value)}
-                      className={cn(
-                        "px-2.5 py-1 text-[11px] rounded-lg border transition-all cursor-pointer",
-                        crime.toLowerCase() === c.value.toLowerCase()
-                          ? "bg-primary/20 text-primary border-primary/50 font-bold shadow-sm"
-                          : "bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary border-border/70"
-                      )}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* Seção do Código Penal */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Seção do Código Penal:
-                  </label>
-                  {secao && (
-                    <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
-                      ✓ Atualizada automaticamente
-                    </span>
-                  )}
-                </div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Seção do Código Penal:
+                </label>
                 <input
                   type="text"
                   value={secao}
@@ -587,31 +537,6 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
                   placeholder="Ex: Capítulo III, Seção I, Art. 2°"
                   className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all font-mono"
                 />
-                {/* Sugestões Rápidas de Seções */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {[
-                    { label: "Seção I (Postagem)", val: "Capítulo III, Seção I, Art. 2°" },
-                    { label: "Seção II (Manipulação)", val: "Capítulo III, Seção II, Art. 1°" },
-                    { label: "Seção III (Negligência)", val: "Capítulo III, Seção III, Art. 1°" },
-                    { label: "Seção IV (Conduta Imprópria)", val: "Capítulo III, Seção IV, Art. 1°" },
-                    { label: "Seção VII (Ausência / Insuficiência)", val: "Capítulo III, Seção VII, Art. 1°" },
-                    { label: "Seção VI (Reincidência)", val: "Capítulo II, Seção VI, Art. 1°" },
-                  ].map((s) => (
-                    <button
-                      key={s.val}
-                      type="button"
-                      onClick={() => setSecao(s.val)}
-                      className={cn(
-                        "px-2.5 py-1 text-[11px] rounded-lg border transition-all cursor-pointer",
-                        secao === s.val
-                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-semibold shadow-sm"
-                          : "bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary border-border/70"
-                      )}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
           )}
