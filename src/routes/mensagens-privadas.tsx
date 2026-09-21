@@ -7,10 +7,12 @@ import {
   ExternalLink, 
   Eye, 
   Code2, 
-  RotateCcw,
-  ShieldAlert,
-  Send,
-  FileText
+  RotateCcw, 
+  ShieldAlert, 
+  Send, 
+  FileText,
+  ChevronDown,
+  BookOpen
 } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
@@ -26,6 +28,119 @@ const MONTHS_PT = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", 
   "Jul", "Ago", "Set", "Out", "Nov", "Dez"
 ];
+
+interface CrimeCpiMapping {
+  label: string;
+  value: string;
+  secao: string;
+  punicaoPadrao: string;
+}
+
+const CRIMES_CPI: CrimeCpiMapping[] = [
+  {
+    label: "Postagem incorreta",
+    value: "Postagem incorreta",
+    secao: "Capítulo III, Seção I, Art. 2°",
+    punicaoPadrao: "Observação",
+  },
+  {
+    label: "Ausência injustificada",
+    value: "Ausência injustificada",
+    secao: "Capítulo III, Seção VII, Art. 1°",
+    punicaoPadrao: "Rebaixamento",
+  },
+  {
+    label: "Erro de aplicação",
+    value: "Erro de aplicação",
+    secao: "Capítulo III, Seção III, Art. 1°",
+    punicaoPadrao: "Observação",
+  },
+  {
+    label: "Manipulação de script",
+    value: "Manipulação de script",
+    secao: "Capítulo III, Seção II, Art. 1°",
+    punicaoPadrao: "Advertência Interna",
+  },
+  {
+    label: "Abandono de dever / Negligência",
+    value: "Abandono de dever / Negligência",
+    secao: "Capítulo III, Seção III, Art. 1°",
+    punicaoPadrao: "Advertência Interna",
+  },
+  {
+    label: "Conduta imprópria",
+    value: "Conduta imprópria",
+    secao: "Capítulo III, Seção IV, Art. 1°",
+    punicaoPadrao: "Advertência Interna",
+  },
+  {
+    label: "Insubordinação",
+    value: "Insubordinação",
+    secao: "Capítulo III, Seção IV, Art. 1°",
+    punicaoPadrao: "Advertência Interna",
+  },
+  {
+    label: "Dano Institucional",
+    value: "Dano Institucional",
+    secao: "Capítulo III, Seção IV, Art. 1°",
+    punicaoPadrao: "Advertência Interna",
+  },
+  {
+    label: "Abuso de poder",
+    value: "Abuso de poder",
+    secao: "Capítulo III, Seção V, Art. 1°",
+    punicaoPadrao: "Advertência Interna",
+  },
+  {
+    label: "Falsificação de informações",
+    value: "Falsificação de informações",
+    secao: "Capítulo III, Seção VI, Art. 1°",
+    punicaoPadrao: "Advertência Interna",
+  },
+  {
+    label: "Insuficiência para o cargo",
+    value: "Insuficiência para o cargo",
+    secao: "Capítulo III, Seção VII, Art. 1°",
+    punicaoPadrao: "Rebaixamento",
+  },
+  {
+    label: "Quebra de sigilo",
+    value: "Quebra de sigilo",
+    secao: "Capítulo III, Seção VIII, Art. 1°",
+    punicaoPadrao: "Advertência Interna",
+  },
+  {
+    label: "Perturbação à instrução",
+    value: "Perturbação à instrução",
+    secao: "Capítulo III, Seção IX, Art. 1°",
+    punicaoPadrao: "Observação",
+  },
+  {
+    label: "Obstrução à justiça",
+    value: "Obstrução à justiça",
+    secao: "Capítulo III, Seção X, Art. 1°",
+    punicaoPadrao: "Advertência Interna",
+  },
+  {
+    label: "Reincidência",
+    value: "Reincidência",
+    secao: "Capítulo II, Seção VI, Art. 1°",
+    punicaoPadrao: "Advertência Interna",
+  },
+];
+
+function findCrimeMapping(text: string): CrimeCpiMapping | undefined {
+  const clean = text.trim().toLowerCase();
+  if (!clean) return undefined;
+
+  return CRIMES_CPI.find(
+    (c) =>
+      c.value.toLowerCase() === clean ||
+      c.label.toLowerCase() === clean ||
+      clean.includes(c.label.toLowerCase()) ||
+      c.label.toLowerCase().includes(clean)
+  );
+}
 
 function getTodayFormatted(): string {
   const now = new Date();
@@ -62,6 +177,27 @@ export function MensagensPrivadasPage() {
     const today = getTodayFormatted();
     setData(today);
     toast.info(`Data atualizada para ${today}`);
+  };
+
+  const handleSelectCrime = (selectedCrime: string) => {
+    setCrime(selectedCrime);
+    const found = findCrimeMapping(selectedCrime);
+    if (found) {
+      setSecao(found.secao);
+      if (!tipoPunicao || tipoPunicao === "INFORMAR PUNIÇÃO") {
+        setTipoPunicao(found.punicaoPadrao);
+      }
+      toast.success(`Seção do CPI vinculada automaticamente: ${found.secao}`);
+    }
+  };
+
+  const handleCrimeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCrime(val);
+    const found = findCrimeMapping(val);
+    if (found) {
+      setSecao(found.secao);
+    }
   };
 
   const handleClear = () => {
@@ -372,26 +508,61 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
 
               {/* Crime Cometido */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Crime cometido:
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Crime cometido:
+                  </label>
+                  <span className="text-[11px] text-primary/90 font-medium flex items-center gap-1">
+                    <BookOpen className="h-3 w-3" />
+                    Sincronizado com o CPI
+                  </span>
+                </div>
+
+                {/* Seleção em Dropdown de Crimes do CPI */}
+                <div className="relative">
+                  <select
+                    value={CRIMES_CPI.some(c => c.value === crime) ? crime : ""}
+                    onChange={(e) => handleSelectCrime(e.target.value)}
+                    className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground transition-all cursor-pointer appearance-none pr-10"
+                  >
+                    <option value="" disabled className="bg-[#0b1120] text-muted-foreground">
+                      Selecione um crime do Código Penal...
+                    </option>
+                    {CRIMES_CPI.map((c) => (
+                      <option key={c.value} value={c.value} className="bg-[#0b1120] text-foreground">
+                        {c.label} ({c.secao})
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+                </div>
+
+                {/* Campo de texto para personalização */}
                 <input
                   type="text"
                   value={crime}
-                  onChange={(e) => setCrime(e.target.value)}
-                  placeholder="Ex: Postagem incorreta"
-                  className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all"
+                  onChange={handleCrimeInputChange}
+                  placeholder="Ou digite o crime cometido..."
+                  className="w-full bg-secondary/30 border border-border/60 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 transition-all font-sans"
                 />
+
                 {/* Sugestões Rápidas de Crimes do CPI */}
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {["Postagem incorreta", "Ausência injustificada", "Erro de aplicação", "Insubordinação", "Dano Institucional"].map((c) => (
+                  {CRIMES_CPI.slice(0, 7).map((c) => (
                     <button
-                      key={c}
+                      key={c.value}
                       type="button"
-                      onClick={() => setCrime(c)}
-                      className="px-2.5 py-1 text-[11px] rounded-lg bg-secondary/60 hover:bg-primary/20 hover:text-primary border border-border/70 transition-colors"
+                      onClick={() => handleSelectCrime(c.value)}
+                      className={cn(
+                        "px-2.5 py-1 text-[11px] rounded-lg border transition-all cursor-pointer",
+                        crime.toLowerCase() === c.value.toLowerCase()
+                          ? "bg-primary/20 text-primary border-primary/50 font-bold shadow-sm"
+                          : "bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary border-border/70"
+                      )}
                     >
-                      {c}
+                      {c.label}
                     </button>
                   ))}
                 </div>
@@ -399,31 +570,45 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
 
               {/* Seção do Código Penal */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Seção do Código Penal:
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Seção do Código Penal:
+                  </label>
+                  {secao && (
+                    <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1">
+                      ✓ Atualizada automaticamente
+                    </span>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={secao}
                   onChange={(e) => setSecao(e.target.value)}
                   placeholder="Ex: Capítulo III, Seção I, Art. 2°"
-                  className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all"
+                  className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all font-mono"
                 />
                 {/* Sugestões Rápidas de Seções */}
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {[
-                    "Capítulo II, Seção I, Art. 5° (Observação)",
-                    "Capítulo II, Seção II, Art. 6° (Erro de Postagem)",
-                    "Capítulo II, Seção III, Art. 7° (Advertência)",
-                    "Capítulo III, Art. 10 (Crimes)"
+                    { label: "Seção I (Postagem)", val: "Capítulo III, Seção I, Art. 2°" },
+                    { label: "Seção II (Manipulação)", val: "Capítulo III, Seção II, Art. 1°" },
+                    { label: "Seção III (Negligência)", val: "Capítulo III, Seção III, Art. 1°" },
+                    { label: "Seção IV (Conduta Imprópria)", val: "Capítulo III, Seção IV, Art. 1°" },
+                    { label: "Seção VII (Ausência / Insuficiência)", val: "Capítulo III, Seção VII, Art. 1°" },
+                    { label: "Seção VI (Reincidência)", val: "Capítulo II, Seção VI, Art. 1°" },
                   ].map((s) => (
                     <button
-                      key={s}
+                      key={s.val}
                       type="button"
-                      onClick={() => setSecao(s.split(" (")[0])}
-                      className="px-2.5 py-1 text-[11px] rounded-lg bg-secondary/60 hover:bg-primary/20 hover:text-primary border border-border/70 transition-colors"
+                      onClick={() => setSecao(s.val)}
+                      className={cn(
+                        "px-2.5 py-1 text-[11px] rounded-lg border transition-all cursor-pointer",
+                        secao === s.val
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 font-semibold shadow-sm"
+                          : "bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary border-border/70"
+                      )}
                     >
-                      {s}
+                      {s.label}
                     </button>
                   ))}
                 </div>
