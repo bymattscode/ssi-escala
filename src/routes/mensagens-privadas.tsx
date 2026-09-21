@@ -17,6 +17,9 @@ import {
 import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { ptBR } from "date-fns/locale";
 
 export const Route = createFileRoute("/mensagens-privadas")({
   component: MensagensPrivadasPage,
@@ -157,10 +160,26 @@ function getTodayFormatted(): string {
   return `${day} ${month} ${year}`;
 }
 
+function parseDateFromInput(inputStr: string): Date | undefined {
+  const parts = inputStr.trim().split(/\s+/);
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const monthIdx = MONTHS_PT.findIndex(
+      (m) => m.toLowerCase() === parts[1].toLowerCase()
+    );
+    const year = parseInt(parts[2], 10);
+    if (!isNaN(day) && monthIdx !== -1 && !isNaN(year)) {
+      return new Date(year, monthIdx, day);
+    }
+  }
+  return undefined;
+}
+
 export function MensagensPrivadasPage() {
   const [activeTab, setActiveTab] = useState<TabType>("convocacao");
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState<"code" | "preview">("code");
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   // Campos do formulário
   const [data, setData] = useState<string>(getTodayFormatted());
@@ -182,6 +201,17 @@ export function MensagensPrivadasPage() {
     const today = getTodayFormatted();
     setData(today);
     toast.info(`Data atualizada para ${today}`);
+  };
+
+  const handleDateSelect = (selected: Date | undefined) => {
+    if (!selected) return;
+    const day = String(selected.getDate()).padStart(2, "0");
+    const month = MONTHS_PT[selected.getMonth()];
+    const year = selected.getFullYear();
+    const formatted = `${day} ${month} ${year}`;
+    setData(formatted);
+    setIsCalendarOpen(false);
+    toast.success(`Data selecionada: ${formatted}`);
   };
 
   const handleSelectCrime = (selectedCrime: string) => {
@@ -417,14 +447,57 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
                 placeholder="Ex: 21 Set 2026"
                 className="flex-1 bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all font-mono"
               />
+
+              {/* Botão de Calendário Interativo com Popover */}
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="px-4 py-3 bg-secondary/60 hover:bg-secondary border border-border/80 hover:border-primary/50 rounded-xl text-xs font-semibold text-foreground flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+                    title="Abrir calendário para escolher data"
+                  >
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <span>Calendário</span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-3 border-border/80 bg-[#09101f] shadow-2xl rounded-2xl" align="end">
+                  <CalendarPicker
+                    mode="single"
+                    selected={parseDateFromInput(data)}
+                    onSelect={handleDateSelect}
+                    locale={ptBR}
+                    initialFocus
+                    className="rounded-xl bg-transparent"
+                  />
+                  <div className="pt-2 mt-2 border-t border-border/60 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleSetToday();
+                        setIsCalendarOpen(false);
+                      }}
+                      className="text-xs font-medium text-primary hover:underline px-2 py-1 rounded hover:bg-primary/10 transition-colors cursor-pointer"
+                    >
+                      Definir como Hoje ({getTodayFormatted()})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsCalendarOpen(false)}
+                      className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-secondary transition-colors cursor-pointer"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
               <button
                 type="button"
                 onClick={handleSetToday}
-                className="px-4 py-3 bg-secondary/60 hover:bg-secondary border border-border/80 rounded-xl text-xs font-semibold text-foreground flex items-center gap-1.5 transition-all hover:border-primary/50 shadow-sm"
-                title="Inserir data atual de Brasília"
+                className="px-3 py-3 bg-secondary/40 hover:bg-secondary border border-border/70 hover:border-primary/50 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                title="Preencher rapidamente com a data de hoje"
               >
-                <Calendar className="h-4 w-4 text-primary" />
-                <span>Hoje</span>
+                Hoje
               </button>
             </div>
           </div>
