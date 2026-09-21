@@ -493,17 +493,22 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
                   type="text"
                   value={tipoPunicao}
                   onChange={(e) => setTipoPunicao(e.target.value)}
-                  placeholder="Ex: Advertência Escrita"
+                  placeholder="Ex: Advertência Interna"
                   className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all"
                 />
                 {/* Sugestões Rápidas */}
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {["Observação", "Advertência Escrita", "Advertência Interna", "Rebaixamento", "Expulsão"].map((p) => (
+                  {["Observação", "Advertência Interna", "Rebaixamento", "Expulsão"].map((p) => (
                     <button
                       key={p}
                       type="button"
                       onClick={() => setTipoPunicao(p)}
-                      className="px-2.5 py-1 text-[11px] rounded-lg bg-secondary/60 hover:bg-primary/20 hover:text-primary border border-border/70 transition-colors"
+                      className={cn(
+                        "px-2.5 py-1 text-[11px] rounded-lg border transition-colors cursor-pointer",
+                        tipoPunicao === p
+                          ? "bg-primary/20 text-primary border-primary/50 font-bold"
+                          : "bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary border-border/70"
+                      )}
                     >
                       {p}
                     </button>
