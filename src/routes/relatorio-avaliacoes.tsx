@@ -347,7 +347,7 @@ function RelatorioFiscalizacaoPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight flex items-center gap-2">
-                    <span>[SSI] Registro de fakes</span>
+                    <span>Registro de fakes</span>
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
                     Formulário de registro de fakes dos membros do{" "}
@@ -355,9 +355,6 @@ function RelatorioFiscalizacaoPage() {
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-rose-400 font-medium mt-4 flex items-center gap-1.5">
-                <span>*</span> Indica uma pergunta obrigatória
-              </p>
             </div>
 
             {/* Formulário com as 3 Seções */}
