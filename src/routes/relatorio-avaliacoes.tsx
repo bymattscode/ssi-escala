@@ -46,17 +46,14 @@ import { toast } from "sonner";
 import { formatBrasiliaDateTime, getBrasiliaIsoNow } from "../lib/dateUtils";
 
 // Opções das etapas de fiscalização do CFSd (conforme formulário oficial)
-// Cada pergunta possui 6 opções: 3 positivas (coluna esquerda - azul) e 3 negativas (coluna direita - vermelho)
 const INICIO_AULA_OPTIONS = {
   positives: [
     "Realizou a fila no corredor",
     "Soube controlar os recrutas",
-    "Iniciou a aula com postura e sala adequada",
   ],
   negatives: [
     "Não realizou a fila no corredor",
     "Não soube controlar os recrutas",
-    "Entrou em uma sala com uma aula em andamento",
   ],
 };
 
@@ -103,12 +100,10 @@ const FINALIZACAO_OPTIONS = {
   positives: [
     "Passou o script de finalização corretamente",
     "Prestou atenção nos requisitos",
-    "Liberou o recruta com as instruções e permissões corretas",
   ],
   negatives: [
     "Pulou, manipulou ou alterou alguma parte do script",
     "Não prestou atenção nos requisitos",
-    "Liberou o recruta com pendências ou sem os requisitos",
   ],
 };
 
@@ -239,7 +234,7 @@ function QuestionSection({
   return (
     <div className={`space-y-2.5 ${isBorderTop ? "border-t border-border/50 pt-4" : ""}`}>
       <div className="flex items-center justify-between">
-        <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+        <label className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wide">
           <span>{title}</span>
         </label>
         <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">
@@ -259,8 +254,7 @@ function QuestionSection({
           <span>Negativas (Vermelho)</span>
         </div>
 
-        {[0, 1, 2].map((idx) => {
-          const pos = options.positives[idx];
+        {options.positives.map((pos, idx) => {
           const neg = options.negatives[idx];
           return (
             <Fragment key={idx}>
@@ -270,12 +264,14 @@ function QuestionSection({
                 isCritical={false}
                 onChange={() => handleSelectSingleOption(selectedList, setSelectedList, setHasOutro, pos)}
               />
-              <OptionCard
-                label={neg}
-                checked={selectedList.includes(neg)}
-                isCritical={true}
-                onChange={() => handleSelectSingleOption(selectedList, setSelectedList, setHasOutro, neg)}
-              />
+              {neg && (
+                <OptionCard
+                  label={neg}
+                  checked={selectedList.includes(neg)}
+                  isCritical={true}
+                  onChange={() => handleSelectSingleOption(selectedList, setSelectedList, setHasOutro, neg)}
+                />
+              )}
             </Fragment>
           );
         })}
@@ -1669,7 +1665,7 @@ function RelatorioFiscalizacaoPage() {
 
                 {/* Subseção A: Início da Aula */}
                 <QuestionSection
-                  title="Início da Aula:"
+                  title="INÍCIO DA AULA:"
                   subtitle="Marque a situação observada no início da instrução."
                   options={INICIO_AULA_OPTIONS}
                   selectedList={fiscInicioAula}
@@ -1684,7 +1680,7 @@ function RelatorioFiscalizacaoPage() {
 
                 {/* Subseção B: Durante da Aula */}
                 <QuestionSection
-                  title="Durante da aula:"
+                  title="DURANTE DA AULA:"
                   subtitle="Marque a conduta do instrutor durante a explicação do script."
                   options={DURANTE_AULA_OPTIONS}
                   selectedList={fiscDuranteAula}
@@ -1698,7 +1694,7 @@ function RelatorioFiscalizacaoPage() {
 
                 {/* Subseção C: Teste Teórico */}
                 <QuestionSection
-                  title="Teste teórico:"
+                  title="TESTE TEÓRICO:"
                   subtitle="Marque como o instrutor conduziu as perguntas e a correção do teste."
                   options={TESTE_TEORICO_OPTIONS}
                   selectedList={fiscTesteTeorico}
@@ -1712,7 +1708,7 @@ function RelatorioFiscalizacaoPage() {
 
                 {/* Subseção D: Comandos */}
                 <QuestionSection
-                  title="Comandos:"
+                  title="COMANDOS:"
                   subtitle="Marque como o instrutor conduziu o ensino e a prática dos comandos da RCC."
                   options={COMANDOS_OPTIONS}
                   selectedList={fiscComandos}
@@ -1726,7 +1722,7 @@ function RelatorioFiscalizacaoPage() {
 
                 {/* Subseção E: Finalização */}
                 <QuestionSection
-                  title="Finalização:"
+                  title="FINALIZAÇÃO:"
                   subtitle="Marque como foi o encerramento do script e a conferência de requisitos."
                   options={FINALIZACAO_OPTIONS}
                   selectedList={fiscFinalizacao}
