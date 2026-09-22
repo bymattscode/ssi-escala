@@ -102,14 +102,30 @@ export interface Warning {
   syncStatus?: SyncStatus;
 }
 
+export interface FakeAccount {
+  id: string; // ex: FAKE-12345
+  ownerNick: string; // Nickname do responsável pela conta
+  fakeNick: string; // Nickname da fake criada
+  registeredBy?: string; // Quem cadastrou no sistema (geralmente igual ao ownerNick)
+  registeredByNick?: string;
+  createdAt: string; // Horário de Brasília formatado
+  timestamp: number;
+  agreedTerms: boolean; // Termo de responsabilidade aceito
+  status: "Ativa" | "Inativa";
+  notes?: string;
+  updatedAt?: number;
+  syncStatus?: SyncStatus;
+}
+
 export type AuditAction = 
   | "Criação de Membro" | "Edição de Membro" | "Alteração de Status"
   | "Geração de Escala" | "Regeneração de Escala" | "Envio de Justificativa" | "Análise de Justificativa"
   | "Abertura de Caso" | "Resolução de Caso" | "Cancelamento de Caso" | "Exclusão de Caso"
   | "Registro de Punição" | "Exclusão de Punição" | "Sincronização" | "Backup Executado"
-  | "Retorno de Licença" | "Membro em Licença" | "Desligamento de Membro" | "Revogação de Acesso";
+  | "Retorno de Licença" | "Membro em Licença" | "Desligamento de Membro" | "Revogação de Acesso"
+  | "Registro de Fake" | "Exclusão de Fake" | "Alteração de Status Fake";
 
-export type AuditModule = "Membros" | "Escalas" | "Casos" | "Punições" | "Sistema";
+export type AuditModule = "Membros" | "Escalas" | "Casos" | "Punições" | "Fiscalização" | "Sistema";
 
 export interface AuditLog {
   id: string;
@@ -123,3 +139,4 @@ export interface AuditLog {
   details: string;
   targetId?: string; // ID do registro afetado (ex: id do caso, id do membro)
 }
+

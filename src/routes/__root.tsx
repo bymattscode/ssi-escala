@@ -254,7 +254,7 @@ function AppLayout() {
   // --- SEGURANÇA DE FLUXO BY perfil: Bloqueio contra navegação direta indevida via URL ---
   const routeRoleRules: Record<string, { roles: string[]; perm?: string }> = {
     '/casos': { roles: ['Fiscalizador', 'Diretor', 'Presidente', 'Vice-Presidente', 'Ministério'], perm: 'Gestão de Casos' },
-    '/relatorio-avaliacoes': { roles: ['Fiscalizador', 'Diretor', 'Presidente', 'Vice-Presidente', 'Ministério'], perm: 'Relatório de Avaliações' },
+    '/relatorio-avaliacoes': { roles: ['Fiscalizador', 'Diretor', 'Presidente', 'Vice-Presidente', 'Ministério'], perm: 'Relatório de Fiscalização' },
     '/advertencias': { roles: ['Diretor', 'Presidente', 'Vice-Presidente', 'Ministério'], perm: 'Registro de Punições' },
     '/mensagens-privadas': { roles: ['Diretor', 'Presidente', 'Vice-Presidente', 'Ministério'], perm: 'Central de Mensagens Privadas' },
     '/relatorios': { roles: ['Presidente', 'Vice-Presidente', 'Ministério'], perm: 'Relatórios e Auditoria' },
@@ -266,7 +266,12 @@ function AppLayout() {
     const isAdmin = user.role === "Ministério" || user.role === "Presidente" || user.role === "Vice-Presidente";
     const perms = (user.permissions as string[]) || [];
     const hasRole = rule.roles.includes(user.role);
-    const hasPerm = isAdmin || hasRole || perms.includes('all') || (rule.perm && perms.includes(rule.perm));
+    const hasPerm = isAdmin || hasRole || perms.includes('all') || (
+      rule.perm && (
+        perms.includes(rule.perm) || 
+        (rule.perm === 'Relatório de Fiscalização' && perms.includes('Relatório de Avaliações'))
+      )
+    );
     if (!hasPerm) {
       setTimeout(() => console.warn(`Acesso restrito ao módulo ${location.pathname}`), 100);
       return <Navigate to="/" />;

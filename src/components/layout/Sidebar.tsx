@@ -54,10 +54,10 @@ const navSections: NavSection[] = [
       },
       { 
         icon: ClipboardList, 
-        label: "Relatório de Avaliações", 
+        label: "Relatório de Fiscalização", 
         href: "/relatorio-avaliacoes", 
         requiredRoles: ["Fiscalizador", "Diretor"],
-        permissionKey: "Relatório de Avaliações"
+        permissionKey: "Relatório de Fiscalização"
       },
     ],
   },
@@ -127,8 +127,10 @@ export function Sidebar({ isOpen, onClose, isCollapsed = false }: SidebarProps) 
       return true;
     }
 
-    if (item.permissionKey && (user.permissions as string[])?.includes(item.permissionKey)) {
-      return true;
+    if (item.permissionKey) {
+      const perms = (user.permissions as string[]) || [];
+      if (perms.includes(item.permissionKey)) return true;
+      if (item.permissionKey === "Relatório de Fiscalização" && perms.includes("Relatório de Avaliações")) return true;
     }
 
     return false;

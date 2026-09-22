@@ -1,4 +1,4 @@
-import { Member, Schedule, Case, Warning, AuditLog, AuditAction, AuditModule, Role, AuthorizedUser } from './types';
+import { Member, Schedule, Case, Warning, AuditLog, AuditAction, AuditModule, Role, AuthorizedUser, FakeAccount } from './types';
 import { mockMembers, mockSchedules, mockCases, mockWarnings } from './mockData';
 import { getScheduleDeadlineText, calculateScheduleDeadlineDate } from './dateUtils';
 
@@ -12,7 +12,8 @@ export const KEYS = {
   CASES: 'ssi_cases',
   WARNINGS: 'ssi_warnings',
   CONFIG: 'ssi_config',
-  AUDIT: 'ssi_audit'
+  AUDIT: 'ssi_audit',
+  FAKES: 'ssi_fakes'
 };
 
 // Helper for localStorage
@@ -739,6 +740,48 @@ export const deleteWarning = async (id: string): Promise<void> => {
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.WARNINGS, JSON.stringify(warnings));
     triggerAutoSync("advertencias");
+  }
+};
+
+// --- FAKE ACCOUNTS (FISCALIZAÇÃO) ---
+export const getFakeAccounts = async (): Promise<FakeAccount[]> => {
+  await delay(150);
+  const raw = getParsedData<FakeAccount[]>(KEYS.FAKES, []);
+  const deletedKeys = getDeletedKeys();
+  return (Array.isArray(raw) ? raw : []).filter(
+    f => f && f.id && !deletedKeys.includes(String(f.id).trim().toLowerCase())
+  );
+};
+
+export const addFakeAccount = async (newFake: FakeAccount): Promise<void> => {
+  await delay(200);
+  if (newFake.id) removeDeletedKey(newFake.id);
+  const fakes = getParsedData<FakeAccount[]>(KEYS.FAKES, []);
+  fakes.unshift({ ...newFake, updatedAt: Date.now(), syncStatus: "pending" });
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.FAKES, JSON.stringify(fakes));
+  }
+};
+
+export const updateFakeAccount = async (id: string, updates: Partial<FakeAccount>): Promise<void> => {
+  await delay(200);
+  const fakes = getParsedData<FakeAccount[]>(KEYS.FAKES, []);
+  const cleanTargetId = String(id).trim().toLowerCase();
+  const idx = fakes.findIndex(f => String(f.id).trim().toLowerCase() === cleanTargetId);
+  if (idx !== -1 && typeof window !== "undefined") {
+    fakes[idx] = { ...fakes[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
+    localStorage.setItem(KEYS.FAKES, JSON.stringify(fakes));
+  }
+};
+
+export const deleteFakeAccount = async (id: string): Promise<void> => {
+  await delay(200);
+  let fakes = getParsedData<FakeAccount[]>(KEYS.FAKES, []);
+  const cleanTargetId = String(id).trim().toLowerCase();
+  fakes = fakes.filter(f => String(f.id).trim().toLowerCase() !== cleanTargetId);
+  addDeletedKey(id);
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.FAKES, JSON.stringify(fakes));
   }
 };
 
