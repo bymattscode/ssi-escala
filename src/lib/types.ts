@@ -135,6 +135,9 @@ export interface Fiscalizacao {
   testeTeorico: string[];
   testeTeoricoOutro?: string;
 
+  comandos?: string[];
+  comandosOutro?: string;
+
   finalizacao: string[];
   finalizacaoOutro?: string;
 

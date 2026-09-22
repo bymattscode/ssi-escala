@@ -70,6 +70,16 @@ const TESTE_TEORICO_OPTIONS = [
   "Reprovou incorretamente o recruta",
 ];
 
+const COMANDOS_OPTIONS = [
+  "Passou, ensinou e cobrou a prática dos comandos corretamente",
+  "Ensinou o recruta a executar o comando ao notar erro",
+  "Praticou cada comando logo após explicá-lo",
+  "Cobrou a execução dos comandos mas não ensinou como executar",
+  "Não praticou os comandos logo após explicá-los",
+  "Pulou ou não realizou a prática dos comandos",
+  "Reprovou ou puniu o recruta por erro nos comandos sem ensiná-lo",
+];
+
 const FINALIZACAO_OPTIONS = [
   "Passou o script corretamente",
   "Pulou, manipulou ou alterou alguma parte do script",
@@ -86,11 +96,15 @@ const INFRACOES_CRITICAS = new Set([
   "Demonstrou impaciência durante a aula",
   "Não prestou atenção nos erros cometidos pelo recruta",
   "Reprovou incorretamente o recruta",
+  "Cobrou a execução dos comandos mas não ensinou como executar",
+  "Não praticou os comandos logo após explicá-los",
+  "Pulou ou não realizou a prática dos comandos",
+  "Reprovou ou puniu o recruta por erro nos comandos sem ensiná-lo",
   "Pulou, manipulou ou alterou alguma parte do script",
   "Não prestou atenção nos requisitos",
 ]);
 
-function CheckboxOption({
+function OptionCard({
   label,
   checked,
   onChange,
@@ -107,14 +121,14 @@ function CheckboxOption({
       className={`flex items-start gap-3 p-3 rounded-xl border text-xs sm:text-sm cursor-pointer select-none transition-all ${
         checked
           ? isCritical
-            ? "bg-rose-500/10 border-rose-500/60 text-rose-300 shadow-sm"
-            : "bg-primary/10 border-primary/60 text-foreground shadow-sm"
+            ? "bg-rose-500/10 border-rose-500/60 text-rose-300 shadow-sm ring-1 ring-rose-500/30"
+            : "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
           : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
       }`}
     >
       <div className="pt-0.5 shrink-0">
         <div
-          className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${
+          className={`h-4 w-4 rounded-full border flex items-center justify-center transition-all ${
             checked
               ? isCritical
                 ? "bg-rose-500 border-rose-500 text-white"
@@ -122,7 +136,7 @@ function CheckboxOption({
               : "border-muted-foreground/50 bg-background"
           }`}
         >
-          {checked && <Check className="h-3 w-3 stroke-[3]" />}
+          {checked && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
         </div>
       </div>
       <span className="leading-snug">{label}</span>
@@ -180,6 +194,10 @@ function RelatorioFiscalizacaoPage() {
   const [fiscTesteTeorico, setFiscTesteTeorico] = useState<string[]>([]);
   const [fiscTesteTeoricoOutro, setFiscTesteTeoricoOutro] = useState("");
   const [fiscHasTeoricoOutro, setFiscHasTeoricoOutro] = useState(false);
+
+  const [fiscComandos, setFiscComandos] = useState<string[]>([]);
+  const [fiscComandosOutro, setFiscComandosOutro] = useState("");
+  const [fiscHasComandosOutro, setFiscHasComandosOutro] = useState(false);
 
   const [fiscFinalizacao, setFiscFinalizacao] = useState<string[]>([]);
   const [fiscFinalizacaoOutro, setFiscFinalizacaoOutro] = useState("");
@@ -295,6 +313,7 @@ function RelatorioFiscalizacaoPage() {
         ...(f.inicioAula || []),
         ...(f.duranteAula || []),
         ...(f.testeTeorico || []),
+        ...(f.comandos || []),
         ...(f.finalizacao || []),
       ];
       return allSelected.some((item) => INFRACOES_CRITICAS.has(item));
@@ -303,16 +322,30 @@ function RelatorioFiscalizacaoPage() {
     return { total, myFisc, uniqueInstructors, withInfractions };
   }, [fiscalizacoes, user?.nick, user?.id]);
 
-  // Helper para alternar itens de checkbox
-  const toggleCheckboxItem = (
-    list: string[],
+  // Helper para seleção única por tópico (com capacidade de desmarcar ao clicar de novo)
+  const handleSelectSingleOption = (
+    currentList: string[],
     setList: React.Dispatch<React.SetStateAction<string[]>>,
-    item: string
+    setHasOutro: React.Dispatch<React.SetStateAction<boolean>>,
+    option: string
   ) => {
-    if (list.includes(item)) {
-      setList(list.filter((x) => x !== item));
+    if (currentList.includes(option)) {
+      setList([]);
     } else {
-      setList([...list, item]);
+      setList([option]);
+      setHasOutro(false);
+    }
+  };
+
+  const handleToggleOutro = (
+    currentHasOutro: boolean,
+    setHasOutro: React.Dispatch<React.SetStateAction<boolean>>,
+    setList: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
+    const nextVal = !currentHasOutro;
+    setHasOutro(nextVal);
+    if (nextVal) {
+      setList([]);
     }
   };
 
@@ -331,6 +364,9 @@ function RelatorioFiscalizacaoPage() {
     setFiscTesteTeorico([]);
     setFiscTesteTeoricoOutro("");
     setFiscHasTeoricoOutro(false);
+    setFiscComandos([]);
+    setFiscComandosOutro("");
+    setFiscHasComandosOutro(false);
     setFiscFinalizacao([]);
     setFiscFinalizacaoOutro("");
     setFiscHasFinalizacaoOutro(false);
@@ -388,6 +424,8 @@ function RelatorioFiscalizacaoPage() {
         duranteAulaOutro: fiscHasDuranteOutro ? fiscDuranteAulaOutro.trim() : undefined,
         testeTeorico: fiscTesteTeorico,
         testeTeoricoOutro: fiscHasTeoricoOutro ? fiscTesteTeoricoOutro.trim() : undefined,
+        comandos: fiscComandos,
+        comandosOutro: fiscHasComandosOutro ? fiscComandosOutro.trim() : undefined,
         finalizacao: fiscFinalizacao,
         finalizacaoOutro: fiscHasFinalizacaoOutro ? fiscFinalizacaoOutro.trim() : undefined,
         proofs: fiscProofs.trim(),
@@ -1165,6 +1203,7 @@ function RelatorioFiscalizacaoPage() {
                         ...(item.inicioAula || []),
                         ...(item.duranteAula || []),
                         ...(item.testeTeorico || []),
+                        ...(item.comandos || []),
                         ...(item.finalizacao || []),
                       ];
                       const hasInfraction = allSelected.some((x) => INFRACOES_CRITICAS.has(x));
@@ -1482,20 +1521,27 @@ function RelatorioFiscalizacaoPage() {
 
                 {/* Subseção A: Início da Aula */}
                 <div className="space-y-2.5">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <span>Início da Aula:</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <span>Início da Aula:</span>
+                    </label>
+                    <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">
+                      Selecione 1 opção
+                    </span>
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Marque todas as situações observadas no início da instrução.
+                    Marque a situação observada no início da instrução.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                     {INICIO_AULA_OPTIONS.map((opt) => (
-                      <CheckboxOption
+                      <OptionCard
                         key={opt}
                         label={opt}
                         checked={fiscInicioAula.includes(opt)}
                         isCritical={INFRACOES_CRITICAS.has(opt)}
-                        onChange={() => toggleCheckboxItem(fiscInicioAula, setFiscInicioAula, opt)}
+                        onChange={() =>
+                          handleSelectSingleOption(fiscInicioAula, setFiscInicioAula, setFiscHasInicioOutro, opt)
+                        }
                       />
                     ))}
                   </div>
@@ -1504,24 +1550,26 @@ function RelatorioFiscalizacaoPage() {
                   <div
                     className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
                       fiscHasInicioOutro
-                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm"
-                        : "bg-secondary/20 border-border/70 hover:border-border text-muted-foreground"
+                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
+                        : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <div
-                      onClick={() => setFiscHasInicioOutro(!fiscHasInicioOutro)}
+                      onClick={() =>
+                        handleToggleOutro(fiscHasInicioOutro, setFiscHasInicioOutro, setFiscInicioAula)
+                      }
                       className="flex items-center gap-3 cursor-pointer select-none"
                     >
                       <div
-                        className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${
+                        className={`h-4 w-4 rounded-full border flex items-center justify-center transition-all ${
                           fiscHasInicioOutro
                             ? "bg-primary border-primary text-white"
                             : "border-muted-foreground/50 bg-background"
                         }`}
                       >
-                        {fiscHasInicioOutro && <Check className="h-3 w-3 stroke-[3]" />}
+                        {fiscHasInicioOutro && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                       </div>
-                      <span className="font-semibold">Outro:</span>
+                      <span className="font-semibold text-xs sm:text-sm">Outro:</span>
                     </div>
                     {fiscHasInicioOutro && (
                       <input
@@ -1530,6 +1578,7 @@ function RelatorioFiscalizacaoPage() {
                         onChange={(e) => setFiscInicioAulaOutro(e.target.value)}
                         placeholder="Especifique outros detalhes do início da aula..."
                         className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+                        autoFocus
                       />
                     )}
                   </div>
@@ -1537,20 +1586,27 @@ function RelatorioFiscalizacaoPage() {
 
                 {/* Subseção B: Durante da Aula */}
                 <div className="space-y-2.5 border-t border-border/50 pt-4">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <span>Durante da aula:</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <span>Durante da aula:</span>
+                    </label>
+                    <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">
+                      Selecione 1 opção
+                    </span>
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Marque todas as condutas do instrutor durante a explicação do script.
+                    Marque a conduta do instrutor durante a explicação do script.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                     {DURANTE_AULA_OPTIONS.map((opt) => (
-                      <CheckboxOption
+                      <OptionCard
                         key={opt}
                         label={opt}
                         checked={fiscDuranteAula.includes(opt)}
                         isCritical={INFRACOES_CRITICAS.has(opt)}
-                        onChange={() => toggleCheckboxItem(fiscDuranteAula, setFiscDuranteAula, opt)}
+                        onChange={() =>
+                          handleSelectSingleOption(fiscDuranteAula, setFiscDuranteAula, setFiscHasDuranteOutro, opt)
+                        }
                       />
                     ))}
                   </div>
@@ -1559,24 +1615,26 @@ function RelatorioFiscalizacaoPage() {
                   <div
                     className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
                       fiscHasDuranteOutro
-                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm"
-                        : "bg-secondary/20 border-border/70 hover:border-border text-muted-foreground"
+                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
+                        : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <div
-                      onClick={() => setFiscHasDuranteOutro(!fiscHasDuranteOutro)}
+                      onClick={() =>
+                        handleToggleOutro(fiscHasDuranteOutro, setFiscHasDuranteOutro, setFiscDuranteAula)
+                      }
                       className="flex items-center gap-3 cursor-pointer select-none"
                     >
                       <div
-                        className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${
+                        className={`h-4 w-4 rounded-full border flex items-center justify-center transition-all ${
                           fiscHasDuranteOutro
                             ? "bg-primary border-primary text-white"
                             : "border-muted-foreground/50 bg-background"
                         }`}
                       >
-                        {fiscHasDuranteOutro && <Check className="h-3 w-3 stroke-[3]" />}
+                        {fiscHasDuranteOutro && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                       </div>
-                      <span className="font-semibold">Outro:</span>
+                      <span className="font-semibold text-xs sm:text-sm">Outro:</span>
                     </div>
                     {fiscHasDuranteOutro && (
                       <input
@@ -1585,6 +1643,7 @@ function RelatorioFiscalizacaoPage() {
                         onChange={(e) => setFiscDuranteAulaOutro(e.target.value)}
                         placeholder="Especifique outros detalhes do decorrer da aula..."
                         className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+                        autoFocus
                       />
                     )}
                   </div>
@@ -1592,20 +1651,27 @@ function RelatorioFiscalizacaoPage() {
 
                 {/* Subseção C: Teste Teórico */}
                 <div className="space-y-2.5 border-t border-border/50 pt-4">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <span>Teste teórico:</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <span>Teste teórico:</span>
+                    </label>
+                    <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">
+                      Selecione 1 opção
+                    </span>
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
                     Marque como o instrutor conduziu as perguntas e a correção do teste.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                     {TESTE_TEORICO_OPTIONS.map((opt) => (
-                      <CheckboxOption
+                      <OptionCard
                         key={opt}
                         label={opt}
                         checked={fiscTesteTeorico.includes(opt)}
                         isCritical={INFRACOES_CRITICAS.has(opt)}
-                        onChange={() => toggleCheckboxItem(fiscTesteTeorico, setFiscTesteTeorico, opt)}
+                        onChange={() =>
+                          handleSelectSingleOption(fiscTesteTeorico, setFiscTesteTeorico, setFiscHasTeoricoOutro, opt)
+                        }
                       />
                     ))}
                   </div>
@@ -1614,24 +1680,26 @@ function RelatorioFiscalizacaoPage() {
                   <div
                     className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
                       fiscHasTeoricoOutro
-                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm"
-                        : "bg-secondary/20 border-border/70 hover:border-border text-muted-foreground"
+                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
+                        : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <div
-                      onClick={() => setFiscHasTeoricoOutro(!fiscHasTeoricoOutro)}
+                      onClick={() =>
+                        handleToggleOutro(fiscHasTeoricoOutro, setFiscHasTeoricoOutro, setFiscTesteTeorico)
+                      }
                       className="flex items-center gap-3 cursor-pointer select-none"
                     >
                       <div
-                        className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${
+                        className={`h-4 w-4 rounded-full border flex items-center justify-center transition-all ${
                           fiscHasTeoricoOutro
                             ? "bg-primary border-primary text-white"
                             : "border-muted-foreground/50 bg-background"
                         }`}
                       >
-                        {fiscHasTeoricoOutro && <Check className="h-3 w-3 stroke-[3]" />}
+                        {fiscHasTeoricoOutro && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                       </div>
-                      <span className="font-semibold">Outro:</span>
+                      <span className="font-semibold text-xs sm:text-sm">Outro:</span>
                     </div>
                     {fiscHasTeoricoOutro && (
                       <input
@@ -1640,27 +1708,100 @@ function RelatorioFiscalizacaoPage() {
                         onChange={(e) => setFiscTesteTeoricoOutro(e.target.value)}
                         placeholder="Especifique outros detalhes do teste teórico..."
                         className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+                        autoFocus
                       />
                     )}
                   </div>
                 </div>
 
-                {/* Subseção D: Finalização */}
+                {/* Subseção D: Comandos */}
                 <div className="space-y-2.5 border-t border-border/50 pt-4">
-                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <span>Finalização:</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <span>Comandos:</span>
+                    </label>
+                    <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">
+                      Selecione 1 opção
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Marque como o instrutor conduziu o ensino e a prática dos comandos da RCC.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                    {COMANDOS_OPTIONS.map((opt) => (
+                      <OptionCard
+                        key={opt}
+                        label={opt}
+                        checked={fiscComandos.includes(opt)}
+                        isCritical={INFRACOES_CRITICAS.has(opt)}
+                        onChange={() =>
+                          handleSelectSingleOption(fiscComandos, setFiscComandos, setFiscHasComandosOutro, opt)
+                        }
+                      />
+                    ))}
+                  </div>
+
+                  {/* Outro em Comandos */}
+                  <div
+                    className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
+                      fiscHasComandosOutro
+                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
+                        : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <div
+                      onClick={() =>
+                        handleToggleOutro(fiscHasComandosOutro, setFiscHasComandosOutro, setFiscComandos)
+                      }
+                      className="flex items-center gap-3 cursor-pointer select-none"
+                    >
+                      <div
+                        className={`h-4 w-4 rounded-full border flex items-center justify-center transition-all ${
+                          fiscHasComandosOutro
+                            ? "bg-primary border-primary text-white"
+                            : "border-muted-foreground/50 bg-background"
+                        }`}
+                      >
+                        {fiscHasComandosOutro && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                      </div>
+                      <span className="font-semibold text-xs sm:text-sm">Outro:</span>
+                    </div>
+                    {fiscHasComandosOutro && (
+                      <input
+                        type="text"
+                        value={fiscComandosOutro}
+                        onChange={(e) => setFiscComandosOutro(e.target.value)}
+                        placeholder="Especifique outros detalhes da etapa de comandos..."
+                        className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+                        autoFocus
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Subseção E: Finalização */}
+                <div className="space-y-2.5 border-t border-border/50 pt-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <span>Finalização:</span>
+                    </label>
+                    <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">
+                      Selecione 1 opção
+                    </span>
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
                     Marque como foi o encerramento do script e a conferência de requisitos.
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                     {FINALIZACAO_OPTIONS.map((opt) => (
-                      <CheckboxOption
+                      <OptionCard
                         key={opt}
                         label={opt}
                         checked={fiscFinalizacao.includes(opt)}
                         isCritical={INFRACOES_CRITICAS.has(opt)}
-                        onChange={() => toggleCheckboxItem(fiscFinalizacao, setFiscFinalizacao, opt)}
+                        onChange={() =>
+                          handleSelectSingleOption(fiscFinalizacao, setFiscFinalizacao, setFiscHasFinalizacaoOutro, opt)
+                        }
                       />
                     ))}
                   </div>
@@ -1669,24 +1810,26 @@ function RelatorioFiscalizacaoPage() {
                   <div
                     className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
                       fiscHasFinalizacaoOutro
-                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm"
-                        : "bg-secondary/20 border-border/70 hover:border-border text-muted-foreground"
+                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
+                        : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <div
-                      onClick={() => setFiscHasFinalizacaoOutro(!fiscHasFinalizacaoOutro)}
+                      onClick={() =>
+                        handleToggleOutro(fiscHasFinalizacaoOutro, setFiscHasFinalizacaoOutro, setFiscFinalizacao)
+                      }
                       className="flex items-center gap-3 cursor-pointer select-none"
                     >
                       <div
-                        className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${
+                        className={`h-4 w-4 rounded-full border flex items-center justify-center transition-all ${
                           fiscHasFinalizacaoOutro
                             ? "bg-primary border-primary text-white"
                             : "border-muted-foreground/50 bg-background"
                         }`}
                       >
-                        {fiscHasFinalizacaoOutro && <Check className="h-3 w-3 stroke-[3]" />}
+                        {fiscHasFinalizacaoOutro && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
                       </div>
-                      <span className="font-semibold">Outro:</span>
+                      <span className="font-semibold text-xs sm:text-sm">Outro:</span>
                     </div>
                     {fiscHasFinalizacaoOutro && (
                       <input
@@ -1695,6 +1838,7 @@ function RelatorioFiscalizacaoPage() {
                         onChange={(e) => setFiscFinalizacaoOutro(e.target.value)}
                         placeholder="Especifique outros detalhes da finalização..."
                         className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+                        autoFocus
                       />
                     )}
                   </div>
@@ -2016,6 +2160,38 @@ function RelatorioFiscalizacaoPage() {
                       {selectedFiscalizacao.testeTeoricoOutro && (
                         <span className="px-2.5 py-1 rounded-lg text-xs font-medium border bg-secondary border-border text-foreground">
                           <strong>Outro:</strong> {selectedFiscalizacao.testeTeoricoOutro}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Comandos */}
+                <div className="bg-secondary/20 border border-border/70 rounded-xl p-4 space-y-2">
+                  <span className="text-xs font-bold text-foreground block">Comandos</span>
+                  {selectedFiscalizacao.comandos?.length === 0 && !selectedFiscalizacao.comandosOutro ? (
+                    <span className="text-xs text-muted-foreground italic">Nenhum item assinalado.</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedFiscalizacao.comandos?.map((item) => {
+                        const isCrit = INFRACOES_CRITICAS.has(item);
+                        return (
+                          <span
+                            key={item}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 ${
+                              isCrit
+                                ? "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                                : "bg-primary/10 border-primary/20 text-foreground"
+                            }`}
+                          >
+                            <Check className="h-3 w-3" />
+                            {item}
+                          </span>
+                        );
+                      })}
+                      {selectedFiscalizacao.comandosOutro && (
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-medium border bg-secondary border-border text-foreground">
+                          <strong>Outro:</strong> {selectedFiscalizacao.comandosOutro}
                         </span>
                       )}
                     </div>
