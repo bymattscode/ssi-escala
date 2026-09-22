@@ -167,7 +167,6 @@ function RelatorioFiscalizacaoPage() {
   const [fiscFiscalizadorNick, setFiscFiscalizadorNick] = useState("");
   const [fiscInstrutorNick, setFiscInstrutorNick] = useState("");
   const [fiscFakeNick, setFiscFakeNick] = useState("");
-  const [fiscIsCustomFake, setFiscIsCustomFake] = useState(false);
 
   // Checkboxes de Etapas da Aula (CFSd)
   const [fiscInicioAula, setFiscInicioAula] = useState<string[]>([]);
@@ -244,6 +243,29 @@ function RelatorioFiscalizacaoPage() {
     return { total, myFakes };
   }, [fakes, user?.nick]);
 
+  // Fakes cadastradas pelo fiscalizador selecionado
+  const fiscalizadorFakes = useMemo(() => {
+    const target = (fiscFiscalizadorNick || user?.nick || "").trim().toLowerCase();
+    if (!target) return [];
+    return fakes.filter(
+      (f) =>
+        f.ownerNick?.trim().toLowerCase() === target ||
+        f.registeredByNick?.trim().toLowerCase() === target
+    );
+  }, [fakes, fiscFiscalizadorNick, user?.nick]);
+
+  // Quando as fakes do fiscalizador mudarem, se houver apenas 1, pré-selecionar automaticamente
+  useEffect(() => {
+    if (fiscalizadorFakes.length === 1 && !fiscFakeNick) {
+      setFiscFakeNick(fiscalizadorFakes[0].fakeNick);
+    } else if (
+      fiscFakeNick &&
+      !fiscalizadorFakes.some((f) => f.fakeNick?.toLowerCase() === fiscFakeNick.toLowerCase())
+    ) {
+      setFiscFakeNick("");
+    }
+  }, [fiscalizadorFakes, fiscFakeNick]);
+
   // Lista de fiscalizações filtradas por busca
   const filteredFiscalizacoes = useMemo(() => {
     return fiscalizacoes.filter((item) => {
@@ -300,7 +322,6 @@ function RelatorioFiscalizacaoPage() {
     setFiscFiscalizadorNick(user?.nick || "");
     setFiscInstrutorNick("");
     setFiscFakeNick("");
-    setFiscIsCustomFake(false);
     setFiscInicioAula([]);
     setFiscInicioAulaOutro("");
     setFiscHasInicioOutro(false);
@@ -1319,15 +1340,8 @@ function RelatorioFiscalizacaoPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Data e Hora de Início */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                      <span>Início da Fiscalização: <strong className="text-rose-400">*</strong></span>
-                      <button
-                        type="button"
-                        onClick={() => setFiscStartDate(getBrasiliaIsoNow())}
-                        className="text-[10px] text-primary hover:underline font-normal cursor-pointer"
-                      >
-                        Definir Agora
-                      </button>
+                    <label className="text-xs font-semibold text-foreground">
+                      Início da Fiscalização: <strong className="text-rose-400">*</strong>
                     </label>
                     <input
                       type="datetime-local"
@@ -1413,21 +1427,9 @@ function RelatorioFiscalizacaoPage() {
 
                   {/* Nickname da Fake Utilizada */}
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-foreground">
-                        Fake Utilizada: <strong className="text-rose-400">*</strong>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFiscIsCustomFake(!fiscIsCustomFake);
-                          setFiscFakeNick("");
-                        }}
-                        className="text-[10px] text-primary hover:underline font-normal cursor-pointer"
-                      >
-                        {fiscIsCustomFake ? "Selecionar da lista" : "Digitar outra fake"}
-                      </button>
-                    </div>
+                    <label className="text-xs font-semibold text-foreground">
+                      Fake Utilizada: <strong className="text-rose-400">*</strong>
+                    </label>
 
                     <div className="flex items-center gap-2">
                       {fiscFakeNick.trim() && (
@@ -1445,38 +1447,25 @@ function RelatorioFiscalizacaoPage() {
                         </div>
                       )}
 
-                      {!fiscIsCustomFake ? (
-                        <select
-                          value={fiscFakeNick}
-                          onChange={(e) => {
-                            if (e.target.value === "__custom__") {
-                              setFiscIsCustomFake(true);
-                              setFiscFakeNick("");
-                            } else {
-                              setFiscFakeNick(e.target.value);
-                            }
-                          }}
-                          required
-                          className="w-full bg-background border border-border/80 focus:border-primary rounded-xl px-3 py-2.5 text-xs text-foreground focus:outline-none transition-colors"
-                        >
-                          <option value="">Selecione a fake utilizada...</option>
-                          {fakes.map((f) => (
+                      <select
+                        value={fiscFakeNick}
+                        onChange={(e) => setFiscFakeNick(e.target.value)}
+                        required
+                        className="w-full bg-background border border-border/80 focus:border-primary rounded-xl px-3 py-2.5 text-xs text-foreground focus:outline-none transition-colors"
+                      >
+                        <option value="">Selecione a fake utilizada...</option>
+                        {fiscalizadorFakes.length > 0 ? (
+                          fiscalizadorFakes.map((f) => (
                             <option key={f.id} value={f.fakeNick}>
-                              {f.fakeNick} (Resp: {f.ownerNick})
+                              {f.fakeNick}
                             </option>
-                          ))}
-                          <option value="__custom__">➕ Outra fake não listada...</option>
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          value={fiscFakeNick}
-                          onChange={(e) => setFiscFakeNick(e.target.value)}
-                          placeholder="Digite o nick da fake..."
-                          required
-                          className="w-full bg-background border border-border/80 focus:border-primary rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors"
-                        />
-                      )}
+                          ))
+                        ) : (
+                          <option value="" disabled>
+                            Nenhuma fake cadastrada para {fiscFiscalizadorNick || "este fiscalizador"}
+                          </option>
+                        )}
+                      </select>
                     </div>
                   </div>
                 </div>
