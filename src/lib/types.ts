@@ -117,13 +117,45 @@ export interface FakeAccount {
   syncStatus?: SyncStatus;
 }
 
+export interface Fiscalizacao {
+  id: string; // ex: FISC-XXXXX
+  startDate: string; // Data e horário de início da fiscalização
+  fiscalizadorNick: string; // Nickname do fiscalizador
+  fiscalizadorId?: string;
+  instrutorNick: string; // Nickname do instrutor avaliado
+  fakeNick: string; // Nickname da fake utilizada
+
+  // Itens observados na aplicação do CFSd
+  inicioAula: string[];
+  inicioAulaOutro?: string;
+
+  duranteAula: string[];
+  duranteAulaOutro?: string;
+
+  testeTeorico: string[];
+  testeTeoricoOutro?: string;
+
+  finalizacao: string[];
+  finalizacaoOutro?: string;
+
+  // Encerramento
+  proofs: string; // Link dos prints da avaliação
+  comments?: string; // Comentários adicionais
+
+  createdAt: string;
+  timestamp: number;
+  updatedAt?: number;
+  syncStatus?: SyncStatus;
+}
+
 export type AuditAction = 
   | "Criação de Membro" | "Edição de Membro" | "Alteração de Status"
   | "Geração de Escala" | "Regeneração de Escala" | "Envio de Justificativa" | "Análise de Justificativa"
   | "Abertura de Caso" | "Resolução de Caso" | "Cancelamento de Caso" | "Exclusão de Caso"
   | "Registro de Punição" | "Exclusão de Punição" | "Sincronização" | "Backup Executado"
   | "Retorno de Licença" | "Membro em Licença" | "Desligamento de Membro" | "Revogação de Acesso"
-  | "Registro de Fake" | "Exclusão de Fake" | "Alteração de Status Fake";
+  | "Registro de Fake" | "Exclusão de Fake" | "Alteração de Status Fake"
+  | "Registro de Fiscalização" | "Exclusão de Fiscalização";
 
 export type AuditModule = "Membros" | "Escalas" | "Casos" | "Punições" | "Fiscalização" | "Sistema";
 

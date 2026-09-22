@@ -19,7 +19,15 @@ import {
   ExternalLink,
   Lock,
   Sparkles,
-  Plus
+  Plus,
+  Eye,
+  X,
+  Calendar,
+  Clock,
+  AlertTriangle,
+  FileCheck2,
+  Info,
+  ArrowUpRight
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { 
@@ -28,11 +36,99 @@ import {
   updateFakeAccount, 
   deleteFakeAccount, 
   getMembers, 
-  addAuditLog 
+  addAuditLog,
+  getFiscalizacoes,
+  addFiscalizacao,
+  deleteFiscalizacao
 } from "../lib/store";
-import { FakeAccount, Member } from "../lib/types";
+import { FakeAccount, Member, Fiscalizacao } from "../lib/types";
 import { toast } from "sonner";
-import { formatBrasiliaDateTime } from "../lib/dateUtils";
+import { formatBrasiliaDateTime, getBrasiliaIsoNow } from "../lib/dateUtils";
+
+// Opções das etapas de fiscalização do CFSd (conforme formulário oficial)
+const INICIO_AULA_OPTIONS = [
+  "Entrou em uma sala com uma aula em andamento",
+  "Não realizou a fila no corredor",
+  "Realizou a fila no corredor",
+  "Soube controlar os recrutas",
+  "Não soube controlar os recrutas",
+];
+
+const DURANTE_AULA_OPTIONS = [
+  "Pulou ou manipulou algum trecho do script",
+  "Passou o script corretamente",
+  "Realizou a simulação prática opcional",
+  "Velocidade de envio do script adequada",
+  "Velocidade de envio do script muito rápida",
+  "Demonstrou paciência em tirar todas as dúvidas do recruta",
+  "Demonstrou impaciência durante a aula",
+];
+
+const TESTE_TEORICO_OPTIONS = [
+  "Manteve atenção às respostas do recruta",
+  "Não prestou atenção nos erros cometidos pelo recruta",
+  "Reprovou incorretamente o recruta",
+];
+
+const FINALIZACAO_OPTIONS = [
+  "Passou o script corretamente",
+  "Pulou, manipulou ou alterou alguma parte do script",
+  "Prestou atenção nos requisitos",
+  "Não prestou atenção nos requisitos",
+];
+
+const INFRACOES_CRITICAS = new Set([
+  "Entrou em uma sala com uma aula em andamento",
+  "Não realizou a fila no corredor",
+  "Não soube controlar os recrutas",
+  "Pulou ou manipulou algum trecho do script",
+  "Velocidade de envio do script muito rápida",
+  "Demonstrou impaciência durante a aula",
+  "Não prestou atenção nos erros cometidos pelo recruta",
+  "Reprovou incorretamente o recruta",
+  "Pulou, manipulou ou alterou alguma parte do script",
+  "Não prestou atenção nos requisitos",
+]);
+
+function CheckboxOption({
+  label,
+  checked,
+  onChange,
+  isCritical,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+  isCritical?: boolean;
+}) {
+  return (
+    <div
+      onClick={onChange}
+      className={`flex items-start gap-3 p-3 rounded-xl border text-xs sm:text-sm cursor-pointer select-none transition-all ${
+        checked
+          ? isCritical
+            ? "bg-rose-500/10 border-rose-500/60 text-rose-300 shadow-sm"
+            : "bg-primary/10 border-primary/60 text-foreground shadow-sm"
+          : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      <div className="pt-0.5 shrink-0">
+        <div
+          className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${
+            checked
+              ? isCritical
+                ? "bg-rose-500 border-rose-500 text-white"
+                : "bg-primary border-primary text-white"
+              : "border-muted-foreground/50 bg-background"
+          }`}
+        >
+          {checked && <Check className="h-3 w-3 stroke-[3]" />}
+        </div>
+      </div>
+      <span className="leading-snug">{label}</span>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/relatorio-avaliacoes")({
   component: RelatorioFiscalizacaoPage,
@@ -46,9 +142,10 @@ function RelatorioFiscalizacaoPage() {
   const [activeTab, setActiveTab] = useState<"fakes" | "formulario">("fakes");
   const [isCreateFiscalizacaoOpen, setIsCreateFiscalizacaoOpen] = useState(false);
 
-  // Dados de Fakes e Membros
+  // Dados de Fakes, Membros e Fiscalizações
   const [fakes, setFakes] = useState<FakeAccount[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [fiscalizacoes, setFiscalizacoes] = useState<Fiscalizacao[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Estados do Formulário de Registro de Fake
@@ -61,17 +158,51 @@ function RelatorioFiscalizacaoPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Estados do Módulo de Fiscalização (Estilo Gestão de Casos)
+  const [fiscSearchTerm, setFiscSearchTerm] = useState("");
+  const [selectedFiscalizacao, setSelectedFiscalizacao] = useState<Fiscalizacao | null>(null);
+
+  // Estados do Formulário de Nova Fiscalização
+  const [fiscStartDate, setFiscStartDate] = useState(getBrasiliaIsoNow());
+  const [fiscFiscalizadorNick, setFiscFiscalizadorNick] = useState("");
+  const [fiscInstrutorNick, setFiscInstrutorNick] = useState("");
+  const [fiscFakeNick, setFiscFakeNick] = useState("");
+  const [fiscIsCustomFake, setFiscIsCustomFake] = useState(false);
+
+  // Checkboxes de Etapas da Aula (CFSd)
+  const [fiscInicioAula, setFiscInicioAula] = useState<string[]>([]);
+  const [fiscInicioAulaOutro, setFiscInicioAulaOutro] = useState("");
+  const [fiscHasInicioOutro, setFiscHasInicioOutro] = useState(false);
+
+  const [fiscDuranteAula, setFiscDuranteAula] = useState<string[]>([]);
+  const [fiscDuranteAulaOutro, setFiscDuranteAulaOutro] = useState("");
+  const [fiscHasDuranteOutro, setFiscHasDuranteOutro] = useState(false);
+
+  const [fiscTesteTeorico, setFiscTesteTeorico] = useState<string[]>([]);
+  const [fiscTesteTeoricoOutro, setFiscTesteTeoricoOutro] = useState("");
+  const [fiscHasTeoricoOutro, setFiscHasTeoricoOutro] = useState(false);
+
+  const [fiscFinalizacao, setFiscFinalizacao] = useState<string[]>([]);
+  const [fiscFinalizacaoOutro, setFiscFinalizacaoOutro] = useState("");
+  const [fiscHasFinalizacaoOutro, setFiscHasFinalizacaoOutro] = useState(false);
+
+  const [fiscProofs, setFiscProofs] = useState("");
+  const [fiscComments, setFiscComments] = useState("");
+  const [isSubmittingFisc, setIsSubmittingFisc] = useState(false);
+
   // Carregar dados iniciais
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
       try {
-        const [loadedFakes, loadedMembers] = await Promise.all([
+        const [loadedFakes, loadedMembers, loadedFiscalizacoes] = await Promise.all([
           getFakeAccounts(),
           getMembers(),
+          getFiscalizacoes(),
         ]);
         setFakes(Array.isArray(loadedFakes) ? loadedFakes : []);
         setMembers(Array.isArray(loadedMembers) ? loadedMembers : []);
+        setFiscalizacoes(Array.isArray(loadedFiscalizacoes) ? loadedFiscalizacoes : []);
       } catch (err) {
         console.error("Erro ao carregar dados de fiscalização:", err);
       } finally {
@@ -86,7 +217,10 @@ function RelatorioFiscalizacaoPage() {
     if (!formOwnerNick && user?.nick) {
       setFormOwnerNick(user.nick);
     }
-  }, [user?.nick, formOwnerNick]);
+    if (!fiscFiscalizadorNick && user?.nick) {
+      setFiscFiscalizadorNick(user.nick);
+    }
+  }, [user?.nick, formOwnerNick, fiscFiscalizadorNick]);
 
   // Lista de fakes filtradas por busca
   const filteredFakes = useMemo(() => {
@@ -99,7 +233,7 @@ function RelatorioFiscalizacaoPage() {
     });
   }, [fakes, searchTerm]);
 
-  // Métricas rápidas
+  // Métricas rápidas de fakes
   const metrics = useMemo(() => {
     const total = fakes.length;
     const myFakes = fakes.filter(
@@ -110,7 +244,196 @@ function RelatorioFiscalizacaoPage() {
     return { total, myFakes };
   }, [fakes, user?.nick]);
 
-  // Handler para Limpar Formulário
+  // Lista de fiscalizações filtradas por busca
+  const filteredFiscalizacoes = useMemo(() => {
+    return fiscalizacoes.filter((item) => {
+      const term = fiscSearchTerm.toLowerCase();
+      return (
+        item.id?.toLowerCase().includes(term) ||
+        item.instrutorNick?.toLowerCase().includes(term) ||
+        item.fiscalizadorNick?.toLowerCase().includes(term) ||
+        item.fakeNick?.toLowerCase().includes(term)
+      );
+    });
+  }, [fiscalizacoes, fiscSearchTerm]);
+
+  // Métricas de fiscalização
+  const fiscMetrics = useMemo(() => {
+    const total = fiscalizacoes.length;
+    const myFisc = fiscalizacoes.filter(
+      (f) =>
+        f.fiscalizadorNick?.toLowerCase() === (user?.nick || "").toLowerCase() ||
+        f.fiscalizadorId === user?.id
+    ).length;
+    const uniqueInstructors = new Set(
+      fiscalizacoes.map((f) => f.instrutorNick?.toLowerCase()).filter(Boolean)
+    ).size;
+    const withInfractions = fiscalizacoes.filter((f) => {
+      const allSelected = [
+        ...(f.inicioAula || []),
+        ...(f.duranteAula || []),
+        ...(f.testeTeorico || []),
+        ...(f.finalizacao || []),
+      ];
+      return allSelected.some((item) => INFRACOES_CRITICAS.has(item));
+    }).length;
+
+    return { total, myFisc, uniqueInstructors, withInfractions };
+  }, [fiscalizacoes, user?.nick, user?.id]);
+
+  // Helper para alternar itens de checkbox
+  const toggleCheckboxItem = (
+    list: string[],
+    setList: React.Dispatch<React.SetStateAction<string[]>>,
+    item: string
+  ) => {
+    if (list.includes(item)) {
+      setList(list.filter((x) => x !== item));
+    } else {
+      setList([...list, item]);
+    }
+  };
+
+  // Limpar formulário de fiscalização
+  const handleResetFiscalizacaoForm = () => {
+    setFiscStartDate(getBrasiliaIsoNow());
+    setFiscFiscalizadorNick(user?.nick || "");
+    setFiscInstrutorNick("");
+    setFiscFakeNick("");
+    setFiscIsCustomFake(false);
+    setFiscInicioAula([]);
+    setFiscInicioAulaOutro("");
+    setFiscHasInicioOutro(false);
+    setFiscDuranteAula([]);
+    setFiscDuranteAulaOutro("");
+    setFiscHasDuranteOutro(false);
+    setFiscTesteTeorico([]);
+    setFiscTesteTeoricoOutro("");
+    setFiscHasTeoricoOutro(false);
+    setFiscFinalizacao([]);
+    setFiscFinalizacaoOutro("");
+    setFiscHasFinalizacaoOutro(false);
+    setFiscProofs("");
+    setFiscComments("");
+  };
+
+  // Submeter nova fiscalização
+  const handleSubmitFiscalizacao = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const fiscalizador = fiscFiscalizadorNick.trim();
+    const instrutor = fiscInstrutorNick.trim();
+    const fake = fiscFakeNick.trim();
+
+    if (!fiscalizador) {
+      toast.error("Por favor, preencha o Nickname do fiscalizador.");
+      return;
+    }
+
+    if (!instrutor) {
+      toast.error("Por favor, preencha o Nickname do instrutor que aplicou a aula.");
+      return;
+    }
+
+    if (!fake) {
+      toast.error("Por favor, selecione ou preencha a conta fake utilizada.");
+      return;
+    }
+
+    if (!fiscProofs.trim()) {
+      toast.error("Por favor, insira o link dos prints de comprovação da fiscalização.");
+      return;
+    }
+
+    // Regra oficial do SSI: Comentários sem vírgulas para não quebrar a planilha
+    let cleanComments = fiscComments.trim();
+    if (cleanComments.includes(",")) {
+      cleanComments = cleanComments.replace(/,/g, ";");
+      toast.info("As vírgulas do seu comentário foram convertidas para ';' para evitar quebrar a planilha.");
+    }
+
+    setIsSubmittingFisc(true);
+    try {
+      const newFisc: Fiscalizacao = {
+        id: `FISC-${Date.now().toString(36).toUpperCase()}`,
+        startDate: formatBrasiliaDateTime(fiscStartDate),
+        fiscalizadorNick: fiscalizador,
+        fiscalizadorId: user?.id,
+        instrutorNick: instrutor,
+        fakeNick: fake,
+        inicioAula: fiscInicioAula,
+        inicioAulaOutro: fiscHasInicioOutro ? fiscInicioAulaOutro.trim() : undefined,
+        duranteAula: fiscDuranteAula,
+        duranteAulaOutro: fiscHasDuranteOutro ? fiscDuranteAulaOutro.trim() : undefined,
+        testeTeorico: fiscTesteTeorico,
+        testeTeoricoOutro: fiscHasTeoricoOutro ? fiscTesteTeoricoOutro.trim() : undefined,
+        finalizacao: fiscFinalizacao,
+        finalizacaoOutro: fiscHasFinalizacaoOutro ? fiscFinalizacaoOutro.trim() : undefined,
+        proofs: fiscProofs.trim(),
+        comments: cleanComments || undefined,
+        createdAt: formatBrasiliaDateTime(Date.now()),
+        timestamp: Date.now(),
+      };
+
+      await addFiscalizacao(newFisc);
+
+      await addAuditLog(
+        user?.id || fiscalizador,
+        role || "Fiscalizador",
+        "Registro de Fiscalização",
+        "Fiscalização",
+        `Registrou fiscalização da aula do instrutor "${instrutor}" (Fake: ${fake}, Fiscalizador: ${fiscalizador}).`,
+        newFisc.id,
+        user?.nick || fiscalizador
+      );
+
+      setFiscalizacoes((prev) => [newFisc, ...prev]);
+      toast.success("Fiscalização registrada com sucesso!");
+      setIsCreateFiscalizacaoOpen(false);
+      handleResetFiscalizacaoForm();
+    } catch (err) {
+      console.error("Erro ao registrar fiscalização:", err);
+      toast.error("Erro ao salvar fiscalização. Tente novamente.");
+    } finally {
+      setIsSubmittingFisc(false);
+    }
+  };
+
+  // Excluir fiscalização
+  const handleDeleteFiscalizacao = async (item: Fiscalizacao) => {
+    const isOwner =
+      item.fiscalizadorNick?.toLowerCase() === (user?.nick || "").toLowerCase() ||
+      item.fiscalizadorId === user?.id;
+
+    if (!isAdmin && !isOwner) {
+      toast.error("Apenas o fiscalizador responsável ou a Liderança podem excluir esta fiscalização.");
+      return;
+    }
+
+    if (!window.confirm(`Tem certeza de que deseja remover a fiscalização #${item.id} do instrutor ${item.instrutorNick}?`)) {
+      return;
+    }
+
+    try {
+      await deleteFiscalizacao(item.id);
+      setFiscalizacoes((prev) => prev.filter((f) => f.id !== item.id));
+      toast.success(`Fiscalização #${item.id} excluída com sucesso.`);
+
+      await addAuditLog(
+        user?.id || "1",
+        role || "Fiscalizador",
+        "Exclusão de Fiscalização",
+        "Fiscalização",
+        `Excluiu a fiscalização #${item.id} do instrutor ${item.instrutorNick}.`,
+        item.id,
+        user?.nick
+      );
+    } catch (err) {
+      toast.error("Erro ao excluir fiscalização.");
+    }
+  };
+
+  // Handler para Limpar Formulário de Fake
   const handleResetForm = () => {
     setFormOwnerNick(user?.nick || "");
     setFormFakeNick("");
@@ -168,15 +491,15 @@ function RelatorioFiscalizacaoPage() {
       await addFakeAccount(newFake);
 
       // Registrar auditoria
-      await addAuditLog({
-        userId: user?.id || owner,
-        userNick: user?.nick || owner,
-        userRole: role || "Fiscalizador",
-        action: "Registro de Fake",
-        module: "Fiscalização",
-        details: `Registrou a conta fake "${fake}" para o responsável "${owner}".`,
-        targetId: newFake.id,
-      });
+      await addAuditLog(
+        user?.id || owner,
+        role || "Fiscalizador",
+        "Registro de Fake",
+        "Fiscalização",
+        `Registrou a conta fake "${fake}" para o responsável "${owner}".`,
+        newFake.id,
+        user?.nick || owner
+      );
 
       setFakes((prev) => [newFake, ...prev]);
       toast.success(`Conta fake "${fake}" registrada com sucesso!`);
@@ -220,15 +543,15 @@ function RelatorioFiscalizacaoPage() {
       setFakes((prev) => prev.filter((f) => f.id !== fake.id));
       toast.success(`Registro da fake "${fake.fakeNick}" excluído com sucesso.`);
 
-      await addAuditLog({
-        userId: user?.id || "1",
-        userNick: user?.nick,
-        userRole: role || "Fiscalizador",
-        action: "Exclusão de Fake",
-        module: "Fiscalização",
-        details: `Excluiu o registro da fake "${fake.fakeNick}" (Responsável: ${fake.ownerNick}).`,
-        targetId: fake.id,
-      });
+      await addAuditLog(
+        user?.id || "1",
+        role || "Fiscalizador",
+        "Exclusão de Fake",
+        "Fiscalização",
+        `Excluiu o registro da fake "${fake.fakeNick}" (Responsável: ${fake.ownerNick}).`,
+        fake.id,
+        user?.nick
+      );
     } catch (err) {
       toast.error("Erro ao excluir fake.");
     }
@@ -682,20 +1005,82 @@ function RelatorioFiscalizacaoPage() {
       {/* ========================================================================= */}
       {activeTab === "formulario" && (
         <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full animate-in fade-in duration-300">
+          {/* Métricas Rápidas de Fiscalização */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+            <div className="bg-card/70 border border-border/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Total Fiscalizações
+                </span>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground">{fiscMetrics.total}</p>
+              </div>
+              <div className="h-10 w-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary">
+                <FileText className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="bg-card/70 border border-border/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Minhas Fiscalizações
+                </span>
+                <p className="text-2xl sm:text-3xl font-bold text-primary">{fiscMetrics.myFisc}</p>
+              </div>
+              <div className="h-10 w-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary">
+                <User className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="bg-card/70 border border-border/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Instrutores Avaliados
+                </span>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground">{fiscMetrics.uniqueInstructors}</p>
+              </div>
+              <div className="h-10 w-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary">
+                <Users className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="bg-card/70 border border-border/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Irregularidades
+                </span>
+                <p className={`text-2xl sm:text-3xl font-bold ${fiscMetrics.withInfractions > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+                  {fiscMetrics.withInfractions}
+                </p>
+              </div>
+              <div className={`h-10 w-10 rounded-xl flex items-center justify-center border ${
+                fiscMetrics.withInfractions > 0 
+                  ? "bg-amber-500/10 border-amber-500/20 text-amber-400" 
+                  : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+              }`}>
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+            </div>
+          </div>
+
           {/* Header Superior com Botão de Abertura (Igual à Gestão de Casos) */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight flex items-center gap-2.5">
-                <span>Fiscalizações Registradas</span>
+                <span>Fiscalizações de Aulas (CFSd)</span>
               </h2>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Acompanhamento e registro de fiscalizações de aulas, acompanhamentos e capacitações.
+                Controle de fiscalizações, postura de instrutores e conformidade com o script oficial.
               </p>
             </div>
 
             <button
               type="button"
-              onClick={() => setIsCreateFiscalizacaoOpen(true)}
+              onClick={() => {
+                if (!fiscFiscalizadorNick && user?.nick) {
+                  setFiscFiscalizadorNick(user.nick);
+                }
+                setIsCreateFiscalizacaoOpen(true);
+              }}
               className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-primary/20 active:scale-[0.99] transition-all cursor-pointer w-full sm:w-auto shrink-0"
             >
               <Plus className="h-4 w-4" />
@@ -703,32 +1088,1032 @@ function RelatorioFiscalizacaoPage() {
             </button>
           </div>
 
-          {/* Histórico / Listagem das Fiscalizações Embaixo */}
+          {/* Histórico / Listagem das Fiscalizações */}
           <div className="bg-card border border-border/80 rounded-2xl p-6 shadow-sm flex flex-col gap-5 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-bold text-foreground tracking-tight flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  <span>Histórico de Fiscalizações</span>
+                  <FileCheck2 className="h-4 w-4 text-primary" />
+                  <span>Histórico de Fiscalizações Registradas</span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Todas as fiscalizações registradas pela equipe ficam listadas abaixo para conferência.
+                  Consulte os registros completos, provas anexadas e notas da fiscalização.
+                </p>
+              </div>
+
+              {/* Busca */}
+              <div className="relative min-w-[280px]">
+                <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={fiscSearchTerm}
+                  onChange={(e) => setFiscSearchTerm(e.target.value)}
+                  placeholder="Buscar instrutor, fiscalizador ou fake..."
+                  className="w-full bg-background border border-border/80 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Listagem em Tabela */}
+            {filteredFiscalizacoes.length === 0 ? (
+              <div className="p-12 text-center border border-dashed border-border/80 rounded-xl flex flex-col items-center justify-center bg-secondary/10">
+                <FileText className="h-10 w-10 text-muted-foreground/40 mb-3" />
+                <h4 className="text-sm font-semibold text-foreground">Nenhuma fiscalização encontrada</h4>
+                <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+                  {fiscSearchTerm
+                    ? "Nenhum resultado corresponde à busca digitada."
+                    : "Nenhuma fiscalização foi registrada ainda. Clique no botão '+ Nova Fiscalização' acima para cadastrar a primeira."}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-border/70 rounded-xl">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-secondary/50 text-muted-foreground font-semibold text-xs border-b border-border/70">
+                    <tr>
+                      <th className="py-3 px-4">DATA / INÍCIO</th>
+                      <th className="py-3 px-4">INSTRUTOR AVALIADO</th>
+                      <th className="py-3 px-4">FISCALIZADOR</th>
+                      <th className="py-3 px-4">FAKE UTILIZADA</th>
+                      <th className="py-3 px-4">STATUS CFSd</th>
+                      <th className="py-3 px-4 text-right">AÇÕES</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50 text-foreground">
+                    {filteredFiscalizacoes.map((item) => {
+                      const allSelected = [
+                        ...(item.inicioAula || []),
+                        ...(item.duranteAula || []),
+                        ...(item.testeTeorico || []),
+                        ...(item.finalizacao || []),
+                      ];
+                      const hasInfraction = allSelected.some((x) => INFRACOES_CRITICAS.has(x));
+
+                      return (
+                        <tr key={item.id} className="hover:bg-secondary/20 transition-colors">
+                          {/* Data */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <div className="flex flex-col">
+                              <span className="text-xs font-semibold text-foreground">
+                                {item.startDate || item.createdAt}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground font-mono">
+                                #{item.id}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Instrutor */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="h-8 w-8 rounded-lg overflow-hidden bg-secondary border border-border/70 flex items-center justify-center shrink-0">
+                                <img
+                                  src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${encodeURIComponent(
+                                    item.instrutorNick
+                                  )}&headonly=1&size=m`}
+                                  alt={item.instrutorNick}
+                                  className="h-9 w-9 object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = "none";
+                                  }}
+                                />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-bold text-foreground text-xs">
+                                  {item.instrutorNick}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  Instrutor
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Fiscalizador */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="h-7 w-7 rounded-md overflow-hidden bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                                <img
+                                  src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${encodeURIComponent(
+                                    item.fiscalizadorNick
+                                  )}&headonly=1&size=s`}
+                                  alt={item.fiscalizadorNick}
+                                  className="h-8 w-8 object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = "none";
+                                  }}
+                                />
+                              </div>
+                              <span className="text-xs font-semibold text-foreground">
+                                {item.fiscalizadorNick}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Fake */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2">
+                              <div className="h-6 w-6 rounded-md overflow-hidden bg-secondary border border-border flex items-center justify-center shrink-0">
+                                <img
+                                  src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${encodeURIComponent(
+                                    item.fakeNick
+                                  )}&headonly=1&size=s`}
+                                  alt={item.fakeNick}
+                                  className="h-7 w-7 object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = "none";
+                                  }}
+                                />
+                              </div>
+                              <span className="text-xs font-medium text-muted-foreground">
+                                {item.fakeNick}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            {hasInfraction ? (
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-md">
+                                <AlertTriangle className="h-3 w-3" />
+                                Irregularidades
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Conforme
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Ações */}
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedFiscalizacao(item)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border/80 hover:bg-secondary/70 text-xs font-medium text-foreground transition-colors cursor-pointer"
+                                title="Ver detalhes completos"
+                              >
+                                <Eye className="h-3.5 w-3.5 text-primary" />
+                                <span className="hidden sm:inline">Ver Detalhes</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteFiscalizacao(item)}
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                title="Excluir fiscalização"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: NOVA FISCALIZAÇÃO (FORMULÁRIO OFICIAL DO GOOGLE FORMS)             */}
+      {/* ========================================================================= */}
+      {isCreateFiscalizacaoOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 bg-secondary/30">
+              <div>
+                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <span>Nova Fiscalização de Aula (CFSd)</span>
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Preencha os dados e observações recolhidos durante a aplicação do curso.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateFiscalizacaoOpen(false)}
+                className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-secondary transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body / Scrollable Form */}
+            <form onSubmit={handleSubmitFiscalizacao} className="p-6 overflow-y-auto flex-1 flex flex-col gap-6">
+              {/* BLOCO 1: IDENTIFICAÇÃO */}
+              <div className="flex flex-col gap-4 bg-secondary/20 border border-border/70 rounded-2xl p-5">
+                <div className="flex items-center gap-2 border-b border-border/60 pb-3">
+                  <User className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
+                    1. Identificação & Início da Fiscalização
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Data e Hora de Início */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                      <span>Início da Fiscalização: <strong className="text-rose-400">*</strong></span>
+                      <button
+                        type="button"
+                        onClick={() => setFiscStartDate(getBrasiliaIsoNow())}
+                        className="text-[10px] text-primary hover:underline font-normal cursor-pointer"
+                      >
+                        Definir Agora
+                      </button>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={fiscStartDate}
+                      onChange={(e) => setFiscStartDate(e.target.value)}
+                      required
+                      className="w-full bg-background border border-border/80 focus:border-primary rounded-xl px-3.5 py-2.5 text-xs text-foreground focus:outline-none transition-colors"
+                    />
+                  </div>
+
+                  {/* Nickname do Fiscalizador */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-foreground">
+                        Nickname do Fiscalizador: <strong className="text-rose-400">*</strong>
+                      </label>
+                      {user?.nick && fiscFiscalizadorNick !== user.nick && (
+                        <button
+                          type="button"
+                          onClick={() => setFiscFiscalizadorNick(user.nick)}
+                          className="text-[10px] text-primary hover:underline font-normal cursor-pointer"
+                        >
+                          Usar Meu Nick
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {fiscFiscalizadorNick.trim() && (
+                        <div className="h-9 w-9 rounded-lg overflow-hidden bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                          <img
+                            src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${encodeURIComponent(
+                              fiscFiscalizadorNick.trim()
+                            )}&headonly=1&size=m`}
+                            alt={fiscFiscalizadorNick}
+                            className="h-10 w-10 object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
+                          />
+                        </div>
+                      )}
+                      <input
+                        type="text"
+                        value={fiscFiscalizadorNick}
+                        onChange={(e) => setFiscFiscalizadorNick(e.target.value)}
+                        placeholder="Ex: tchaumateu21"
+                        required
+                        className="w-full bg-background border border-border/80 focus:border-primary rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Nickname do Instrutor */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-foreground">
+                      Nickname do Instrutor Avaliado: <strong className="text-rose-400">*</strong>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {fiscInstrutorNick.trim() && (
+                        <div className="h-9 w-9 rounded-lg overflow-hidden bg-secondary border border-border/70 flex items-center justify-center shrink-0">
+                          <img
+                            src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${encodeURIComponent(
+                              fiscInstrutorNick.trim()
+                            )}&headonly=1&size=m`}
+                            alt={fiscInstrutorNick}
+                            className="h-10 w-10 object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
+                          />
+                        </div>
+                      )}
+                      <input
+                        type="text"
+                        list="members-datalist"
+                        value={fiscInstrutorNick}
+                        onChange={(e) => setFiscInstrutorNick(e.target.value)}
+                        placeholder="Ex: FulanoInstrutor"
+                        required
+                        className="w-full bg-background border border-border/80 focus:border-primary rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors"
+                      />
+                      <datalist id="members-datalist">
+                        {members.map((m) => (
+                          <option key={m.id} value={m.nick} />
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  {/* Nickname da Fake Utilizada */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-foreground">
+                        Fake Utilizada: <strong className="text-rose-400">*</strong>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFiscIsCustomFake(!fiscIsCustomFake);
+                          setFiscFakeNick("");
+                        }}
+                        className="text-[10px] text-primary hover:underline font-normal cursor-pointer"
+                      >
+                        {fiscIsCustomFake ? "Selecionar da lista" : "Digitar outra fake"}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {fiscFakeNick.trim() && (
+                        <div className="h-9 w-9 rounded-lg overflow-hidden bg-secondary border border-border/70 flex items-center justify-center shrink-0">
+                          <img
+                            src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${encodeURIComponent(
+                              fiscFakeNick.trim()
+                            )}&headonly=1&size=m`}
+                            alt={fiscFakeNick}
+                            className="h-10 w-10 object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = "none";
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {!fiscIsCustomFake ? (
+                        <select
+                          value={fiscFakeNick}
+                          onChange={(e) => {
+                            if (e.target.value === "__custom__") {
+                              setFiscIsCustomFake(true);
+                              setFiscFakeNick("");
+                            } else {
+                              setFiscFakeNick(e.target.value);
+                            }
+                          }}
+                          required
+                          className="w-full bg-background border border-border/80 focus:border-primary rounded-xl px-3 py-2.5 text-xs text-foreground focus:outline-none transition-colors"
+                        >
+                          <option value="">Selecione a fake utilizada...</option>
+                          {fakes.map((f) => (
+                            <option key={f.id} value={f.fakeNick}>
+                              {f.fakeNick} (Resp: {f.ownerNick})
+                            </option>
+                          ))}
+                          <option value="__custom__">➕ Outra fake não listada...</option>
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={fiscFakeNick}
+                          onChange={(e) => setFiscFakeNick(e.target.value)}
+                          placeholder="Digite o nick da fake..."
+                          required
+                          className="w-full bg-background border border-border/80 focus:border-primary rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* BLOCO 2: APLICAÇÃO DO CURSO DE FORMAÇÃO DE SOLDADOS (CFSd) */}
+              <div className="flex flex-col gap-6 bg-secondary/20 border border-border/70 rounded-2xl p-5">
+                <div className="flex items-center gap-2 border-b border-border/60 pb-3">
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
+                    2. Aplicação do Curso de Formação de Soldados (CFSd)
+                  </h3>
+                </div>
+
+                {/* Subseção A: Início da Aula */}
+                <div className="space-y-2.5">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <span>Início da Aula:</span>
+                  </label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Marque todas as situações observadas no início da instrução.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                    {INICIO_AULA_OPTIONS.map((opt) => (
+                      <CheckboxOption
+                        key={opt}
+                        label={opt}
+                        checked={fiscInicioAula.includes(opt)}
+                        isCritical={INFRACOES_CRITICAS.has(opt)}
+                        onChange={() => toggleCheckboxItem(fiscInicioAula, setFiscInicioAula, opt)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Outro no Início da Aula */}
+                  <div
+                    className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
+                      fiscHasInicioOutro
+                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm"
+                        : "bg-secondary/20 border-border/70 hover:border-border text-muted-foreground"
+                    }`}
+                  >
+                    <div
+                      onClick={() => setFiscHasInicioOutro(!fiscHasInicioOutro)}
+                      className="flex items-center gap-3 cursor-pointer select-none"
+                    >
+                      <div
+                        className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${
+                          fiscHasInicioOutro
+                            ? "bg-primary border-primary text-white"
+                            : "border-muted-foreground/50 bg-background"
+                        }`}
+                      >
+                        {fiscHasInicioOutro && <Check className="h-3 w-3 stroke-[3]" />}
+                      </div>
+                      <span className="font-semibold">Outro:</span>
+                    </div>
+                    {fiscHasInicioOutro && (
+                      <input
+                        type="text"
+                        value={fiscInicioAulaOutro}
+                        onChange={(e) => setFiscInicioAulaOutro(e.target.value)}
+                        placeholder="Especifique outros detalhes do início da aula..."
+                        className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Subseção B: Durante da Aula */}
+                <div className="space-y-2.5 border-t border-border/50 pt-4">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <span>Durante da aula:</span>
+                  </label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Marque todas as condutas do instrutor durante a explicação do script.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                    {DURANTE_AULA_OPTIONS.map((opt) => (
+                      <CheckboxOption
+                        key={opt}
+                        label={opt}
+                        checked={fiscDuranteAula.includes(opt)}
+                        isCritical={INFRACOES_CRITICAS.has(opt)}
+                        onChange={() => toggleCheckboxItem(fiscDuranteAula, setFiscDuranteAula, opt)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Outro no Durante da Aula */}
+                  <div
+                    className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
+                      fiscHasDuranteOutro
+                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm"
+                        : "bg-secondary/20 border-border/70 hover:border-border text-muted-foreground"
+                    }`}
+                  >
+                    <div
+                      onClick={() => setFiscHasDuranteOutro(!fiscHasDuranteOutro)}
+                      className="flex items-center gap-3 cursor-pointer select-none"
+                    >
+                      <div
+                        className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${
+                          fiscHasDuranteOutro
+                            ? "bg-primary border-primary text-white"
+                            : "border-muted-foreground/50 bg-background"
+                        }`}
+                      >
+                        {fiscHasDuranteOutro && <Check className="h-3 w-3 stroke-[3]" />}
+                      </div>
+                      <span className="font-semibold">Outro:</span>
+                    </div>
+                    {fiscHasDuranteOutro && (
+                      <input
+                        type="text"
+                        value={fiscDuranteAulaOutro}
+                        onChange={(e) => setFiscDuranteAulaOutro(e.target.value)}
+                        placeholder="Especifique outros detalhes do decorrer da aula..."
+                        className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Subseção C: Teste Teórico */}
+                <div className="space-y-2.5 border-t border-border/50 pt-4">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <span>Teste teórico:</span>
+                  </label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Marque como o instrutor conduziu as perguntas e a correção do teste.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                    {TESTE_TEORICO_OPTIONS.map((opt) => (
+                      <CheckboxOption
+                        key={opt}
+                        label={opt}
+                        checked={fiscTesteTeorico.includes(opt)}
+                        isCritical={INFRACOES_CRITICAS.has(opt)}
+                        onChange={() => toggleCheckboxItem(fiscTesteTeorico, setFiscTesteTeorico, opt)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Outro no Teste Teórico */}
+                  <div
+                    className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
+                      fiscHasTeoricoOutro
+                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm"
+                        : "bg-secondary/20 border-border/70 hover:border-border text-muted-foreground"
+                    }`}
+                  >
+                    <div
+                      onClick={() => setFiscHasTeoricoOutro(!fiscHasTeoricoOutro)}
+                      className="flex items-center gap-3 cursor-pointer select-none"
+                    >
+                      <div
+                        className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${
+                          fiscHasTeoricoOutro
+                            ? "bg-primary border-primary text-white"
+                            : "border-muted-foreground/50 bg-background"
+                        }`}
+                      >
+                        {fiscHasTeoricoOutro && <Check className="h-3 w-3 stroke-[3]" />}
+                      </div>
+                      <span className="font-semibold">Outro:</span>
+                    </div>
+                    {fiscHasTeoricoOutro && (
+                      <input
+                        type="text"
+                        value={fiscTesteTeoricoOutro}
+                        onChange={(e) => setFiscTesteTeoricoOutro(e.target.value)}
+                        placeholder="Especifique outros detalhes do teste teórico..."
+                        className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Subseção D: Finalização */}
+                <div className="space-y-2.5 border-t border-border/50 pt-4">
+                  <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <span>Finalização:</span>
+                  </label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Marque como foi o encerramento do script e a conferência de requisitos.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                    {FINALIZACAO_OPTIONS.map((opt) => (
+                      <CheckboxOption
+                        key={opt}
+                        label={opt}
+                        checked={fiscFinalizacao.includes(opt)}
+                        isCritical={INFRACOES_CRITICAS.has(opt)}
+                        onChange={() => toggleCheckboxItem(fiscFinalizacao, setFiscFinalizacao, opt)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Outro na Finalização */}
+                  <div
+                    className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
+                      fiscHasFinalizacaoOutro
+                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm"
+                        : "bg-secondary/20 border-border/70 hover:border-border text-muted-foreground"
+                    }`}
+                  >
+                    <div
+                      onClick={() => setFiscHasFinalizacaoOutro(!fiscHasFinalizacaoOutro)}
+                      className="flex items-center gap-3 cursor-pointer select-none"
+                    >
+                      <div
+                        className={`h-4 w-4 rounded border flex items-center justify-center transition-all ${
+                          fiscHasFinalizacaoOutro
+                            ? "bg-primary border-primary text-white"
+                            : "border-muted-foreground/50 bg-background"
+                        }`}
+                      >
+                        {fiscHasFinalizacaoOutro && <Check className="h-3 w-3 stroke-[3]" />}
+                      </div>
+                      <span className="font-semibold">Outro:</span>
+                    </div>
+                    {fiscHasFinalizacaoOutro && (
+                      <input
+                        type="text"
+                        value={fiscFinalizacaoOutro}
+                        onChange={(e) => setFiscFinalizacaoOutro(e.target.value)}
+                        placeholder="Especifique outros detalhes da finalização..."
+                        className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* BLOCO 3: ENCERRAMENTO DA AVALIAÇÃO (PRINTS & COMENTÁRIOS) */}
+              <div className="flex flex-col gap-5 bg-secondary/20 border border-border/70 rounded-2xl p-5">
+                <div className="flex items-center gap-2 border-b border-border/60 pb-3">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
+                    3. Encerramento da Avaliação
+                  </h3>
+                </div>
+
+                {/* Anexos / Prints */}
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                    <span>Anexos (Prints da Aula):</span>
+                    <strong className="text-rose-400">*</strong>
+                  </label>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Insira o print retirado durante a avaliação (toda a aula). Se houver diálogo e punição, inserir todo o print da conversa realizada.
+                  </p>
+                  <input
+                    type="text"
+                    value={fiscProofs}
+                    onChange={(e) => setFiscProofs(e.target.value)}
+                    placeholder="https://imgur.com/a/... ou múltiplos links separados por espaço"
+                    required
+                    className="w-full bg-background border border-border/80 focus:border-primary rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none transition-colors font-mono"
+                  />
+                </div>
+
+                {/* Comentários Adicionais */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-foreground">
+                      Comentários adicionais:
+                    </label>
+                    {fiscComments.includes(",") && (
+                      <button
+                        type="button"
+                        onClick={() => setFiscComments(fiscComments.replace(/,/g, ";"))}
+                        className="text-[10px] text-amber-400 hover:underline font-medium cursor-pointer"
+                      >
+                        Substituir vírgulas por ';'
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Alerta de Vírgula do Google Forms */}
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 flex items-start gap-2.5 text-xs text-amber-300">
+                    <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">
+                      <strong>Aviso do SSI:</strong> Digite seu comentário <u>SEM VÍRGULAS</u>, para não quebrar a planilha. Passível de PUNIÇÃO. Utilize ponto e vírgula (;) ou traço (-) para separar ideias.
+                    </span>
+                  </div>
+
+                  <textarea
+                    rows={3}
+                    value={fiscComments}
+                    onChange={(e) => setFiscComments(e.target.value)}
+                    placeholder="Digite observações sobre o instrutor, esclarecimentos etc. (Lembre-se: sem vírgulas)"
+                    className="w-full bg-background border border-border/80 focus:border-primary rounded-xl p-3 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none transition-colors resize-none"
+                  />
+
+                  {fiscComments.includes(",") && (
+                    <p className="text-[11px] font-semibold text-rose-400 flex items-center gap-1 animate-pulse">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      Vírgula detectada no comentário! Remova ou substitua por ponto ou ponto e vírgula (;).
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer / Actions */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-border/60">
+                <button
+                  type="button"
+                  onClick={handleResetFiscalizacaoForm}
+                  className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer"
+                >
+                  Limpar todos os campos
+                </button>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateFiscalizacaoOpen(false)}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-border/80 hover:bg-secondary text-muted-foreground hover:text-foreground font-medium text-xs transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingFisc}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-xs hover:bg-primary/90 active:scale-[0.99] transition-all shadow-md shadow-primary/20 disabled:opacity-60 cursor-pointer"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    <span>{isSubmittingFisc ? "Registrando..." : "Salvar Fiscalização"}</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: DETALHES DA FISCALIZAÇÃO (LEITURA COMPLETA)                       */}
+      {/* ========================================================================= */}
+      {selectedFiscalizacao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card border border-border shadow-2xl rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 bg-secondary/30">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                    <span>Fiscalização #{selectedFiscalizacao.id}</span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Registrada em {selectedFiscalizacao.createdAt || selectedFiscalizacao.startDate}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedFiscalizacao(null)}
+                className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-secondary transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              {/* Participantes */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Instrutor */}
+                <div className="bg-secondary/30 border border-border/80 rounded-xl p-3.5 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg overflow-hidden bg-secondary border border-border/70 flex items-center justify-center shrink-0">
+                    <img
+                      src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${encodeURIComponent(
+                        selectedFiscalizacao.instrutorNick
+                      )}&headonly=1&size=m`}
+                      alt={selectedFiscalizacao.instrutorNick}
+                      className="h-11 w-11 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
+                      Instrutor Avaliado
+                    </span>
+                    <span className="text-xs font-bold text-foreground truncate block">
+                      {selectedFiscalizacao.instrutorNick}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Fiscalizador */}
+                <div className="bg-secondary/30 border border-border/80 rounded-xl p-3.5 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg overflow-hidden bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                    <img
+                      src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${encodeURIComponent(
+                        selectedFiscalizacao.fiscalizadorNick
+                      )}&headonly=1&size=m`}
+                      alt={selectedFiscalizacao.fiscalizadorNick}
+                      className="h-11 w-11 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-primary uppercase font-semibold block">
+                      Fiscalizador
+                    </span>
+                    <span className="text-xs font-bold text-foreground truncate block">
+                      {selectedFiscalizacao.fiscalizadorNick}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Fake Utilizada */}
+                <div className="bg-secondary/30 border border-border/80 rounded-xl p-3.5 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg overflow-hidden bg-secondary border border-border/70 flex items-center justify-center shrink-0">
+                    <img
+                      src={`https://www.habbo.com.br/habbo-imaging/avatarimage?user=${encodeURIComponent(
+                        selectedFiscalizacao.fakeNick
+                      )}&headonly=1&size=m`}
+                      alt={selectedFiscalizacao.fakeNick}
+                      className="h-11 w-11 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
+                      Fake Utilizada
+                    </span>
+                    <span className="text-xs font-bold text-foreground truncate block">
+                      {selectedFiscalizacao.fakeNick}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Data de Início */}
+              <div className="bg-secondary/20 border border-border/70 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground font-medium">Início da Fiscalização:</span>
+                <span className="font-semibold text-foreground font-mono">
+                  {selectedFiscalizacao.startDate || "-"}
+                </span>
+              </div>
+
+              {/* Observações da Aula */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  Etapas Observadas na Aplicação do CFSd
+                </h3>
+
+                {/* Início da Aula */}
+                <div className="bg-secondary/20 border border-border/70 rounded-xl p-4 space-y-2">
+                  <span className="text-xs font-bold text-foreground block">Início da Aula</span>
+                  {selectedFiscalizacao.inicioAula?.length === 0 && !selectedFiscalizacao.inicioAulaOutro ? (
+                    <span className="text-xs text-muted-foreground italic">Nenhum item assinalado.</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedFiscalizacao.inicioAula?.map((item) => {
+                        const isCrit = INFRACOES_CRITICAS.has(item);
+                        return (
+                          <span
+                            key={item}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 ${
+                              isCrit
+                                ? "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                                : "bg-primary/10 border-primary/20 text-foreground"
+                            }`}
+                          >
+                            <Check className="h-3 w-3" />
+                            {item}
+                          </span>
+                        );
+                      })}
+                      {selectedFiscalizacao.inicioAulaOutro && (
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-medium border bg-secondary border-border text-foreground">
+                          <strong>Outro:</strong> {selectedFiscalizacao.inicioAulaOutro}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Durante da Aula */}
+                <div className="bg-secondary/20 border border-border/70 rounded-xl p-4 space-y-2">
+                  <span className="text-xs font-bold text-foreground block">Durante da aula</span>
+                  {selectedFiscalizacao.duranteAula?.length === 0 && !selectedFiscalizacao.duranteAulaOutro ? (
+                    <span className="text-xs text-muted-foreground italic">Nenhum item assinalado.</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedFiscalizacao.duranteAula?.map((item) => {
+                        const isCrit = INFRACOES_CRITICAS.has(item);
+                        return (
+                          <span
+                            key={item}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 ${
+                              isCrit
+                                ? "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                                : "bg-primary/10 border-primary/20 text-foreground"
+                            }`}
+                          >
+                            <Check className="h-3 w-3" />
+                            {item}
+                          </span>
+                        );
+                      })}
+                      {selectedFiscalizacao.duranteAulaOutro && (
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-medium border bg-secondary border-border text-foreground">
+                          <strong>Outro:</strong> {selectedFiscalizacao.duranteAulaOutro}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Teste Teórico */}
+                <div className="bg-secondary/20 border border-border/70 rounded-xl p-4 space-y-2">
+                  <span className="text-xs font-bold text-foreground block">Teste teórico</span>
+                  {selectedFiscalizacao.testeTeorico?.length === 0 && !selectedFiscalizacao.testeTeoricoOutro ? (
+                    <span className="text-xs text-muted-foreground italic">Nenhum item assinalado.</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedFiscalizacao.testeTeorico?.map((item) => {
+                        const isCrit = INFRACOES_CRITICAS.has(item);
+                        return (
+                          <span
+                            key={item}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 ${
+                              isCrit
+                                ? "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                                : "bg-primary/10 border-primary/20 text-foreground"
+                            }`}
+                          >
+                            <Check className="h-3 w-3" />
+                            {item}
+                          </span>
+                        );
+                      })}
+                      {selectedFiscalizacao.testeTeoricoOutro && (
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-medium border bg-secondary border-border text-foreground">
+                          <strong>Outro:</strong> {selectedFiscalizacao.testeTeoricoOutro}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Finalização */}
+                <div className="bg-secondary/20 border border-border/70 rounded-xl p-4 space-y-2">
+                  <span className="text-xs font-bold text-foreground block">Finalização</span>
+                  {selectedFiscalizacao.finalizacao?.length === 0 && !selectedFiscalizacao.finalizacaoOutro ? (
+                    <span className="text-xs text-muted-foreground italic">Nenhum item assinalado.</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedFiscalizacao.finalizacao?.map((item) => {
+                        const isCrit = INFRACOES_CRITICAS.has(item);
+                        return (
+                          <span
+                            key={item}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border flex items-center gap-1.5 ${
+                              isCrit
+                                ? "bg-rose-500/10 border-rose-500/30 text-rose-300"
+                                : "bg-primary/10 border-primary/20 text-foreground"
+                            }`}
+                          >
+                            <Check className="h-3 w-3" />
+                            {item}
+                          </span>
+                        );
+                      })}
+                      {selectedFiscalizacao.finalizacaoOutro && (
+                        <span className="px-2.5 py-1 rounded-lg text-xs font-medium border bg-secondary border-border text-foreground">
+                          <strong>Outro:</strong> {selectedFiscalizacao.finalizacaoOutro}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Anexos e Prints */}
+              <div className="bg-secondary/20 border border-border/70 rounded-xl p-4 space-y-2">
+                <span className="text-xs font-bold text-foreground block">
+                  Prints e Comprovações da Avaliação:
+                </span>
+                <p className="text-xs font-mono text-muted-foreground break-all bg-background/80 p-3 rounded-lg border border-border/60">
+                  {selectedFiscalizacao.proofs}
+                </p>
+                {selectedFiscalizacao.proofs.match(/https?:\/\/[^\s]+/g)?.map((url, i) => (
+                  <a
+                    key={i}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline mt-1 bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20 cursor-pointer"
+                  >
+                    <span>Abrir Print #{i + 1}</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                ))}
+              </div>
+
+              {/* Comentários adicionais */}
+              <div className="bg-secondary/20 border border-border/70 rounded-xl p-4 space-y-1.5">
+                <span className="text-xs font-bold text-foreground block">
+                  Comentários Adicionais:
+                </span>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {selectedFiscalizacao.comments || "Nenhum comentário adicional registrado."}
                 </p>
               </div>
             </div>
 
-            {/* Estado de Preparação / Placeholder Elegante para o formulário */}
-            <div className="p-12 text-center border border-dashed border-border/80 rounded-xl flex flex-col items-center justify-center bg-secondary/10">
-              <div className="h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mb-3">
-                <FileText className="h-6 w-6" />
-              </div>
-              <h4 className="text-sm font-semibold text-foreground">
-                Pronto para receber o modelo de Fiscalização
-              </h4>
-              <p className="text-xs text-muted-foreground mt-1 max-w-md leading-relaxed">
-                Assim que você enviar as fotos das seções deste formulário, incluiremos os campos no botão{" "}
-                <strong className="text-foreground">"Nova Fiscalização"</strong> e os registros aparecerão organizados nesta tabela.
-              </p>
+            {/* Footer */}
+            <div className="px-6 py-3.5 border-t border-border/80 bg-secondary/30 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedFiscalizacao(null)}
+                className="px-5 py-2 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground font-semibold text-xs transition-colors cursor-pointer"
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>

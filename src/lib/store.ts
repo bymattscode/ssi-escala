@@ -1,4 +1,4 @@
-import { Member, Schedule, Case, Warning, AuditLog, AuditAction, AuditModule, Role, AuthorizedUser, FakeAccount } from './types';
+import { Member, Schedule, Case, Warning, AuditLog, AuditAction, AuditModule, Role, AuthorizedUser, FakeAccount, Fiscalizacao } from './types';
 import { mockMembers, mockSchedules, mockCases, mockWarnings } from './mockData';
 import { getScheduleDeadlineText, calculateScheduleDeadlineDate } from './dateUtils';
 
@@ -13,7 +13,8 @@ export const KEYS = {
   WARNINGS: 'ssi_warnings',
   CONFIG: 'ssi_config',
   AUDIT: 'ssi_audit',
-  FAKES: 'ssi_fakes'
+  FAKES: 'ssi_fakes',
+  FISCALIZACOES: 'ssi_fiscalizacoes'
 };
 
 // Helper for localStorage
@@ -782,6 +783,48 @@ export const deleteFakeAccount = async (id: string): Promise<void> => {
   addDeletedKey(id);
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.FAKES, JSON.stringify(fakes));
+  }
+};
+
+// --- FISCALIZAÇÕES ---
+export const getFiscalizacoes = async (): Promise<Fiscalizacao[]> => {
+  await delay(150);
+  const raw = getParsedData<Fiscalizacao[]>(KEYS.FISCALIZACOES, []);
+  const deletedKeys = getDeletedKeys();
+  return (Array.isArray(raw) ? raw : []).filter(
+    f => f && f.id && !deletedKeys.includes(String(f.id).trim().toLowerCase())
+  );
+};
+
+export const addFiscalizacao = async (newFisc: Fiscalizacao): Promise<void> => {
+  await delay(200);
+  if (newFisc.id) removeDeletedKey(newFisc.id);
+  const list = getParsedData<Fiscalizacao[]>(KEYS.FISCALIZACOES, []);
+  list.unshift({ ...newFisc, updatedAt: Date.now(), syncStatus: "pending" });
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.FISCALIZACOES, JSON.stringify(list));
+  }
+};
+
+export const updateFiscalizacao = async (id: string, updates: Partial<Fiscalizacao>): Promise<void> => {
+  await delay(200);
+  const list = getParsedData<Fiscalizacao[]>(KEYS.FISCALIZACOES, []);
+  const cleanTargetId = String(id).trim().toLowerCase();
+  const idx = list.findIndex(f => String(f.id).trim().toLowerCase() === cleanTargetId);
+  if (idx !== -1 && typeof window !== "undefined") {
+    list[idx] = { ...list[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
+    localStorage.setItem(KEYS.FISCALIZACOES, JSON.stringify(list));
+  }
+};
+
+export const deleteFiscalizacao = async (id: string): Promise<void> => {
+  await delay(200);
+  let list = getParsedData<Fiscalizacao[]>(KEYS.FISCALIZACOES, []);
+  const cleanTargetId = String(id).trim().toLowerCase();
+  list = list.filter(f => String(f.id).trim().toLowerCase() !== cleanTargetId);
+  addDeletedKey(id);
+  if (typeof window !== "undefined") {
+    localStorage.setItem(KEYS.FISCALIZACOES, JSON.stringify(list));
   }
 };
 
