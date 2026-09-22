@@ -1402,18 +1402,12 @@ function RelatorioFiscalizacaoPage() {
                       )}
                       <input
                         type="text"
-                        list="members-datalist"
                         value={fiscInstrutorNick}
                         onChange={(e) => setFiscInstrutorNick(e.target.value)}
                         placeholder="Ex: FulanoInstrutor"
                         required
                         className="w-full bg-background border border-border/80 focus:border-primary rounded-xl px-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors"
                       />
-                      <datalist id="members-datalist">
-                        {members.map((m) => (
-                          <option key={m.id} value={m.nick} />
-                        ))}
-                      </datalist>
                     </div>
                   </div>
 
