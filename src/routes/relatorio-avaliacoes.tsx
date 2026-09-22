@@ -44,6 +44,7 @@ import {
 import { FakeAccount, Member, Fiscalizacao } from "../lib/types";
 import { toast } from "sonner";
 import { formatBrasiliaDateTime, getBrasiliaIsoNow } from "../lib/dateUtils";
+import { fetchAllFromRemote } from "../lib/syncManager";
 
 // Opções das etapas de fiscalização do CFSd (conforme formulário oficial)
 const INICIO_AULA_OPTIONS = {
@@ -378,10 +379,9 @@ function RelatorioFiscalizacaoPage() {
   const [fiscComments, setFiscComments] = useState("");
   const [isSubmittingFisc, setIsSubmittingFisc] = useState(false);
 
-  // Carregar dados iniciais
+  // Carregar dados iniciais e escutar atualizações
   useEffect(() => {
     async function loadData() {
-      setIsLoading(true);
       try {
         const [loadedFakes, loadedMembers, loadedFiscalizacoes] = await Promise.all([
           getFakeAccounts(),
@@ -398,6 +398,15 @@ function RelatorioFiscalizacaoPage() {
       }
     }
     loadData();
+
+    // Sincronizar em segundo plano com a planilha oficial
+    fetchAllFromRemote().catch(console.error);
+
+    const handleDataUpdate = () => {
+      loadData();
+    };
+    window.addEventListener("ssi-data-updated", handleDataUpdate);
+    return () => window.removeEventListener("ssi-data-updated", handleDataUpdate);
   }, []);
 
   // Preencher nick inicial com o do usuário logado caso ainda vazio

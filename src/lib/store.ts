@@ -155,6 +155,8 @@ export const wipeAllData = () => {
     localStorage.setItem(KEYS.CASES, "[]");
     localStorage.setItem(KEYS.WARNINGS, "[]");
     localStorage.setItem(KEYS.AUDIT, "[]");
+    localStorage.setItem(KEYS.FAKES, "[]");
+    localStorage.setItem(KEYS.FISCALIZACOES, "[]");
     window.location.reload();
   }
 };
@@ -761,6 +763,7 @@ export const addFakeAccount = async (newFake: FakeAccount): Promise<void> => {
   fakes.unshift({ ...newFake, updatedAt: Date.now(), syncStatus: "pending" });
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.FAKES, JSON.stringify(fakes));
+    triggerAutoSync("fakes");
   }
 };
 
@@ -772,6 +775,7 @@ export const updateFakeAccount = async (id: string, updates: Partial<FakeAccount
   if (idx !== -1 && typeof window !== "undefined") {
     fakes[idx] = { ...fakes[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
     localStorage.setItem(KEYS.FAKES, JSON.stringify(fakes));
+    triggerAutoSync("fakes");
   }
 };
 
@@ -783,6 +787,7 @@ export const deleteFakeAccount = async (id: string): Promise<void> => {
   addDeletedKey(id);
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.FAKES, JSON.stringify(fakes));
+    triggerAutoSync("fakes");
   }
 };
 
@@ -803,6 +808,7 @@ export const addFiscalizacao = async (newFisc: Fiscalizacao): Promise<void> => {
   list.unshift({ ...newFisc, updatedAt: Date.now(), syncStatus: "pending" });
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.FISCALIZACOES, JSON.stringify(list));
+    triggerAutoSync("fiscalizacoes");
   }
 };
 
@@ -814,6 +820,7 @@ export const updateFiscalizacao = async (id: string, updates: Partial<Fiscalizac
   if (idx !== -1 && typeof window !== "undefined") {
     list[idx] = { ...list[idx], ...updates, updatedAt: Date.now(), syncStatus: "pending" };
     localStorage.setItem(KEYS.FISCALIZACOES, JSON.stringify(list));
+    triggerAutoSync("fiscalizacoes");
   }
 };
 
@@ -825,6 +832,7 @@ export const deleteFiscalizacao = async (id: string): Promise<void> => {
   addDeletedKey(id);
   if (typeof window !== "undefined") {
     localStorage.setItem(KEYS.FISCALIZACOES, JSON.stringify(list));
+    triggerAutoSync("fiscalizacoes");
   }
 };
 
@@ -885,12 +893,16 @@ export const getPendingCount = async (): Promise<number> => {
   const schedules = getParsedData<Schedule[]>(KEYS.SCHEDULES, []);
   const cases = await getCases();
   const warnings = await getWarnings();
+  const fakes = await getFakeAccounts();
+  const fiscalizacoes = await getFiscalizacoes();
   
   let count = 0;
   count += members.filter(m => m.syncStatus === 'pending').length;
   count += schedules.filter(s => s.syncStatus === 'pending').length;
   count += cases.filter(c => c.syncStatus === 'pending').length;
   count += warnings.filter(w => w.syncStatus === 'pending').length;
+  count += fakes.filter(f => f.syncStatus === 'pending').length;
+  count += fiscalizacoes.filter(f => f.syncStatus === 'pending').length;
   
   return count;
 };

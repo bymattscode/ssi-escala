@@ -4,6 +4,8 @@ import {
   getSchedules, 
   getCases, 
   getWarnings, 
+  getFakeAccounts,
+  getFiscalizacoes,
   addSyncLog,
   updateConfig,
   getDeletedKeys,
@@ -41,6 +43,16 @@ const headerMaps = {
     id: "ID", date: "Data", offenderNick: "Nick do Infrator", punishmentType: "Tipo de Punição",
     reason: "Motivo", directorNick: "Responsável", caseId: "ID do Caso", notes: "Observações"
   },
+  fakes: {
+    id: "ID", ownerNick: "Responsável", fakeNick: "Nick da Fake", registeredByNick: "Cadastrado Por",
+    createdAt: "Data de Criação", agreedTerms: "Termo Aceito", status: "Status", notes: "Observações"
+  },
+  fiscalizacoes: {
+    id: "ID", startDate: "Data / Início", fiscalizadorNick: "Fiscalizador", instrutorNick: "Instrutor Avaliado",
+    fakeNick: "Fake Utilizada", inicioAula: "Início da Aula", duranteAula: "Durante a Aula",
+    testeTeorico: "Teste Teórico", comandos: "Prática de Comandos", finalizacao: "Finalização",
+    proofs: "Provas / Prints", comments: "Comentários", createdAt: "Data de Registro"
+  },
   logs: {
     id: "ID", date: "Data", timestamp: "Data e Hora", userId: "ID do Usuário", userRole: "Cargo do Usuário",
     action: "Ação", module: "Módulo", details: "Detalhes", targetId: "ID Alvo"
@@ -59,7 +71,35 @@ const cleanTimestampFromDate = (val: any, fieldName: string): any => {
   } else if (val instanceof Date || (typeof val === "object" && typeof val.toISOString === "function")) {
     return val.toISOString().split("T")[0];
   }
-  return val;
+};
+
+const formatChecklist = (items?: string[], customItem?: string): string => {
+  const parts: string[] = [];
+  if (Array.isArray(items)) {
+    for (const item of items) {
+      if (item && item.trim()) parts.push(item.trim());
+    }
+  }
+  if (customItem && customItem.trim()) {
+    parts.push(`Outro: ${customItem.trim()}`);
+  }
+  return parts.length > 0 ? parts.join(" \n• ") : "-";
+};
+
+const parseChecklist = (rawVal: any): { items: string[]; customItem?: string } => {
+  if (!rawVal || rawVal === "-") return { items: [] };
+  const str = String(rawVal);
+  const lines = str.split(/[\n;•]+/).map(s => s.trim()).filter(Boolean);
+  const items: string[] = [];
+  let customItem: string | undefined = undefined;
+  for (const line of lines) {
+    if (line.toLowerCase().startsWith("outro:")) {
+      customItem = line.substring(6).trim();
+    } else {
+      items.push(line);
+    }
+  }
+  return { items, customItem };
 };
 
 const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => {
@@ -253,6 +293,45 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
         "Responsável": responsavel,
         "ID do Caso": item.caseId || "-",
         "Observações": item.notes || "-"
+      };
+    });
+  }
+
+  if (module === "fakes") {
+    return (Array.isArray(listToTranslate) ? listToTranslate : []).map(item => ({
+      "ID": item.id || "-",
+      "Responsável": item.ownerNick || "-",
+      "Nick da Fake": item.fakeNick || "-",
+      "Cadastrado Por": item.registeredByNick || item.registeredBy || item.ownerNick || "-",
+      "Data de Criação": item.createdAt || "-",
+      "Termo Aceito": item.agreedTerms ? "Sim" : "Não",
+      "Status": item.status || "Ativa",
+      "Observações": item.notes || "-"
+    }));
+  }
+
+  if (module === "fiscalizacoes") {
+    return (Array.isArray(listToTranslate) ? listToTranslate : []).map(item => {
+      const inicio = formatChecklist(item.inicioAula, item.inicioAulaOutro);
+      const durante = formatChecklist(item.duranteAula, item.duranteAulaOutro);
+      const teorico = formatChecklist(item.testeTeorico, item.testeTeoricoOutro);
+      const comandos = formatChecklist(item.comandos, item.comandosOutro);
+      const finalizacao = formatChecklist(item.finalizacao, item.finalizacaoOutro);
+
+      return {
+        "ID": item.id || "-",
+        "Data / Início": item.startDate || "-",
+        "Fiscalizador": item.fiscalizadorNick || "-",
+        "Instrutor Avaliado": item.instrutorNick || "-",
+        "Fake Utilizada": item.fakeNick || "-",
+        "Início da Aula": inicio,
+        "Durante a Aula": durante,
+        "Teste Teórico": teorico,
+        "Prática de Comandos": comandos,
+        "Finalização": finalizacao,
+        "Provas / Prints": item.proofs || "-",
+        "Comentários": item.comments || "-",
+        "Data de Registro": item.createdAt || "-"
       };
     });
   }
@@ -495,6 +574,54 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
       };
     });
   }
+
+  if (module === "fakes") {
+    return (Array.isArray(data) ? data : []).map((item: any) => ({
+      id: item["ID"] && item["ID"] !== "-" ? item["ID"] : `FAKE-${Date.now().toString(36).toUpperCase()}`,
+      ownerNick: item["Responsável"] || item["Dono"] || "-",
+      fakeNick: item["Nick da Fake"] || item["Fake"] || "-",
+      registeredByNick: item["Cadastrado Por"] || undefined,
+      createdAt: item["Data de Criação"] || "-",
+      timestamp: item["Data de Criação"] ? (Date.parse(item["Data de Criação"]) || Date.now()) : Date.now(),
+      agreedTerms: item["Termo Aceito"] === "Sim" || item["Termo Aceito"] === true,
+      status: (item["Status"] === "Inativa" ? "Inativa" : "Ativa") as "Ativa" | "Inativa",
+      notes: item["Observações"] && item["Observações"] !== "-" ? item["Observações"] : undefined,
+      updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : Date.now()
+    }));
+  }
+
+  if (module === "fiscalizacoes") {
+    return (Array.isArray(data) ? data : []).map((item: any) => {
+      const inicio = parseChecklist(item["Início da Aula"]);
+      const durante = parseChecklist(item["Durante a Aula"]);
+      const teorico = parseChecklist(item["Teste Teórico"]);
+      const comandos = parseChecklist(item["Prática de Comandos"]);
+      const finalizacao = parseChecklist(item["Finalização"]);
+
+      return {
+        id: item["ID"] && item["ID"] !== "-" ? item["ID"] : `FISC-${Date.now().toString(36).toUpperCase()}`,
+        startDate: item["Data / Início"] || item["Data"] || "-",
+        fiscalizadorNick: item["Fiscalizador"] || "-",
+        instrutorNick: item["Instrutor Avaliado"] || item["Instrutor"] || "-",
+        fakeNick: item["Fake Utilizada"] || item["Fake"] || "-",
+        inicioAula: inicio.items,
+        inicioAulaOutro: inicio.customItem,
+        duranteAula: durante.items,
+        duranteAulaOutro: durante.customItem,
+        testeTeorico: teorico.items,
+        testeTeoricoOutro: teorico.customItem,
+        comandos: comandos.items,
+        comandosOutro: comandos.customItem,
+        finalizacao: finalizacao.items,
+        finalizacaoOutro: finalizacao.customItem,
+        proofs: item["Provas / Prints"] && item["Provas / Prints"] !== "-" ? item["Provas / Prints"] : "",
+        comments: item["Comentários"] && item["Comentários"] !== "-" ? item["Comentários"] : undefined,
+        createdAt: item["Data de Registro"] || "-",
+        timestamp: Date.now(),
+        updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : Date.now()
+      };
+    });
+  }
   
   // Invert the map for reading
   const invertedMap: Record<string, string> = {};
@@ -562,6 +689,8 @@ export const syncModule = async (moduleName: string): Promise<{ success: boolean
     else if (moduleName === 'casos') { localData = await getCases(); localKey = KEYS.CASES; }
     else if (moduleName === 'advertencias') { localData = await getWarnings(); localKey = KEYS.WARNINGS; }
     else if (moduleName === 'logs') { localData = getParsedDataLocally(KEYS.AUDIT, []); localKey = KEYS.AUDIT; }
+    else if (moduleName === 'fakes') { localData = await getFakeAccounts(); localKey = KEYS.FAKES; }
+    else if (moduleName === 'fiscalizacoes') { localData = await getFiscalizacoes(); localKey = KEYS.FISCALIZACOES; }
 
     const finalData = moduleName === "escalas" ? cleanEscalasData(localData) : localData;
 
@@ -570,6 +699,7 @@ export const syncModule = async (moduleName: string): Promise<{ success: boolean
       action: "sync" as const,
       module: moduleName,
       payload: translateToPortuguese(finalData, moduleName as keyof typeof headerMaps),
+      headers: Object.values(headerMaps[moduleName as keyof typeof headerMaps] || {}),
       deletedKeys: getDeletedKeys(),
       overwrite: true
     };
@@ -615,7 +745,9 @@ export const syncAll = async (options?: { silent?: boolean }): Promise<{ success
       escalas: translateToEnglish(readResponse.data?.['escalas'] || [], 'escalas'),
       casos: translateToEnglish(readResponse.data?.['casos'] || [], 'casos'),
       advertencias: translateToEnglish(readResponse.data?.['advertencias'] || [], 'advertencias'),
-      logs: translateToEnglish(readResponse.data?.['logs'] || [], 'logs')
+      logs: translateToEnglish(readResponse.data?.['logs'] || [], 'logs'),
+      fakes: translateToEnglish(readResponse.data?.['fakes'] || [], 'fakes'),
+      fiscalizacoes: translateToEnglish(readResponse.data?.['fiscalizacoes'] || [], 'fiscalizacoes')
     };
     
     const members = await getMembers();
@@ -623,16 +755,20 @@ export const syncAll = async (options?: { silent?: boolean }): Promise<{ success
     const cases = await getCases();
     const warnings = await getWarnings();
     const logs = getParsedDataLocally(KEYS.AUDIT, []);
+    const fakes = await getFakeAccounts();
+    const fiscalizacoes = await getFiscalizacoes();
     
     const mMembers = mergeArrays(members, remoteData['membros'] || []);
     const mSchedules = mergeArrays(schedules, remoteData['escalas'] || []);
     const mCases = mergeArrays(cases, remoteData['casos'] || []);
     const mWarnings = mergeArrays(warnings, remoteData['advertencias'] || []);
     const mLogs = mergeArrays(logs, remoteData['logs'] || []);
+    const mFakes = mergeArrays(fakes, remoteData['fakes'] || []);
+    const mFiscalizacoes = mergeArrays(fiscalizacoes, remoteData['fiscalizacoes'] || []);
 
     const cleanSchedulesMerged = cleanEscalasData(mSchedules.merged);
 
-    const totalConflicts = mMembers.conflictCount + mSchedules.conflictCount + mCases.conflictCount + mWarnings.conflictCount;
+    const totalConflicts = mMembers.conflictCount + mSchedules.conflictCount + mCases.conflictCount + mWarnings.conflictCount + mFakes.conflictCount + mFiscalizacoes.conflictCount;
     if (totalConflicts > 0) {
       await addSyncLog({ type: "warning", message: `⚠️ ${totalConflicts} conflito(s) resolvidos na sincronização total (Last-Write-Wins).` });
     }
@@ -643,6 +779,8 @@ export const syncAll = async (options?: { silent?: boolean }): Promise<{ success
       { name: 'escalas', data: cleanSchedulesMerged, key: KEYS.SCHEDULES },
       { name: 'casos', data: mCases.merged, key: KEYS.CASES },
       { name: 'advertencias', data: mWarnings.merged, key: KEYS.WARNINGS },
+      { name: 'fakes', data: mFakes.merged, key: KEYS.FAKES },
+      { name: 'fiscalizacoes', data: mFiscalizacoes.merged, key: KEYS.FISCALIZACOES },
       { name: 'logs', data: mLogs.merged, key: KEYS.AUDIT }
     ];
 
@@ -654,6 +792,7 @@ export const syncAll = async (options?: { silent?: boolean }): Promise<{ success
         action: "sync" as const,
         module: mod.name,
         payload: translateToPortuguese(mod.data, mod.name as keyof typeof headerMaps),
+        headers: Object.values(headerMaps[mod.name as keyof typeof headerMaps] || {}),
         deletedKeys: getDeletedKeys(),
         overwrite: true
       } as any);
@@ -697,13 +836,15 @@ export const fetchAllFromRemote = async (): Promise<boolean> => {
   const response = await fetchGoogleSheets({ action: "readAll" });
   
   if (response.success && response.data) {
-    const { membros, escalas, casos, advertencias, logs } = response.data;
+    const { membros, escalas, casos, advertencias, logs, fakes, fiscalizacoes } = response.data;
     const remoteData = {
       membros: translateToEnglish(membros || [], 'membros'),
       escalas: translateToEnglish(escalas || [], 'escalas'),
       casos: translateToEnglish(casos || [], 'casos'),
       advertencias: translateToEnglish(advertencias || [], 'advertencias'),
-      logs: translateToEnglish(logs || [], 'logs')
+      logs: translateToEnglish(logs || [], 'logs'),
+      fakes: translateToEnglish(fakes || [], 'fakes'),
+      fiscalizacoes: translateToEnglish(fiscalizacoes || [], 'fiscalizacoes')
     };
     
     // Fallback merge to avoid overwriting pending offline changes
@@ -721,6 +862,12 @@ export const fetchAllFromRemote = async (): Promise<boolean> => {
 
     const localLogs = getParsedDataLocally(KEYS.AUDIT, []);
     const mLogs = mergeArrays(localLogs, remoteData.logs);
+
+    const localFakes = await getFakeAccounts();
+    const mFakes = mergeArrays(localFakes, remoteData.fakes);
+
+    const localFiscalizacoes = await getFiscalizacoes();
+    const mFiscalizacoes = mergeArrays(localFiscalizacoes, remoteData.fiscalizacoes);
     
     const now = new Date().toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
     await updateConfig({ lastRead: now });
@@ -732,6 +879,8 @@ export const fetchAllFromRemote = async (): Promise<boolean> => {
       localStorage.setItem(KEYS.CASES, JSON.stringify(mCases.merged));
       localStorage.setItem(KEYS.WARNINGS, JSON.stringify(mWarnings.merged));
       localStorage.setItem(KEYS.AUDIT, JSON.stringify(mLogs.merged));
+      localStorage.setItem(KEYS.FAKES, JSON.stringify(mFakes.merged));
+      localStorage.setItem(KEYS.FISCALIZACOES, JSON.stringify(mFiscalizacoes.merged));
       window.dispatchEvent(new CustomEvent('ssi-data-updated', { detail: { source: 'remote' } }));
     }
     
@@ -748,6 +897,8 @@ export const backupToRemote = async (): Promise<boolean> => {
   const schedules = await getSchedules();
   const cases = await getCases();
   const warnings = await getWarnings();
+  const fakes = await getFakeAccounts();
+  const fiscalizacoes = await getFiscalizacoes();
   
   const payload = {
     action: "backup" as const,
@@ -756,6 +907,8 @@ export const backupToRemote = async (): Promise<boolean> => {
       escalas: schedules,
       casos: cases,
       advertencias: warnings,
+      fakes: fakes,
+      fiscalizacoes: fiscalizacoes
     }
   };
   

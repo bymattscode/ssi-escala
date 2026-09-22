@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Settings, Database, HardDrive, RefreshCw, CheckCircle2, AlertCircle, FileSpreadsheet, Key, History, Users, Calendar, ShieldAlert, Ban, Save } from "lucide-react";
+import { Settings, Database, HardDrive, RefreshCw, CheckCircle2, AlertCircle, FileSpreadsheet, Key, History, Users, Calendar, ShieldAlert, Ban, Save, UserCheck, ClipboardList } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { getConfig, updateConfig, addSyncLog, SyncLog, getPendingCount, wipeAllData } from "../lib/store";
@@ -284,7 +284,7 @@ function ConfiguracoesPage() {
             </div>
           </div>
 
-          <div className="p-6 grid grid-cols-2 gap-3 flex-1">
+          <div className="p-6 grid grid-cols-2 sm:grid-cols-3 gap-3 flex-1">
             <button 
               onClick={() => handleSyncModule('membros')}
               disabled={syncingModule === 'membros' || !config.googleConnected}
@@ -317,11 +317,27 @@ function ConfiguracoesPage() {
               <Ban className={`h-6 w-6 text-primary ${syncingModule === 'advertencias' ? 'animate-spin' : ''}`} />
               <span className="text-sm font-medium">Punições</span>
             </button>
+            <button 
+              onClick={() => handleSyncModule('fakes')}
+              disabled={syncingModule === 'fakes' || !config.googleConnected}
+              className="flex flex-col items-center justify-center gap-2 p-4 bg-background border border-border rounded-lg hover:border-primary/50 hover:bg-secondary/50 transition-colors disabled:opacity-50"
+            >
+              <UserCheck className={`h-6 w-6 text-primary ${syncingModule === 'fakes' ? 'animate-spin' : ''}`} />
+              <span className="text-sm font-medium">Fakes</span>
+            </button>
+            <button 
+              onClick={() => handleSyncModule('fiscalizacoes')}
+              disabled={syncingModule === 'fiscalizacoes' || !config.googleConnected}
+              className="flex flex-col items-center justify-center gap-2 p-4 bg-background border border-border rounded-lg hover:border-primary/50 hover:bg-secondary/50 transition-colors disabled:opacity-50"
+            >
+              <ClipboardList className={`h-6 w-6 text-primary ${syncingModule === 'fiscalizacoes' ? 'animate-spin' : ''}`} />
+              <span className="text-sm font-medium">Fiscalizações</span>
+            </button>
             
             <button 
               onClick={handleBackup}
               disabled={isSyncing || !config.googleConnected}
-              className="flex items-center justify-center gap-2 p-4 col-span-2 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors disabled:opacity-50"
+              className="flex items-center justify-center gap-2 p-4 col-span-2 sm:col-span-3 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors disabled:opacity-50"
             >
               <Save className={`h-5 w-5 ${isSyncing && !syncingModule ? 'animate-bounce' : ''}`} />
               <span className="font-medium">Fazer Backup de Segurança</span>

@@ -107,11 +107,37 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+// Polyfill anti-crash para Google Tradutor e extensões de navegador
+if (typeof window !== "undefined" && typeof Node === "function" && Node.prototype) {
+  const originalRemoveChild = Node.prototype.removeChild;
+  Node.prototype.removeChild = function <T extends Node>(child: T): T {
+    if (child && child.parentNode !== this) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn("[Anti-Crash] Prevenida tentativa de removeChild de nó que não pertence a este pai.", child);
+      }
+      return child;
+    }
+    return originalRemoveChild.apply(this, [child]) as T;
+  };
+
+  const originalInsertBefore = Node.prototype.insertBefore;
+  Node.prototype.insertBefore = function <T extends Node>(newNode: T, referenceNode: Node | null): T {
+    if (referenceNode && referenceNode.parentNode !== this) {
+      if (typeof console !== "undefined" && console.warn) {
+        console.warn("[Anti-Crash] Prevenida tentativa de insertBefore de nó com pai divergente.", referenceNode);
+      }
+      return newNode;
+    }
+    return originalInsertBefore.apply(this, [newNode, referenceNode]) as T;
+  };
+}
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "google", content: "notranslate" },
       { title: "Setor de Segurança dos Instrutores" },
       { name: "description", content: "SSI: Your Command Center is a new application designed to manage your commands and orders." },
       { name: "author", content: "Lovable" },
@@ -140,7 +166,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR" translate="no" className="notranslate">
       <head>
         <HeadContent />
       </head>
