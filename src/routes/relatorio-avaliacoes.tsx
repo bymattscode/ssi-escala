@@ -384,18 +384,6 @@ function RelatorioFiscalizacaoPage() {
 
           {/* FORMULÁRIO OFICIAL [SSI] REGISTRO DE FAKES (FIEL AO GOOGLE FORMS) */}
           <div className="bg-card border border-border/80 rounded-2xl shadow-xl overflow-hidden max-w-4xl mx-auto w-full">
-            {/* Banner Oficial do SSI */}
-            <div className="w-full bg-[#0d162a] border-b border-border/60 relative overflow-hidden flex items-center justify-center py-4 px-2">
-              <img
-                src="https://i.imgur.com/WVgmuES.gif"
-                alt="Setor de Segurança dos Instrutores"
-                className="max-h-24 sm:max-h-28 w-auto object-contain rounded-lg drop-shadow-md"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = "none";
-                }}
-              />
-            </div>
-
             {/* Cabeçalho do Card */}
             <div className="p-6 sm:p-8 border-b border-border/60 bg-gradient-to-b from-primary/5 to-transparent">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
