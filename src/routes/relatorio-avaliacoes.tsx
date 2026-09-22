@@ -57,7 +57,6 @@ function RelatorioFiscalizacaoPage() {
 
   // Estados de Filtro da Tabela de Fakes
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"Todos" | "Ativa" | "Inativa">("Todos");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Carregar dados iniciais
@@ -87,31 +86,26 @@ function RelatorioFiscalizacaoPage() {
     }
   }, [user?.nick, formOwnerNick]);
 
-  // Lista de fakes filtradas
+  // Lista de fakes filtradas por busca
   const filteredFakes = useMemo(() => {
     return fakes.filter((item) => {
-      const matchesSearch =
+      return (
         item.fakeNick?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.ownerNick?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.id?.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesStatus =
-        statusFilter === "Todos" ? true : item.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
+        item.id?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     });
-  }, [fakes, searchTerm, statusFilter]);
+  }, [fakes, searchTerm]);
 
   // Métricas rápidas
   const metrics = useMemo(() => {
     const total = fakes.length;
-    const active = fakes.filter((f) => f.status === "Ativa").length;
     const myFakes = fakes.filter(
       (f) =>
         f.ownerNick?.toLowerCase() === (user?.nick || "").toLowerCase() ||
         f.registeredByNick?.toLowerCase() === (user?.nick || "").toLowerCase()
     ).length;
-    return { total, active, myFakes };
+    return { total, myFakes };
   }, [fakes, user?.nick]);
 
   // Handler para Limpar Formulário
@@ -202,30 +196,6 @@ function RelatorioFiscalizacaoPage() {
     setCopiedId(id);
     toast.success(`Nick "${fakeNick}" copiado para a área de transferência!`);
     setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  // Alternar status Ativa / Inativa
-  const handleToggleStatus = async (fake: FakeAccount) => {
-    const newStatus = fake.status === "Ativa" ? "Inativa" : "Ativa";
-    try {
-      await updateFakeAccount(fake.id, { status: newStatus });
-      setFakes((prev) =>
-        prev.map((f) => (f.id === fake.id ? { ...f, status: newStatus } : f))
-      );
-      toast.success(`Status da fake "${fake.fakeNick}" alterado para ${newStatus}.`);
-
-      await addAuditLog({
-        userId: user?.id || "1",
-        userNick: user?.nick,
-        userRole: role || "Fiscalizador",
-        action: "Alteração de Status Fake",
-        module: "Fiscalização",
-        details: `Alterou o status da fake "${fake.fakeNick}" para "${newStatus}".`,
-        targetId: fake.id,
-      });
-    } catch (err) {
-      toast.error("Erro ao atualizar status da fake.");
-    }
   };
 
   // Excluir fake
@@ -342,48 +312,36 @@ function RelatorioFiscalizacaoPage() {
       {/* ABA 1: REGISTRO DE FAKES (FOCO PRINCIPAL SOLICITADO)                      */}
       {/* ========================================================================= */}
       {activeTab === "fakes" && (
-        <div className="flex flex-col gap-8">
-          {/* Métricas Rápidas */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-card/70 border border-border/80 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-              <div className="space-y-0.5">
+        <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
+          {/* Métricas Rápidas Alinhadas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+            <div className="bg-card/70 border border-border/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+              <div className="space-y-1">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Total de Fakes
+                  Total de Fakes Registradas
                 </span>
-                <p className="text-2xl font-bold text-foreground">{metrics.total}</p>
+                <p className="text-3xl font-bold text-foreground">{metrics.total}</p>
               </div>
-              <div className="h-10 w-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary">
-                <Shield className="h-5 w-5" />
+              <div className="h-11 w-11 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary">
+                <Shield className="h-6 w-6" />
               </div>
             </div>
 
-            <div className="bg-card/70 border border-border/80 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-              <div className="space-y-0.5">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Fakes Ativas
-                </span>
-                <p className="text-2xl font-bold text-emerald-400">{metrics.active}</p>
-              </div>
-              <div className="h-10 w-10 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-            </div>
-
-            <div className="bg-card/70 border border-border/80 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-              <div className="space-y-0.5">
+            <div className="bg-card/70 border border-border/80 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+              <div className="space-y-1">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Minhas Fakes Registradas
                 </span>
-                <p className="text-2xl font-bold text-primary">{metrics.myFakes}</p>
+                <p className="text-3xl font-bold text-primary">{metrics.myFakes}</p>
               </div>
-              <div className="h-10 w-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary">
-                <User className="h-5 w-5" />
+              <div className="h-11 w-11 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary">
+                <User className="h-6 w-6" />
               </div>
             </div>
           </div>
 
-          {/* FORMULÁRIO OFICIAL [SSI] REGISTRO DE FAKES (FIEL AO GOOGLE FORMS) */}
-          <div className="bg-card border border-border/80 rounded-2xl shadow-xl overflow-hidden max-w-4xl mx-auto w-full">
+          {/* FORMULÁRIO OFICIAL [SSI] REGISTRO DE FAKES (PERFEITAMENTE ALINHADO) */}
+          <div className="bg-card border border-border/80 rounded-2xl shadow-xl overflow-hidden w-full">
             {/* Cabeçalho do Card */}
             <div className="p-6 sm:p-8 border-b border-border/60 bg-gradient-to-b from-primary/5 to-transparent">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -584,8 +542,8 @@ function RelatorioFiscalizacaoPage() {
             </form>
           </div>
 
-          {/* TABELA DE FAKES REGISTRADAS COM BUSCA E GESTÃO */}
-          <div className="bg-card border border-border/80 rounded-2xl p-6 shadow-sm flex flex-col gap-5">
+          {/* TABELA DE FAKES REGISTRADAS COM BUSCA E GESTÃO (ALINHADA) */}
+          <div className="bg-card border border-border/80 rounded-2xl p-6 shadow-sm flex flex-col gap-5 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
@@ -597,28 +555,16 @@ function RelatorioFiscalizacaoPage() {
                 </p>
               </div>
 
-              {/* Filtros e Busca */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                <div className="relative min-w-[240px]">
-                  <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Buscar fake ou responsável..."
-                    className="w-full bg-background border border-border/80 rounded-xl pl-9 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
-                  />
-                </div>
-
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
-                  className="bg-background border border-border/80 rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary transition-colors cursor-pointer"
-                >
-                  <option value="Todos">Todos os Status</option>
-                  <option value="Ativa">Apenas Ativas</option>
-                  <option value="Inativa">Apenas Inativas</option>
-                </select>
+              {/* Busca */}
+              <div className="relative min-w-[280px]">
+                <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Buscar fake ou responsável..."
+                  className="w-full bg-background border border-border/80 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                />
               </div>
             </div>
 
@@ -628,8 +574,8 @@ function RelatorioFiscalizacaoPage() {
                 <ShieldCheck className="h-10 w-10 text-muted-foreground/40 mb-3" />
                 <h4 className="text-sm font-semibold text-foreground">Nenhuma fake encontrada</h4>
                 <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                  {searchTerm || statusFilter !== "Todos"
-                    ? "Nenhum resultado corresponde aos filtros aplicados."
+                  {searchTerm
+                    ? "Nenhum resultado corresponde à busca digitada."
                     : "Nenhuma conta fake foi registrada ainda. Preencha o formulário acima para criar o primeiro registro."}
                 </p>
               </div>
@@ -642,7 +588,6 @@ function RelatorioFiscalizacaoPage() {
                       <th className="py-3 px-4">RESPONSÁVEL</th>
                       <th className="py-3 px-4">DATA DO REGISTRO</th>
                       <th className="py-3 px-4">TERMO</th>
-                      <th className="py-3 px-4">STATUS</th>
                       <th className="py-3 px-4 text-right">AÇÕES</th>
                     </tr>
                   </thead>
@@ -719,22 +664,6 @@ function RelatorioFiscalizacaoPage() {
                             <CheckCircle2 className="h-3 w-3" />
                             Aceito
                           </span>
-                        </td>
-
-                        {/* Status */}
-                        <td className="py-3.5 px-4 whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStatus(item)}
-                            className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border transition-all cursor-pointer ${
-                              item.status === "Ativa"
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
-                                : "bg-zinc-500/10 text-zinc-400 border-zinc-500/30 hover:bg-zinc-500/20"
-                            }`}
-                            title="Clique para alternar o status da fake"
-                          >
-                            {item.status}
-                          </button>
                         </td>
 
                         {/* Ações */}
