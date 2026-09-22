@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { 
   ClipboardList, 
   ShieldCheck, 
@@ -46,62 +46,99 @@ import { toast } from "sonner";
 import { formatBrasiliaDateTime, getBrasiliaIsoNow } from "../lib/dateUtils";
 
 // Opções das etapas de fiscalização do CFSd (conforme formulário oficial)
-const INICIO_AULA_OPTIONS = [
-  "Entrou em uma sala com uma aula em andamento",
-  "Não realizou a fila no corredor",
-  "Realizou a fila no corredor",
-  "Soube controlar os recrutas",
-  "Não soube controlar os recrutas",
-];
+// Cada pergunta possui 6 opções: 3 positivas (coluna esquerda - azul) e 3 negativas (coluna direita - vermelho)
+const INICIO_AULA_OPTIONS = {
+  positives: [
+    "Realizou a fila no corredor",
+    "Soube controlar os recrutas",
+    "Iniciou a aula com postura e sala adequada",
+  ],
+  negatives: [
+    "Não realizou a fila no corredor",
+    "Não soube controlar os recrutas",
+    "Entrou em uma sala com uma aula em andamento",
+  ],
+};
 
-const DURANTE_AULA_OPTIONS = [
-  "Pulou ou manipulou algum trecho do script",
-  "Passou o script corretamente",
-  "Realizou a simulação prática opcional",
-  "Velocidade de envio do script adequada",
-  "Velocidade de envio do script muito rápida",
-  "Demonstrou paciência em tirar todas as dúvidas do recruta",
-  "Demonstrou impaciência durante a aula",
-];
+const DURANTE_AULA_OPTIONS = {
+  positives: [
+    "Passou o script corretamente",
+    "Velocidade de envio do script adequada",
+    "Demonstrou paciência em tirar todas as dúvidas do recruta",
+  ],
+  negatives: [
+    "Pulou ou manipulou algum trecho do script",
+    "Velocidade de envio do script muito rápida",
+    "Demonstrou impaciência durante a aula",
+  ],
+};
 
-const TESTE_TEORICO_OPTIONS = [
-  "Manteve atenção às respostas do recruta",
-  "Não prestou atenção nos erros cometidos pelo recruta",
-  "Reprovou incorretamente o recruta",
-];
+const TESTE_TEORICO_OPTIONS = {
+  positives: [
+    "Manteve atenção às respostas do recruta",
+    "Corrigiu os erros cometidos pelo recruta",
+    "Avaliou e finalizou o teste com precisão",
+  ],
+  negatives: [
+    "Não prestou atenção nos erros cometidos pelo recruta",
+    "Reprovou incorretamente o recruta",
+    "Não corrigiu os erros ou aprovou incorretamente",
+  ],
+};
 
-const COMANDOS_OPTIONS = [
-  "Passou, ensinou e cobrou a prática dos comandos corretamente",
-  "Ensinou o recruta a executar o comando ao notar erro",
-  "Praticou cada comando logo após explicá-lo",
-  "Cobrou a execução dos comandos mas não ensinou como executar",
-  "Não praticou os comandos logo após explicá-los",
-  "Pulou ou não realizou a prática dos comandos",
-  "Reprovou ou puniu o recruta por erro nos comandos sem ensiná-lo",
-];
+const COMANDOS_OPTIONS = {
+  positives: [
+    "Passou, ensinou e cobrou a prática dos comandos corretamente",
+    "Praticou cada comando logo após explicá-lo",
+    "Ensinou o recruta a executar o comando ao notar erro",
+  ],
+  negatives: [
+    "Pulou ou não realizou a prática dos comandos",
+    "Não praticou os comandos logo após explicá-los",
+    "Cobrou a execução dos comandos mas não ensinou como executar",
+  ],
+};
 
-const FINALIZACAO_OPTIONS = [
-  "Passou o script corretamente",
-  "Pulou, manipulou ou alterou alguma parte do script",
-  "Prestou atenção nos requisitos",
-  "Não prestou atenção nos requisitos",
-];
+const FINALIZACAO_OPTIONS = {
+  positives: [
+    "Passou o script de finalização corretamente",
+    "Prestou atenção nos requisitos",
+    "Liberou o recruta com as instruções e permissões corretas",
+  ],
+  negatives: [
+    "Pulou, manipulou ou alterou alguma parte do script",
+    "Não prestou atenção nos requisitos",
+    "Liberou o recruta com pendências ou sem os requisitos",
+  ],
+};
 
 const INFRACOES_CRITICAS = new Set([
-  "Entrou em uma sala com uma aula em andamento",
+  // Início da Aula
   "Não realizou a fila no corredor",
   "Não soube controlar os recrutas",
+  "Entrou em uma sala com uma aula em andamento",
+
+  // Durante da aula
   "Pulou ou manipulou algum trecho do script",
   "Velocidade de envio do script muito rápida",
   "Demonstrou impaciência durante a aula",
+
+  // Teste teórico
   "Não prestou atenção nos erros cometidos pelo recruta",
   "Reprovou incorretamente o recruta",
-  "Cobrou a execução dos comandos mas não ensinou como executar",
-  "Não praticou os comandos logo após explicá-los",
+  "Não corrigiu os erros ou aprovou incorretamente",
+
+  // Comandos
   "Pulou ou não realizou a prática dos comandos",
+  "Não praticou os comandos logo após explicá-los",
+  "Cobrou a execução dos comandos mas não ensinou como executar",
   "Reprovou ou puniu o recruta por erro nos comandos sem ensiná-lo",
+
+  // Finalização
   "Pulou, manipulou ou alterou alguma parte do script",
+  "Pulou, manipulou ou alterou o script de encerramento",
   "Não prestou atenção nos requisitos",
+  "Liberou o recruta com pendências ou sem os requisitos",
 ]);
 
 function OptionCard({
@@ -123,7 +160,9 @@ function OptionCard({
           ? isCritical
             ? "bg-rose-500/10 border-rose-500/60 text-rose-300 shadow-sm ring-1 ring-rose-500/30"
             : "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
-          : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
+          : isCritical
+            ? "bg-secondary/20 border-border/70 hover:border-rose-500/40 hover:bg-rose-500/5 text-muted-foreground hover:text-foreground"
+            : "bg-secondary/20 border-border/70 hover:border-primary/40 hover:bg-primary/5 text-muted-foreground hover:text-foreground"
       }`}
     >
       <div className="pt-0.5 shrink-0">
@@ -140,6 +179,142 @@ function OptionCard({
         </div>
       </div>
       <span className="leading-snug">{label}</span>
+    </div>
+  );
+}
+
+// Helpers para seleção única por tópico (com capacidade de desmarcar ao clicar de novo)
+function handleSelectSingleOption(
+  currentList: string[],
+  setList: React.Dispatch<React.SetStateAction<string[]>>,
+  setHasOutro: React.Dispatch<React.SetStateAction<boolean>>,
+  option: string
+) {
+  if (currentList.includes(option)) {
+    setList([]);
+  } else {
+    setList([option]);
+    setHasOutro(false);
+  }
+}
+
+function handleToggleOutro(
+  currentHasOutro: boolean,
+  setHasOutro: React.Dispatch<React.SetStateAction<boolean>>,
+  setList: React.Dispatch<React.SetStateAction<string[]>>
+) {
+  const nextVal = !currentHasOutro;
+  setHasOutro(nextVal);
+  if (nextVal) {
+    setList([]);
+  }
+}
+
+// Componente para renderizar cada pergunta com 6 opções (3 Positivas à esquerda e 3 Negativas à direita) + Campo de Outro
+function QuestionSection({
+  title,
+  subtitle,
+  options,
+  selectedList,
+  setSelectedList,
+  hasOutro,
+  setHasOutro,
+  outroValue,
+  setOutroValue,
+  outroPlaceholder,
+  isBorderTop = true,
+}: {
+  title: string;
+  subtitle: string;
+  options: { positives: string[]; negatives: string[] };
+  selectedList: string[];
+  setSelectedList: React.Dispatch<React.SetStateAction<string[]>>;
+  hasOutro: boolean;
+  setHasOutro: React.Dispatch<React.SetStateAction<boolean>>;
+  outroValue: string;
+  setOutroValue: React.Dispatch<React.SetStateAction<string>>;
+  outroPlaceholder: string;
+  isBorderTop?: boolean;
+}) {
+  return (
+    <div className={`space-y-2.5 ${isBorderTop ? "border-t border-border/50 pt-4" : ""}`}>
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+          <span>{title}</span>
+        </label>
+        <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">
+          Selecione 1 opção
+        </span>
+      </div>
+      <p className="text-[11px] text-muted-foreground">{subtitle}</p>
+
+      {/* Grid 2 colunas: Positivas à esquerda (Azul), Negativas à direita (Vermelho) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+        <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary px-1">
+          <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+          <span>Positivas (Azul)</span>
+        </div>
+        <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-400 px-1">
+          <AlertCircle className="h-3.5 w-3.5 text-rose-400" />
+          <span>Negativas (Vermelho)</span>
+        </div>
+
+        {[0, 1, 2].map((idx) => {
+          const pos = options.positives[idx];
+          const neg = options.negatives[idx];
+          return (
+            <Fragment key={idx}>
+              <OptionCard
+                label={pos}
+                checked={selectedList.includes(pos)}
+                isCritical={false}
+                onChange={() => handleSelectSingleOption(selectedList, setSelectedList, setHasOutro, pos)}
+              />
+              <OptionCard
+                label={neg}
+                checked={selectedList.includes(neg)}
+                isCritical={true}
+                onChange={() => handleSelectSingleOption(selectedList, setSelectedList, setHasOutro, neg)}
+              />
+            </Fragment>
+          );
+        })}
+      </div>
+
+      {/* Outro */}
+      <div
+        className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
+          hasOutro
+            ? "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
+            : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        <div
+          onClick={() => handleToggleOutro(hasOutro, setHasOutro, setSelectedList)}
+          className="flex items-center gap-3 cursor-pointer select-none"
+        >
+          <div
+            className={`h-4 w-4 rounded-full border flex items-center justify-center transition-all ${
+              hasOutro
+                ? "bg-primary border-primary text-white"
+                : "border-muted-foreground/50 bg-background"
+            }`}
+          >
+            {hasOutro && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+          </div>
+          <span className="font-semibold text-xs sm:text-sm">Outro:</span>
+        </div>
+        {hasOutro && (
+          <input
+            type="text"
+            value={outroValue}
+            onChange={(e) => setOutroValue(e.target.value)}
+            placeholder={outroPlaceholder}
+            className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
+            autoFocus
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -321,33 +496,6 @@ function RelatorioFiscalizacaoPage() {
 
     return { total, myFisc, uniqueInstructors, withInfractions };
   }, [fiscalizacoes, user?.nick, user?.id]);
-
-  // Helper para seleção única por tópico (com capacidade de desmarcar ao clicar de novo)
-  const handleSelectSingleOption = (
-    currentList: string[],
-    setList: React.Dispatch<React.SetStateAction<string[]>>,
-    setHasOutro: React.Dispatch<React.SetStateAction<boolean>>,
-    option: string
-  ) => {
-    if (currentList.includes(option)) {
-      setList([]);
-    } else {
-      setList([option]);
-      setHasOutro(false);
-    }
-  };
-
-  const handleToggleOutro = (
-    currentHasOutro: boolean,
-    setHasOutro: React.Dispatch<React.SetStateAction<boolean>>,
-    setList: React.Dispatch<React.SetStateAction<string[]>>
-  ) => {
-    const nextVal = !currentHasOutro;
-    setHasOutro(nextVal);
-    if (nextVal) {
-      setList([]);
-    }
-  };
 
   // Limpar formulário de fiscalização
   const handleResetFiscalizacaoForm = () => {
@@ -1520,329 +1668,75 @@ function RelatorioFiscalizacaoPage() {
                 </div>
 
                 {/* Subseção A: Início da Aula */}
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <span>Início da Aula:</span>
-                    </label>
-                    <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">
-                      Selecione 1 opção
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Marque a situação observada no início da instrução.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                    {INICIO_AULA_OPTIONS.map((opt) => (
-                      <OptionCard
-                        key={opt}
-                        label={opt}
-                        checked={fiscInicioAula.includes(opt)}
-                        isCritical={INFRACOES_CRITICAS.has(opt)}
-                        onChange={() =>
-                          handleSelectSingleOption(fiscInicioAula, setFiscInicioAula, setFiscHasInicioOutro, opt)
-                        }
-                      />
-                    ))}
-                  </div>
-
-                  {/* Outro no Início da Aula */}
-                  <div
-                    className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
-                      fiscHasInicioOutro
-                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
-                        : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <div
-                      onClick={() =>
-                        handleToggleOutro(fiscHasInicioOutro, setFiscHasInicioOutro, setFiscInicioAula)
-                      }
-                      className="flex items-center gap-3 cursor-pointer select-none"
-                    >
-                      <div
-                        className={`h-4 w-4 rounded-full border flex items-center justify-center transition-all ${
-                          fiscHasInicioOutro
-                            ? "bg-primary border-primary text-white"
-                            : "border-muted-foreground/50 bg-background"
-                        }`}
-                      >
-                        {fiscHasInicioOutro && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                      </div>
-                      <span className="font-semibold text-xs sm:text-sm">Outro:</span>
-                    </div>
-                    {fiscHasInicioOutro && (
-                      <input
-                        type="text"
-                        value={fiscInicioAulaOutro}
-                        onChange={(e) => setFiscInicioAulaOutro(e.target.value)}
-                        placeholder="Especifique outros detalhes do início da aula..."
-                        className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
-                        autoFocus
-                      />
-                    )}
-                  </div>
-                </div>
+                <QuestionSection
+                  title="Início da Aula:"
+                  subtitle="Marque a situação observada no início da instrução."
+                  options={INICIO_AULA_OPTIONS}
+                  selectedList={fiscInicioAula}
+                  setSelectedList={setFiscInicioAula}
+                  hasOutro={fiscHasInicioOutro}
+                  setHasOutro={setFiscHasInicioOutro}
+                  outroValue={fiscInicioAulaOutro}
+                  setOutroValue={setFiscInicioAulaOutro}
+                  outroPlaceholder="Especifique outros detalhes do início da aula..."
+                  isBorderTop={false}
+                />
 
                 {/* Subseção B: Durante da Aula */}
-                <div className="space-y-2.5 border-t border-border/50 pt-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <span>Durante da aula:</span>
-                    </label>
-                    <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">
-                      Selecione 1 opção
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Marque a conduta do instrutor durante a explicação do script.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                    {DURANTE_AULA_OPTIONS.map((opt) => (
-                      <OptionCard
-                        key={opt}
-                        label={opt}
-                        checked={fiscDuranteAula.includes(opt)}
-                        isCritical={INFRACOES_CRITICAS.has(opt)}
-                        onChange={() =>
-                          handleSelectSingleOption(fiscDuranteAula, setFiscDuranteAula, setFiscHasDuranteOutro, opt)
-                        }
-                      />
-                    ))}
-                  </div>
-
-                  {/* Outro no Durante da Aula */}
-                  <div
-                    className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
-                      fiscHasDuranteOutro
-                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
-                        : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <div
-                      onClick={() =>
-                        handleToggleOutro(fiscHasDuranteOutro, setFiscHasDuranteOutro, setFiscDuranteAula)
-                      }
-                      className="flex items-center gap-3 cursor-pointer select-none"
-                    >
-                      <div
-                        className={`h-4 w-4 rounded-full border flex items-center justify-center transition-all ${
-                          fiscHasDuranteOutro
-                            ? "bg-primary border-primary text-white"
-                            : "border-muted-foreground/50 bg-background"
-                        }`}
-                      >
-                        {fiscHasDuranteOutro && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                      </div>
-                      <span className="font-semibold text-xs sm:text-sm">Outro:</span>
-                    </div>
-                    {fiscHasDuranteOutro && (
-                      <input
-                        type="text"
-                        value={fiscDuranteAulaOutro}
-                        onChange={(e) => setFiscDuranteAulaOutro(e.target.value)}
-                        placeholder="Especifique outros detalhes do decorrer da aula..."
-                        className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
-                        autoFocus
-                      />
-                    )}
-                  </div>
-                </div>
+                <QuestionSection
+                  title="Durante da aula:"
+                  subtitle="Marque a conduta do instrutor durante a explicação do script."
+                  options={DURANTE_AULA_OPTIONS}
+                  selectedList={fiscDuranteAula}
+                  setSelectedList={setFiscDuranteAula}
+                  hasOutro={fiscHasDuranteOutro}
+                  setHasOutro={setFiscHasDuranteOutro}
+                  outroValue={fiscDuranteAulaOutro}
+                  setOutroValue={setFiscDuranteAulaOutro}
+                  outroPlaceholder="Especifique outros detalhes do decorrer da aula..."
+                />
 
                 {/* Subseção C: Teste Teórico */}
-                <div className="space-y-2.5 border-t border-border/50 pt-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <span>Teste teórico:</span>
-                    </label>
-                    <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">
-                      Selecione 1 opção
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Marque como o instrutor conduziu as perguntas e a correção do teste.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                    {TESTE_TEORICO_OPTIONS.map((opt) => (
-                      <OptionCard
-                        key={opt}
-                        label={opt}
-                        checked={fiscTesteTeorico.includes(opt)}
-                        isCritical={INFRACOES_CRITICAS.has(opt)}
-                        onChange={() =>
-                          handleSelectSingleOption(fiscTesteTeorico, setFiscTesteTeorico, setFiscHasTeoricoOutro, opt)
-                        }
-                      />
-                    ))}
-                  </div>
-
-                  {/* Outro no Teste Teórico */}
-                  <div
-                    className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
-                      fiscHasTeoricoOutro
-                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
-                        : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <div
-                      onClick={() =>
-                        handleToggleOutro(fiscHasTeoricoOutro, setFiscHasTeoricoOutro, setFiscTesteTeorico)
-                      }
-                      className="flex items-center gap-3 cursor-pointer select-none"
-                    >
-                      <div
-                        className={`h-4 w-4 rounded-full border flex items-center justify-center transition-all ${
-                          fiscHasTeoricoOutro
-                            ? "bg-primary border-primary text-white"
-                            : "border-muted-foreground/50 bg-background"
-                        }`}
-                      >
-                        {fiscHasTeoricoOutro && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                      </div>
-                      <span className="font-semibold text-xs sm:text-sm">Outro:</span>
-                    </div>
-                    {fiscHasTeoricoOutro && (
-                      <input
-                        type="text"
-                        value={fiscTesteTeoricoOutro}
-                        onChange={(e) => setFiscTesteTeoricoOutro(e.target.value)}
-                        placeholder="Especifique outros detalhes do teste teórico..."
-                        className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
-                        autoFocus
-                      />
-                    )}
-                  </div>
-                </div>
+                <QuestionSection
+                  title="Teste teórico:"
+                  subtitle="Marque como o instrutor conduziu as perguntas e a correção do teste."
+                  options={TESTE_TEORICO_OPTIONS}
+                  selectedList={fiscTesteTeorico}
+                  setSelectedList={setFiscTesteTeorico}
+                  hasOutro={fiscHasTeoricoOutro}
+                  setHasOutro={setFiscHasTeoricoOutro}
+                  outroValue={fiscTesteTeoricoOutro}
+                  setOutroValue={setFiscTesteTeoricoOutro}
+                  outroPlaceholder="Especifique outros detalhes do teste teórico..."
+                />
 
                 {/* Subseção D: Comandos */}
-                <div className="space-y-2.5 border-t border-border/50 pt-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <span>Comandos:</span>
-                    </label>
-                    <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">
-                      Selecione 1 opção
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Marque como o instrutor conduziu o ensino e a prática dos comandos da RCC.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                    {COMANDOS_OPTIONS.map((opt) => (
-                      <OptionCard
-                        key={opt}
-                        label={opt}
-                        checked={fiscComandos.includes(opt)}
-                        isCritical={INFRACOES_CRITICAS.has(opt)}
-                        onChange={() =>
-                          handleSelectSingleOption(fiscComandos, setFiscComandos, setFiscHasComandosOutro, opt)
-                        }
-                      />
-                    ))}
-                  </div>
-
-                  {/* Outro em Comandos */}
-                  <div
-                    className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
-                      fiscHasComandosOutro
-                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
-                        : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <div
-                      onClick={() =>
-                        handleToggleOutro(fiscHasComandosOutro, setFiscHasComandosOutro, setFiscComandos)
-                      }
-                      className="flex items-center gap-3 cursor-pointer select-none"
-                    >
-                      <div
-                        className={`h-4 w-4 rounded-full border flex items-center justify-center transition-all ${
-                          fiscHasComandosOutro
-                            ? "bg-primary border-primary text-white"
-                            : "border-muted-foreground/50 bg-background"
-                        }`}
-                      >
-                        {fiscHasComandosOutro && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                      </div>
-                      <span className="font-semibold text-xs sm:text-sm">Outro:</span>
-                    </div>
-                    {fiscHasComandosOutro && (
-                      <input
-                        type="text"
-                        value={fiscComandosOutro}
-                        onChange={(e) => setFiscComandosOutro(e.target.value)}
-                        placeholder="Especifique outros detalhes da etapa de comandos..."
-                        className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
-                        autoFocus
-                      />
-                    )}
-                  </div>
-                </div>
+                <QuestionSection
+                  title="Comandos:"
+                  subtitle="Marque como o instrutor conduziu o ensino e a prática dos comandos da RCC."
+                  options={COMANDOS_OPTIONS}
+                  selectedList={fiscComandos}
+                  setSelectedList={setFiscComandos}
+                  hasOutro={fiscHasComandosOutro}
+                  setHasOutro={setFiscHasComandosOutro}
+                  outroValue={fiscComandosOutro}
+                  setOutroValue={setFiscComandosOutro}
+                  outroPlaceholder="Especifique outros detalhes da etapa de comandos..."
+                />
 
                 {/* Subseção E: Finalização */}
-                <div className="space-y-2.5 border-t border-border/50 pt-4">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                      <span>Finalização:</span>
-                    </label>
-                    <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wide">
-                      Selecione 1 opção
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Marque como foi o encerramento do script e a conferência de requisitos.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-                    {FINALIZACAO_OPTIONS.map((opt) => (
-                      <OptionCard
-                        key={opt}
-                        label={opt}
-                        checked={fiscFinalizacao.includes(opt)}
-                        isCritical={INFRACOES_CRITICAS.has(opt)}
-                        onChange={() =>
-                          handleSelectSingleOption(fiscFinalizacao, setFiscFinalizacao, setFiscHasFinalizacaoOutro, opt)
-                        }
-                      />
-                    ))}
-                  </div>
-
-                  {/* Outro na Finalização */}
-                  <div
-                    className={`flex flex-col gap-2 p-3 rounded-xl border text-xs transition-all ${
-                      fiscHasFinalizacaoOutro
-                        ? "bg-primary/10 border-primary/60 text-foreground shadow-sm ring-1 ring-primary/30"
-                        : "bg-secondary/20 border-border/70 hover:border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <div
-                      onClick={() =>
-                        handleToggleOutro(fiscHasFinalizacaoOutro, setFiscHasFinalizacaoOutro, setFiscFinalizacao)
-                      }
-                      className="flex items-center gap-3 cursor-pointer select-none"
-                    >
-                      <div
-                        className={`h-4 w-4 rounded-full border flex items-center justify-center transition-all ${
-                          fiscHasFinalizacaoOutro
-                            ? "bg-primary border-primary text-white"
-                            : "border-muted-foreground/50 bg-background"
-                        }`}
-                      >
-                        {fiscHasFinalizacaoOutro && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                      </div>
-                      <span className="font-semibold text-xs sm:text-sm">Outro:</span>
-                    </div>
-                    {fiscHasFinalizacaoOutro && (
-                      <input
-                        type="text"
-                        value={fiscFinalizacaoOutro}
-                        onChange={(e) => setFiscFinalizacaoOutro(e.target.value)}
-                        placeholder="Especifique outros detalhes da finalização..."
-                        className="w-full bg-background border border-border/80 focus:border-primary rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
-                        autoFocus
-                      />
-                    )}
-                  </div>
-                </div>
+                <QuestionSection
+                  title="Finalização:"
+                  subtitle="Marque como foi o encerramento do script e a conferência de requisitos."
+                  options={FINALIZACAO_OPTIONS}
+                  selectedList={fiscFinalizacao}
+                  setSelectedList={setFiscFinalizacao}
+                  hasOutro={fiscHasFinalizacaoOutro}
+                  setHasOutro={setFiscHasFinalizacaoOutro}
+                  outroValue={fiscFinalizacaoOutro}
+                  setOutroValue={setFiscFinalizacaoOutro}
+                  outroPlaceholder="Especifique outros detalhes da finalização..."
+                />
               </div>
 
               {/* BLOCO 3: ENCERRAMENTO DA AVALIAÇÃO (PRINTS & COMENTÁRIOS) */}
