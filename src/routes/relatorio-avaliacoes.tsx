@@ -18,7 +18,8 @@ import {
   User,
   ExternalLink,
   Lock,
-  Sparkles
+  Sparkles,
+  Plus
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { 
@@ -41,8 +42,9 @@ function RelatorioFiscalizacaoPage() {
   const { user, role } = useAuth();
   const isAdmin = role === "Ministério" || role === "Presidente" || role === "Vice-Presidente" || role === "Diretor";
 
-  // Navegação em 3 Abas
-  const [activeTab, setActiveTab] = useState<"fakes" | "formulario" | "resultados">("fakes");
+  // Navegação em 2 Abas: Registro de Fakes e Formulário de Fiscalização
+  const [activeTab, setActiveTab] = useState<"fakes" | "formulario">("fakes");
+  const [isCreateFiscalizacaoOpen, setIsCreateFiscalizacaoOpen] = useState(false);
 
   // Dados de Fakes e Membros
   const [fakes, setFakes] = useState<FakeAccount[]>([]);
@@ -286,25 +288,6 @@ function RelatorioFiscalizacaoPage() {
         >
           <FileText className="h-4 w-4" />
           <span>Formulário de Fiscalização</span>
-          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            Etapa 2
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("resultados")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all whitespace-nowrap cursor-pointer ${
-            activeTab === "resultados"
-              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25 font-semibold"
-              : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-          }`}
-        >
-          <BarChart3 className="h-4 w-4" />
-          <span>Resultados</span>
-          <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20">
-            Presidência
-          </span>
         </button>
       </div>
 
@@ -695,56 +678,58 @@ function RelatorioFiscalizacaoPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* ABA 2: FORMULÁRIO DE FISCALIZAÇÃO (ETAPA 2 - AGUARDANDO FOTOS DO USUÁRIO) */}
+      {/* ABA 2: FORMULÁRIO DE FISCALIZAÇÃO (ESTILO GESTÃO DE CASOS)                */}
       {/* ========================================================================= */}
       {activeTab === "formulario" && (
-        <div className="bg-card border border-border/80 rounded-2xl p-10 flex flex-col items-center justify-center text-center min-h-[380px] shadow-sm animate-in fade-in duration-300">
-          <div className="h-16 w-16 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center text-amber-400 mb-4 shadow-sm">
-            <FileText className="h-8 w-8" />
-          </div>
-          <span className="text-xs uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-2">
-            Próxima Etapa: Em Desenvolvimento
-          </span>
-          <h2 className="text-xl font-bold text-foreground">
-            Formulário de Fiscalização
-          </h2>
-          <p className="text-sm text-muted-foreground mt-2 max-w-lg leading-relaxed">
-            Aqui os fiscalizadores preencherão os dados de fiscalização das aulas,
-            acompanhamentos e capacitações realizadas na companhia.
-          </p>
-          <div className="mt-6 p-4 rounded-xl bg-secondary/30 border border-border/70 text-xs text-muted-foreground max-w-md flex items-center gap-3 text-left">
-            <Sparkles className="h-5 w-5 text-amber-400 shrink-0" />
-            <span>
-              Assim que concluirmos o Registro de Fakes, criaremos este formulário completo
-              baseado nas fotos do modelo que você enviar.
-            </span>
-          </div>
-        </div>
-      )}
+        <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full animate-in fade-in duration-300">
+          {/* Header Superior com Botão de Abertura (Igual à Gestão de Casos) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight flex items-center gap-2.5">
+                <span>Fiscalizações Registradas</span>
+              </h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Acompanhamento e registro de fiscalizações de aulas, acompanhamentos e capacitações.
+              </p>
+            </div>
 
-      {/* ========================================================================= */}
-      {/* ABA 3: RESULTADOS (ETAPA 3 - ANÁLISE DA PRESIDÊNCIA)                     */}
-      {/* ========================================================================= */}
-      {activeTab === "resultados" && (
-        <div className="bg-card border border-border/80 rounded-2xl p-10 flex flex-col items-center justify-center text-center min-h-[380px] shadow-sm animate-in fade-in duration-300">
-          <div className="h-16 w-16 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-center text-purple-400 mb-4 shadow-sm">
-            <BarChart3 className="h-8 w-8" />
+            <button
+              type="button"
+              onClick={() => setIsCreateFiscalizacaoOpen(true)}
+              className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-primary/20 active:scale-[0.99] transition-all cursor-pointer w-full sm:w-auto shrink-0"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Nova Fiscalização</span>
+            </button>
           </div>
-          <span className="text-xs uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 mb-2">
-            Painel da Presidência & Direção
-          </span>
-          <h2 className="text-xl font-bold text-foreground">
-            Resultados das Fiscalizações
-          </h2>
-          <p className="text-sm text-muted-foreground mt-2 max-w-lg leading-relaxed">
-            Painel consolidado onde a presidência verificará se as fiscalizações estão de acordo,
-            com relatórios de conformidade, métricas de erros e status geral.
-          </p>
-          <div className="mt-6 p-4 rounded-xl bg-secondary/30 border border-border/70 text-xs text-muted-foreground max-w-md flex items-center gap-3 text-left">
-            <Lock className="h-5 w-5 text-purple-400 shrink-0" />
-            <span>
-              Este módulo será ativado logo após a integração do Formulário de Fiscalização.
-            </span>
+
+          {/* Histórico / Listagem das Fiscalizações Embaixo */}
+          <div className="bg-card border border-border/80 rounded-2xl p-6 shadow-sm flex flex-col gap-5 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-foreground tracking-tight flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <span>Histórico de Fiscalizações</span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Todas as fiscalizações registradas pela equipe ficam listadas abaixo para conferência.
+                </p>
+              </div>
+            </div>
+
+            {/* Estado de Preparação / Placeholder Elegante para o formulário */}
+            <div className="p-12 text-center border border-dashed border-border/80 rounded-xl flex flex-col items-center justify-center bg-secondary/10">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mb-3">
+                <FileText className="h-6 w-6" />
+              </div>
+              <h4 className="text-sm font-semibold text-foreground">
+                Pronto para receber o modelo de Fiscalização
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1 max-w-md leading-relaxed">
+                Assim que você enviar as fotos das seções deste formulário, incluiremos os campos no botão{" "}
+                <strong className="text-foreground">"Nova Fiscalização"</strong> e os registros aparecerão organizados nesta tabela.
+              </p>
+            </div>
           </div>
         </div>
       )}
