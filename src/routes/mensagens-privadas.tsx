@@ -11,15 +11,18 @@ import {
   ShieldAlert, 
   Send, 
   FileText,
-  ChevronDown,
+  User,
+  Gavel,
   BookOpen
 } from "lucide-react";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
+import { getMembers } from "../lib/store";
+import { Member } from "@/lib/types";
 
 export const Route = createFileRoute("/mensagens-privadas")({
   component: MensagensPrivadasPage,
@@ -180,6 +183,7 @@ export function MensagensPrivadasPage() {
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState<"code" | "preview">("code");
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [members, setMembers] = useState<Member[]>([]);
 
   // Campos do formulário
   const [data, setData] = useState<string>(getTodayFormatted());
@@ -196,6 +200,10 @@ export function MensagensPrivadasPage() {
   // Campos específicos de Notificação de Orientação
   const [descOrientacao, setDescOrientacao] = useState<string>("");
   const [oriOrientacao, setOriOrientacao] = useState<string>("");
+
+  useEffect(() => {
+    getMembers().then((res) => setMembers(res || [])).catch(console.error);
+  }, []);
 
   const handleSetToday = () => {
     const today = getTodayFormatted();
@@ -237,6 +245,7 @@ export function MensagensPrivadasPage() {
 
   const handleClear = () => {
     setProvas("");
+    setUsername("{USERNAME}");
     setDescricao("");
     setOrientacoes("");
     setTipoPunicao("");
@@ -244,6 +253,7 @@ export function MensagensPrivadasPage() {
     setSecao("");
     setDescOrientacao("");
     setOriOrientacao("");
+    setData(getTodayFormatted());
     toast.info("Campos limpos com sucesso.");
   };
 
@@ -337,7 +347,7 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
     }
     navigator.clipboard.writeText(generatedBBCode).then(() => {
       setCopied(true);
-      toast.success("BBCode gerado e copiado com sucesso para a área de transferência!");
+      toast.success("BBCode copiado com sucesso para a área de transferência!");
       setTimeout(() => setCopied(false), 2500);
     }).catch(() => {
       toast.error("Erro ao copiar BBCode.");
@@ -345,167 +355,277 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
   }, [generatedBBCode]);
 
   return (
-    <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-6">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-primary/10 border border-primary/20 rounded-xl flex items-center justify-center text-primary shadow-sm shadow-primary/10">
-            <MessageSquareLock className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight flex items-center gap-2.5">
-              Central de Mensagens Privadas
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                Gerador Oficial
-              </span>
-            </h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
-              Gerador padronizado de BBCode para envio de Mensagens Privadas no Fórum da RCC.
-            </p>
-          </div>
+    <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+      {/* Cabeçalho Padrão SSI */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-2.5">
+            <MessageSquareLock className="h-8 w-8 text-primary" />
+            Central de Mensagens Privadas
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Gerador padronizado de BBCode para envio de Mensagens Privadas no Fórum da RCC.
+          </p>
         </div>
 
-        {/* Ações Rápidas */}
-        <div className="flex items-center gap-2">
+        {/* Ações Rápidas no Topo */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
+            type="button"
             onClick={handleClear}
-            className="px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground bg-secondary/40 hover:bg-secondary border border-border/70 rounded-xl flex items-center gap-1.5 transition-all"
+            className="flex items-center justify-center gap-2 border border-border bg-background hover:bg-secondary/50 px-3.5 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer shadow-sm w-full sm:w-auto"
             title="Limpar todos os campos"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Limpar
+            <RotateCcw className="h-4 w-4" />
+            <span>Limpar</span>
           </button>
           <button
+            type="button"
             onClick={handleCopy}
-            className="px-4 py-2 text-xs font-semibold text-white bg-primary hover:bg-primary/90 rounded-xl flex items-center gap-2 shadow-sm shadow-primary/20 transition-all active:scale-95"
+            className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium text-sm transition-all shadow-sm cursor-pointer w-full sm:w-auto"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-white" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied ? "Copiado!" : "Copiar BBCode"}
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            <span>{copied ? "Copiado!" : "Copiar BBCode"}</span>
           </button>
         </div>
       </div>
 
-      {/* Main Generator Card */}
-      <div className="bg-card border border-border/80 rounded-2xl shadow-xl shadow-black/20 overflow-hidden">
-        {/* Tab Navigation (Idêntico ao Gerador Original) */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 p-2.5 bg-[#080d1a] border-b border-border/70">
-          <button
-            type="button"
-            onClick={() => setActiveTab("convocacao")}
-            className={cn(
-              "py-3 px-4 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 border",
-              activeTab === "convocacao"
-                ? "bg-gradient-to-r from-blue-600/30 to-sky-600/20 text-white border-blue-500 shadow-md shadow-blue-500/10 font-bold"
-                : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border-transparent"
-            )}
-          >
-            <Send className="h-4 w-4" />
-            Convocação
-          </button>
+      {/* Navegação por Abas Limpas (Padrão idêntico a Relatório de Avaliações) */}
+      <div className="flex items-center gap-2 border-b border-border pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("convocacao")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${
+            activeTab === "convocacao"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "bg-secondary/50 text-muted-foreground hover:bg-secondary border border-transparent hover:border-border"
+          }`}
+        >
+          <Send className="h-4 w-4" />
+          <span>Convocação</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("punicao")}
-            className={cn(
-              "py-3 px-4 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 border",
-              activeTab === "punicao"
-                ? "bg-gradient-to-r from-blue-600/30 to-sky-600/20 text-white border-blue-500 shadow-md shadow-blue-500/10 font-bold"
-                : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border-transparent"
-            )}
-          >
-            <ShieldAlert className="h-4 w-4" />
-            Punição por Infração
-          </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("punicao")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${
+            activeTab === "punicao"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "bg-secondary/50 text-muted-foreground hover:bg-secondary border border-transparent hover:border-border"
+          }`}
+        >
+          <ShieldAlert className="h-4 w-4" />
+          <span>Punição por Infração</span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("orientacao")}
-            className={cn(
-              "py-3 px-4 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 border",
-              activeTab === "orientacao"
-                ? "bg-gradient-to-r from-blue-600/30 to-sky-600/20 text-white border-blue-500 shadow-md shadow-blue-500/10 font-bold"
-                : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 border-transparent"
-            )}
-          >
-            <FileText className="h-4 w-4" />
-            Notificação de Orientação
-          </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("orientacao")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${
+            activeTab === "orientacao"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "bg-secondary/50 text-muted-foreground hover:bg-secondary border border-transparent hover:border-border"
+          }`}
+        >
+          <FileText className="h-4 w-4" />
+          <span>Notificação de Orientação</span>
+        </button>
+      </div>
+
+      {/* Cards de Métricas Rápidas (Padrão Visual SSI) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground">Modelo Selecionado</p>
+            {activeTab === "convocacao" && <Send className="h-4 w-4 text-primary" />}
+            {activeTab === "punicao" && <ShieldAlert className="h-4 w-4 text-orange-500" />}
+            {activeTab === "orientacao" && <FileText className="h-4 w-4 text-blue-500" />}
+          </div>
+          <h3 className="text-base sm:text-lg font-bold text-foreground mt-2 truncate">
+            {activeTab === "convocacao" && "Convocação"}
+            {activeTab === "punicao" && "Punição (CPI)"}
+            {activeTab === "orientacao" && "Orientação"}
+          </h3>
         </div>
 
-        {/* Formulário Principal */}
-        <div className="p-6 md:p-8 space-y-6">
-          {/* Campo de Data (Comum a todas as abas) */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              Data (DD MMM AAAA):
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={data}
-                onChange={(e) => setData(e.target.value)}
-                placeholder="Ex: 21 Set 2026"
-                className="flex-1 bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all font-mono"
-              />
+        <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground">Destinatário</p>
+            <User className="h-4 w-4 text-primary" />
+          </div>
+          <h3 className="text-base sm:text-lg font-bold text-primary mt-2 truncate font-mono">
+            {username || "{USERNAME}"}
+          </h3>
+        </div>
 
-              {/* Botão de Calendário Interativo com Popover */}
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="px-4 py-3 bg-secondary/60 hover:bg-secondary border border-border/80 hover:border-primary/50 rounded-xl text-xs font-semibold text-foreground flex items-center gap-2 transition-all shadow-sm cursor-pointer"
-                    title="Abrir calendário para escolher data"
-                  >
-                    <Calendar className="h-4 w-4 text-primary" />
-                    <span>Calendário</span>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-3 border-border/80 bg-[#09101f] shadow-2xl rounded-2xl" align="end">
-                  <CalendarPicker
-                    mode="single"
-                    selected={parseDateFromInput(data)}
-                    onSelect={handleDateSelect}
-                    locale={ptBR}
-                    initialFocus
-                    className="rounded-xl bg-transparent"
-                  />
-                  <div className="pt-2 mt-2 border-t border-border/60 flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleSetToday();
-                        setIsCalendarOpen(false);
-                      }}
-                      className="text-xs font-medium text-primary hover:underline px-2 py-1 rounded hover:bg-primary/10 transition-colors cursor-pointer"
-                    >
-                      Definir como Hoje ({getTodayFormatted()})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsCalendarOpen(false)}
-                      className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-secondary transition-colors cursor-pointer"
-                    >
-                      Fechar
-                    </button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+        <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground">Data do Fato</p>
+            <Calendar className="h-4 w-4 text-primary" />
+          </div>
+          <h3 className="text-base sm:text-lg font-bold text-foreground mt-2 truncate font-mono">
+            {data || getTodayFormatted()}
+          </h3>
+        </div>
 
-              <button
-                type="button"
-                onClick={handleSetToday}
-                className="px-3 py-3 bg-secondary/40 hover:bg-secondary border border-border/70 hover:border-primary/50 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground transition-all cursor-pointer"
-                title="Preencher rapidamente com a data de hoje"
-              >
-                Hoje
-              </button>
+        <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground">Tamanho do Código</p>
+            <Code2 className="h-4 w-4 text-emerald-500" />
+          </div>
+          <h3 className="text-base sm:text-lg font-bold text-foreground mt-2 truncate font-mono">
+            {generatedBBCode.length} <span className="text-xs font-normal text-muted-foreground">chars</span>
+          </h3>
+        </div>
+      </div>
+
+      {/* Card Principal do Formulário */}
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
+        {/* Cabeçalho do Card */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 border-b border-border bg-secondary/10 gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              {activeTab === "convocacao" && <Send className="h-4 w-4" />}
+              {activeTab === "punicao" && <ShieldAlert className="h-4 w-4 text-orange-500" />}
+              {activeTab === "orientacao" && <FileText className="h-4 w-4 text-blue-500" />}
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-foreground">
+                {activeTab === "convocacao" && "Dados para Convocação de Militar"}
+                {activeTab === "punicao" && "Dados da Punição por Infração (CPI)"}
+                {activeTab === "orientacao" && "Dados da Notificação de Orientação"}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {activeTab === "convocacao" && "Convoque o policial militar para averiguação presencial no Habbo Hotel dentro de 24h."}
+                {activeTab === "punicao" && "Notificação formal de punição disciplinar conforme o Código Penal dos Instrutores."}
+                {activeTab === "orientacao" && "Notificação pedagógica orientativa em relação a uma conduta errônea observada."}
+              </p>
             </div>
           </div>
 
-          {/* Campo de Provas (Comum a todas as abas) */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-              <span>Provas da Infração (Link):</span>
+          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-secondary border border-border text-muted-foreground w-fit">
+            Fórum RCC • Companhia dos Instrutores
+          </span>
+        </div>
+
+        {/* Corpo do Formulário */}
+        <div className="p-4 sm:p-6 space-y-5">
+          {/* Linha 1: Destinatário e Data */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Militar Notificado */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-primary" />
+                  <span>Militar Notificado (Nickname):</span>
+                </label>
+                {username !== "{USERNAME}" && (
+                  <button
+                    type="button"
+                    onClick={() => setUsername("{USERNAME}")}
+                    className="text-[11px] text-primary hover:underline cursor-pointer"
+                  >
+                    Restaurar {`{USERNAME}`}
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                list="pm-members-list"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="{USERNAME} ou digite o nick do policial"
+                className="w-full bg-background border border-border rounded-md px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm font-mono"
+              />
+              <datalist id="pm-members-list">
+                <option value="{USERNAME}">Variável Padrão ({`{USERNAME}`})</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.nick}>
+                    {m.nick} - {m.role}
+                  </option>
+                ))}
+              </datalist>
+              <p className="text-[11px] text-muted-foreground">
+                Mantenha <code className="text-primary font-mono">{`{USERNAME}`}</code> para o fórum preencher automaticamente ou insira o nick exato.
+              </p>
+            </div>
+
+            {/* Data do Fato */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
+                <span>Data do Fato (DD MMM AAAA):</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                  placeholder="Ex: 23 Set 2026"
+                  className="flex-1 bg-background border border-border rounded-md px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm font-mono"
+                />
+
+                {/* Popover com Calendário */}
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="px-3 py-2 bg-background hover:bg-secondary/50 border border-border rounded-md text-sm font-medium text-foreground flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                      title="Abrir calendário para escolher data"
+                    >
+                      <Calendar className="h-4 w-4 text-primary" />
+                      <span className="hidden sm:inline">Calendário</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-3 border-border bg-card shadow-2xl rounded-xl" align="end">
+                    <CalendarPicker
+                      mode="single"
+                      selected={parseDateFromInput(data)}
+                      onSelect={handleDateSelect}
+                      locale={ptBR}
+                      initialFocus
+                      className="rounded-lg bg-transparent text-foreground"
+                    />
+                    <div className="pt-2 mt-2 border-t border-border flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleSetToday();
+                          setIsCalendarOpen(false);
+                        }}
+                        className="text-xs font-medium text-primary hover:underline px-2 py-1 rounded hover:bg-primary/10 transition-colors cursor-pointer"
+                      >
+                        Definir Hoje ({getTodayFormatted()})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsCalendarOpen(false)}
+                        className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-secondary transition-colors cursor-pointer"
+                      >
+                        Fechar
+                      </button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                <button
+                  type="button"
+                  onClick={handleSetToday}
+                  className="px-3 py-2 bg-background hover:bg-secondary/50 border border-border rounded-md text-sm font-medium text-muted-foreground hover:text-foreground shadow-sm transition-colors cursor-pointer"
+                  title="Preencher rapidamente com a data de hoje"
+                >
+                  Hoje
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Campo de Provas da Infração (Comum a todas as abas) */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Provas da Infração (Link de imagem ou print):
+              </label>
               {provas.startsWith("http") && (
                 <a
                   href={provas}
@@ -516,21 +636,99 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
                   abrir link <ExternalLink className="h-3 w-3" />
                 </a>
               )}
-            </label>
+            </div>
             <input
               type="text"
               value={provas}
               onChange={(e) => setProvas(e.target.value)}
               placeholder="https://imgur.com/..."
-              className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all font-mono"
+              className="w-full bg-background border border-border rounded-md px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm font-mono"
             />
           </div>
 
-          {/* Campos Específicos: PUNIÇÃO POR INFRAÇÃO */}
+          {/* ================================================================= */}
+          {/* CAMPOS ESPECÍFICOS: PUNIÇÃO POR INFRAÇÃO                          */}
+          {/* ================================================================= */}
           {activeTab === "punicao" && (
-            <div className="space-y-5 animate-in fade-in duration-300">
+            <div className="space-y-4 pt-2 border-t border-border animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Seleção do Crime do CPI */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Gavel className="h-3.5 w-3.5 text-primary" />
+                    <span>Crime Cometido (Código Penal CPI):</span>
+                  </label>
+                  <select
+                    value={crime}
+                    onChange={(e) => handleSelectCrime(e.target.value)}
+                    className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm cursor-pointer"
+                  >
+                    <option value="">Selecione um crime do Código Penal...</option>
+                    {CRIMES_CPI.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label} ({c.secao})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={crime}
+                    onChange={handleCrimeInputChange}
+                    placeholder="Ou digite o nome do crime personalizado..."
+                    className="w-full bg-background border border-border rounded-md px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm mt-1.5"
+                  />
+                </div>
+
+                {/* Tipo de Punição */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <BookOpen className="h-3.5 w-3.5 text-primary" />
+                    <span>Tipo de Punição Aplicada:</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={tipoPunicao}
+                    onChange={(e) => setTipoPunicao(e.target.value)}
+                    placeholder="Ex: Advertência Interna"
+                    className="w-full bg-background border border-border rounded-md px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm"
+                  />
+                  {/* Chips Rápidos de Punição */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {["Observação", "Advertência Interna", "Rebaixamento", "Expulsão"].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setTipoPunicao(p)}
+                        className={cn(
+                          "px-2.5 py-1 text-xs rounded-md border transition-all cursor-pointer",
+                          tipoPunicao === p
+                            ? "bg-primary text-primary-foreground border-primary font-semibold shadow-sm"
+                            : "bg-secondary/50 text-muted-foreground hover:bg-secondary border-border hover:text-foreground"
+                        )}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Seção do Código Penal */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Seção do Código Penal dos Instrutores:
+                </label>
+                <input
+                  type="text"
+                  value={secao}
+                  onChange={(e) => setSecao(e.target.value)}
+                  placeholder="Ex: Capítulo III, Seção I, Art. 2°"
+                  className="w-full bg-background border border-border rounded-md px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm font-mono"
+                />
+              </div>
+
               {/* Descrição da Infração */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Descrição da Infração:
                 </label>
@@ -538,318 +736,278 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
                   rows={3}
                   value={descricao}
                   onChange={(e) => setDescricao(e.target.value)}
-                  placeholder="Descreva o erro cometido..."
-                  className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl p-4 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all resize-none"
+                  placeholder="Descreva detalhadamente o erro ou conduta observada nos formulários..."
+                  className="w-full bg-background border border-border rounded-md p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm resize-none"
                 />
               </div>
 
               {/* Orientações da Punição */}
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Orientações da Punição:
+                  Orientações Disciplinares ao Militar:
                 </label>
                 <input
                   type="text"
                   value={orientacoes}
                   onChange={(e) => setOrientacoes(e.target.value)}
-                  placeholder="Ex: Evitar postagem duplicada"
-                  className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all"
-                />
-              </div>
-
-              {/* Tipo de Punição */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Tipo de Punição:
-                </label>
-                <input
-                  type="text"
-                  value={tipoPunicao}
-                  onChange={(e) => setTipoPunicao(e.target.value)}
-                  placeholder="Ex: Advertência Interna"
-                  className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all"
-                />
-                {/* Sugestões Rápidas */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {["Observação", "Advertência Interna", "Rebaixamento", "Expulsão"].map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setTipoPunicao(p)}
-                      className={cn(
-                        "px-2.5 py-1 text-[11px] rounded-lg border transition-colors cursor-pointer",
-                        tipoPunicao === p
-                          ? "bg-primary/20 text-primary border-primary/50 font-bold"
-                          : "bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary border-border/70"
-                      )}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Crime Cometido */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Crime cometido:
-                </label>
-                <input
-                  type="text"
-                  value={crime}
-                  onChange={handleCrimeInputChange}
-                  placeholder="Ex: Postagem incorreta"
-                  className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all"
-                />
-              </div>
-
-              {/* Seção do Código Penal */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Seção do Código Penal:
-                </label>
-                <input
-                  type="text"
-                  value={secao}
-                  onChange={(e) => setSecao(e.target.value)}
-                  placeholder="Ex: Capítulo III, Seção I, Art. 2°"
-                  className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all font-mono"
+                  placeholder="Ex: Reler atentamente o script de formação e evitar envio de dados divergentes..."
+                  className="w-full bg-background border border-border rounded-md px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm"
                 />
               </div>
             </div>
           )}
 
-          {/* Campos Específicos: NOTIFICAÇÃO DE ORIENTAÇÃO */}
+          {/* ================================================================= */}
+          {/* CAMPOS ESPECÍFICOS: NOTIFICAÇÃO DE ORIENTAÇÃO                     */}
+          {/* ================================================================= */}
           {activeTab === "orientacao" && (
-            <div className="space-y-5 animate-in fade-in duration-300">
-              <div className="space-y-2">
+            <div className="space-y-4 pt-2 border-t border-border animate-in fade-in duration-300">
+              <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Descrição da Conduta / Erro:
+                  Descrição da Conduta / Erro Observado:
                 </label>
                 <textarea
                   rows={3}
                   value={descOrientacao}
                   onChange={(e) => setDescOrientacao(e.target.value)}
-                  placeholder="Descreva a conduta ou erro observado..."
-                  className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl p-4 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all resize-none"
+                  placeholder="Descreva a conduta ou erro observado que motivou a orientação pedagógica..."
+                  className="w-full bg-background border border-border rounded-md p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm resize-none"
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Orientações:
+                  Orientações ao Instrutor:
                 </label>
                 <input
                   type="text"
                   value={oriOrientacao}
                   onChange={(e) => setOriOrientacao(e.target.value)}
-                  placeholder="Ex: Reler atentamente o script de formação antes de aplicar a aula..."
-                  className="w-full bg-secondary/40 border border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all"
+                  placeholder="Ex: Reler atentamente o script de formação referente ao seu cargo de modo a sanar dúvidas..."
+                  className="w-full bg-background border border-border rounded-md px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm"
                 />
               </div>
             </div>
           )}
 
-          {/* Botão Principal em Destaque: GERAR E COPIAR BBCODE */}
+          {/* Botão de Ação Primário Padrão SSI */}
           <div className="pt-2">
             <button
               type="button"
               onClick={handleCopy}
-              className="w-full py-4 px-6 rounded-xl font-bold text-white tracking-widest text-sm sm:text-base uppercase bg-gradient-to-r from-[#0284c7] via-[#2563eb] to-[#1d4ed8] hover:from-[#0369a1] hover:to-[#1e40af] shadow-lg shadow-blue-600/30 active:scale-[0.99] transition-all flex items-center justify-center gap-3 border border-blue-400/30 group cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-md font-semibold text-sm text-primary-foreground bg-primary hover:bg-primary/90 shadow-sm active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               {copied ? (
                 <>
-                  <Check className="h-5 w-5 text-emerald-300 animate-bounce" />
-                  <span>BBCODE COPIADO COM SUCESSO!</span>
+                  <Check className="h-4 w-4" />
+                  <span>BBCode Copiado com Sucesso!</span>
                 </>
               ) : (
                 <>
-                  <Copy className="h-5 w-5 text-blue-200 group-hover:scale-110 transition-transform" />
-                  <span>GERAR E COPIAR BBCODE</span>
+                  <Copy className="h-4 w-4" />
+                  <span>Gerar e Copiar BBCode</span>
                 </>
               )}
             </button>
           </div>
+        </div>
+      </div>
 
-          {/* Visualização de Saída (BBCode & Pré-visualização do Fórum) */}
-          <div className="pt-4 border-t border-border/60 space-y-3">
-            <div className="flex items-center justify-between gap-2">
+      {/* Card de Visualização do BBCode Gerado e Prévia do Fórum */}
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
+        {/* Cabeçalho do Card */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 border-b border-border bg-secondary/10 gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              {viewMode === "code" ? <Code2 className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </div>
+            <div>
               <div className="flex items-center gap-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <h3 className="text-sm font-bold text-foreground">
                   {viewMode === "code" ? "BBCode Gerado" : "Pré-visualização no Fórum"}
-                </label>
-                <span className="text-[11px] text-muted-foreground/70 font-mono bg-secondary/60 px-2 py-0.5 rounded">
+                </h3>
+                <span className="text-[11px] text-muted-foreground font-mono bg-secondary/60 border border-border px-2 py-0.5 rounded-full">
                   {generatedBBCode.length} caracteres
                 </span>
               </div>
+              <p className="text-xs text-muted-foreground">
+                {viewMode === "code"
+                  ? "Código pronto para colar no corpo da Mensagem Privada no Fórum RCC"
+                  : "Simulação de visualização exata de como a mensagem aparecerá para o militar no Fórum"}
+              </p>
+            </div>
+          </div>
 
-              {/* Alternador Código / Prévia */}
-              <div className="flex items-center bg-secondary/40 border border-border/70 rounded-lg p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setViewMode("code")}
-                  className={cn(
-                    "px-3 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer",
-                    viewMode === "code"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Code2 className="h-3.5 w-3.5" />
-                  Código
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("preview")}
-                  className={cn(
-                    "px-3 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer",
-                    viewMode === "preview"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  Prévia Fórum
-                </button>
-              </div>
+          {/* Alternador Código / Prévia e Ação de Cópia */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-background border border-border rounded-md p-0.5 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setViewMode("code")}
+                className={cn(
+                  "px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer",
+                  viewMode === "code"
+                    ? "bg-primary text-primary-foreground shadow-sm font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Code2 className="h-3.5 w-3.5" />
+                Código
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("preview")}
+                className={cn(
+                  "px-3 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer",
+                  viewMode === "preview"
+                    ? "bg-primary text-primary-foreground shadow-sm font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                Prévia Fórum
+              </button>
             </div>
 
-            {viewMode === "code" ? (
-              <div className="relative">
-                <textarea
-                  readOnly
-                  rows={9}
-                  value={generatedBBCode}
-                  onClick={(e) => (e.target as HTMLTextAreaElement).select()}
-                  className="w-full bg-[#070c17] border border-[#1e2a4d] rounded-xl p-4 font-mono text-xs sm:text-[13px] text-sky-200/90 leading-relaxed focus:outline-none focus:ring-1 focus:ring-blue-500/50 resize-y select-all shadow-inner"
-                />
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="absolute top-3 right-3 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all backdrop-blur-sm shadow-sm cursor-pointer"
-                >
-                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                  {copied ? "Copiado!" : "Copiar"}
-                </button>
-              </div>
-            ) : (
-              /* Pré-visualização autêntica de como fica no fórum phpBB da RCC */
-              <div className="bg-[#0b1120] border border-[#1e2a4d] rounded-xl p-4 sm:p-6 overflow-x-auto">
-                <div className="max-w-[620px] mx-auto bg-[#1e2a4d] border-4 border-[#333333] rounded-[20px] overflow-hidden shadow-2xl p-0.5 text-slate-800">
-                  {/* GIF Header */}
-                  <div className="w-full flex justify-center bg-[#1e2a4d] p-1">
-                    <img 
-                      src="https://i.imgur.com/WVgmuES.gif" 
-                      alt="Banner" 
-                      className="max-w-full h-auto"
-                      onError={(e) => { e.currentTarget.style.display = "none"; }} 
-                    />
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex items-center justify-center gap-1.5 border border-border bg-background hover:bg-secondary/50 px-3 py-1.5 rounded-md text-xs font-medium text-foreground transition-colors cursor-pointer shadow-sm"
+              title="Copiar código"
+            >
+              {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5 text-muted-foreground" />}
+              <span>{copied ? "Copiado!" : "Copiar"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Conteúdo do Resultado */}
+        <div className="p-4 sm:p-6">
+          {viewMode === "code" ? (
+            <div className="relative">
+              <textarea
+                readOnly
+                rows={10}
+                value={generatedBBCode}
+                onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+                className="w-full bg-background border border-border rounded-lg p-4 font-mono text-xs sm:text-sm text-foreground/90 leading-relaxed focus:outline-none focus:border-primary/50 resize-y select-all shadow-inner"
+              />
+            </div>
+          ) : (
+            /* Pré-visualização autêntica de como fica no fórum phpBB da RCC */
+            <div className="bg-background/80 border border-border rounded-xl p-4 sm:p-6 overflow-x-auto">
+              <div className="max-w-[620px] mx-auto bg-[#1e2a4d] border-4 border-[#333333] rounded-[20px] overflow-hidden shadow-2xl p-0.5 text-slate-800">
+                {/* GIF Header */}
+                <div className="w-full flex justify-center bg-[#1e2a4d] p-1">
+                  <img 
+                    src="https://i.imgur.com/WVgmuES.gif" 
+                    alt="Banner" 
+                    className="max-w-full h-auto"
+                    onError={(e) => { e.currentTarget.style.display = "none"; }} 
+                  />
+                </div>
+
+                {/* White Card */}
+                <div className="bg-[#f8f8ff] rounded-[16px] p-5 shadow-md m-2 font-sans text-left">
+                  {/* Header Title Badge */}
+                  <div className="bg-[#1e2a4d] text-white text-center py-2 px-4 rounded-[14px] shadow-sm mb-4 font-bold text-base tracking-wider uppercase">
+                    {activeTab === "convocacao" && "CONVOCAÇÃO"}
+                    {activeTab === "punicao" && "PUNIÇÃO POR INFRAÇÃO"}
+                    {activeTab === "orientacao" && "NOTIFICAÇÃO DE ORIENTAÇÃO"}
                   </div>
 
-                  {/* White Card */}
-                  <div className="bg-[#f8f8ff] rounded-[16px] p-5 shadow-md m-2 font-sans text-left">
-                    {/* Header Title Badge */}
-                    <div className="bg-[#1e2a4d] text-white text-center py-2 px-4 rounded-[14px] shadow-sm mb-4 font-bold text-base tracking-wider uppercase">
-                      {activeTab === "convocacao" && "CONVOCAÇÃO"}
-                      {activeTab === "punicao" && "PUNIÇÃO POR INFRAÇÃO"}
-                      {activeTab === "orientacao" && "NOTIFICAÇÃO DE ORIENTAÇÃO"}
-                    </div>
+                  {/* Greeting */}
+                  <p className="text-sm text-slate-900 font-semibold mb-3">
+                    Saudações, <span className="text-[#1e2a4d] font-bold">{activeTab === "orientacao" ? "instrutor " : ""}{username || "{USERNAME}"}</span>!
+                  </p>
 
-                    {/* Greeting */}
-                    <p className="text-sm text-slate-900 font-semibold mb-3">
-                      Saudações, <span className="text-[#1e2a4d] font-bold">{activeTab === "orientacao" ? "instrutor " : ""}{username || "{USERNAME}"}</span>!
+                  {/* Intro paragraph */}
+                  {activeTab === "orientacao" ? (
+                    <p className="text-xs leading-relaxed text-slate-700 mb-3">
+                      Por meio desta Mensagem Privada, informa-se que você está sendo orientado em relação a uma conduta errônea identificada na <b className="text-[#1e2a4d]">Companhia dos Instrutores</b>. A seguir, serão apresentadas as informações e evidências referentes ao ocorrido:
                     </p>
+                  ) : (
+                    <p className="text-xs leading-relaxed text-slate-700 mb-3">
+                      O <b className="text-[#1e2a4d]">Setor de Segurança dos Instrutores</b>, por meio de uma fiscalização dos formulários de aulas, observou que alguns erros foram cometidos na postagem de sua aplicação ao longo da semana, na data de <b>{data || getTodayFormatted()}</b>.
+                    </p>
+                  )}
 
-                    {/* Intro paragraph */}
-                    {activeTab === "orientacao" ? (
-                      <p className="text-xs leading-relaxed text-slate-700 mb-3">
-                        Por meio desta Mensagem Privada, informa-se que você está sendo orientado em relação a uma conduta errônea identificada na <b className="text-[#1e2a4d]">Companhia dos Instrutores</b>. A seguir, serão apresentadas as informações e evidências referentes ao ocorrido:
-                      </p>
-                    ) : (
-                      <p className="text-xs leading-relaxed text-slate-700 mb-3">
-                        O <b className="text-[#1e2a4d]">Setor de Segurança dos Instrutores</b>, por meio de uma fiscalização dos formulários de aulas, observou que alguns erros foram cometidos na postagem de sua aplicação ao longo da semana, na data de <b>{data || getTodayFormatted()}</b>.
-                      </p>
-                    )}
-
-                    {/* Blue Details Box */}
-                    <div className="bg-[#C5D7F2] rounded-[14px] p-4 text-xs shadow-sm mb-3 space-y-2 text-slate-900">
-                      {activeTab === "convocacao" && (
-                        <p><b>➥ Provas da infração:</b> {provas.trim() || "INSERIR LINK"}</p>
-                      )}
-
-                      {activeTab === "punicao" && (
-                        <>
-                          <div className="flex justify-center mb-2">
-                            <div className="bg-[#1e2a4d] text-white text-center py-1.5 px-6 rounded-[14px] text-xs font-bold w-48 shadow-sm">
-                              RESOLUÇÃO
-                            </div>
-                          </div>
-                          <p><b>➥ Descrição da infração:</b> {descricao.trim() || "DESCRIÇÃO"}</p>
-                          <p><b>➥ Provas da infração:</b> {provas.trim() || "INSERIR LINK"}</p>
-                          <p><b>➥ Orientações:</b> {orientacoes.trim() || "ORIENTAÇÃO"}</p>
-                        </>
-                      )}
-
-                      {activeTab === "orientacao" && (
-                        <>
-                          <p><b>DESCRIÇÃO:</b> {descOrientacao.trim() || "Descreva a conduta..."}</p>
-                          <p><b>PROVAS:</b> {provas.trim() || "INSERIR LINK"}</p>
-                          <p><b>ORIENTAÇÃO:</b> {oriOrientacao.trim() || "Orientações..."}</p>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Closing body text */}
+                  {/* Blue Details Box */}
+                  <div className="bg-[#C5D7F2] rounded-[14px] p-4 text-xs shadow-sm mb-3 space-y-2 text-slate-900">
                     {activeTab === "convocacao" && (
-                      <p className="text-xs leading-relaxed text-slate-700 text-justify mb-2">
-                        ➥ Através desta Mensagem Privada, você está sendo convocado a procurar o membro que lhe enviou essa mensagem privada, por meio do habbo hotel, em quaisquer dependências da polícia ou mesmo via console, em até 24 horas após o recebimento deste contato. Caso não o faça, será devidamente punido pelo crime cometido de acordo com o Código Penal dos Instrutores. Em caso de dúvidas, <b>contate um membro do Setor de Segurança dos Instrutores</b>.
-                      </p>
+                      <p><b>➥ Provas da infração:</b> {provas.trim() || "INSERIR LINK"}</p>
                     )}
 
                     {activeTab === "punicao" && (
-                      <p className="text-xs leading-relaxed text-slate-700 text-justify mb-2">
-                        ➥ Através desta Mensagem Privada, você está sendo notificado que foi punido com <b>{tipoPunicao.trim() || "INFORMAR PUNIÇÃO"}</b> pelo crime de <b>{crime.trim() || "INFORMAR CRIME"}</b>, disposto na seção <b>{secao.trim() || "INFORMAR SEÇÃO"}</b> do Código Penal dos Instrutores. Em caso de dúvidas sobre a punição, <b>procure um membro do Setor de Segurança dos Instrutores</b>.
-                      </p>
+                      <>
+                        <div className="flex justify-center mb-2">
+                          <div className="bg-[#1e2a4d] text-white text-center py-1.5 px-6 rounded-[14px] text-xs font-bold w-48 shadow-sm">
+                            RESOLUÇÃO
+                          </div>
+                        </div>
+                        <p><b>➥ Descrição da infração:</b> {descricao.trim() || "DESCRIÇÃO"}</p>
+                        <p><b>➥ Provas da infração:</b> {provas.trim() || "INSERIR LINK"}</p>
+                        <p><b>➥ Orientações:</b> {orientacoes.trim() || "ORIENTAÇÃO"}</p>
+                      </>
                     )}
 
                     {activeTab === "orientacao" && (
                       <>
-                        <p className="text-xs leading-relaxed text-slate-700 mb-3">
-                          É necessário destacar que essa Mensagem Privada não se configura como uma notificação formal de uma punição, mas sim uma notificação com o intuito de orientar acerca de um erro cometido.
-                        </p>
-                        <div className="bg-[#C5D7F2] rounded-[14px] p-4 text-xs shadow-sm mb-2 text-slate-900 space-y-2">
-                          <div className="flex justify-center mb-1">
-                            <div className="bg-[#1e2a4d] text-white text-center py-1 px-6 rounded-[14px] text-xs font-bold w-48 shadow-sm">
-                              ORIENTAÇÕES
-                            </div>
-                          </div>
-                          <p className="text-justify leading-relaxed">
-                            <span className="text-[#1e2a4d] font-bold">➥</span> Caso possua alguma dúvida sobre sua meta ou a companhia no geral, você pode responder esta Mensagem Privada com sua dúvida, bem como procurar algum superior na companhia para saná-la;
-                          </p>
-                          <p className="text-justify leading-relaxed">
-                            <span className="text-[#1e2a4d] font-bold">➥</span> Caso necessário, lembre-se de reler o script de formação referente ao seu cargo, de modo a lembrar-se de eventuais detalhes e procedimentos a serem realizados.
-                          </p>
-                        </div>
+                        <p><b>DESCRIÇÃO:</b> {descOrientacao.trim() || "Descreva a conduta..."}</p>
+                        <p><b>PROVAS:</b> {provas.trim() || "INSERIR LINK"}</p>
+                        <p><b>ORIENTAÇÃO:</b> {oriOrientacao.trim() || "Orientações..."}</p>
                       </>
                     )}
                   </div>
 
-                  {/* Card Footer */}
-                  <div className="text-center py-2 text-[11px] text-[#f8f8ff] font-semibold">
-                    Reservam-se os direitos à Companhia dos Instrutores
-                  </div>
+                  {/* Closing body text */}
+                  {activeTab === "convocacao" && (
+                    <p className="text-xs leading-relaxed text-slate-700 text-justify mb-2">
+                      ➥ Através desta Mensagem Privada, você está sendo convocado a procurar o membro que lhe enviou essa mensagem privada, por meio do habbo hotel, em quaisquer dependências da polícia ou mesmo via console, em até 24 horas após o recebimento deste contato. Caso não o faça, será devidamente punido pelo crime cometido de acordo com o Código Penal dos Instrutores. Em caso de dúvidas, <b>contate um membro do Setor de Segurança dos Instrutores</b>.
+                    </p>
+                  )}
+
+                  {activeTab === "punicao" && (
+                    <p className="text-xs leading-relaxed text-slate-700 text-justify mb-2">
+                      ➥ Através desta Mensagem Privada, você está sendo notificado que foi punido com <b>{tipoPunicao.trim() || "INFORMAR PUNIÇÃO"}</b> pelo crime de <b>{crime.trim() || "INFORMAR CRIME"}</b>, disposto na seção <b>{secao.trim() || "INFORMAR SEÇÃO"}</b> do Código Penal dos Instrutores. Em caso de dúvidas sobre a punição, <b>procure um membro do Setor de Segurança dos Instrutores</b>.
+                    </p>
+                  )}
+
+                  {activeTab === "orientacao" && (
+                    <>
+                      <p className="text-xs leading-relaxed text-slate-700 mb-3">
+                        É necessário destacar que essa Mensagem Privada não se configura como uma notificação formal de uma punição, mas sim uma notificação com o intuito de orientar acerca de um erro cometido.
+                      </p>
+                      <div className="bg-[#C5D7F2] rounded-[14px] p-4 text-xs shadow-sm mb-2 text-slate-900 space-y-2">
+                        <div className="flex justify-center mb-1">
+                          <div className="bg-[#1e2a4d] text-white text-center py-1 px-6 rounded-[14px] text-xs font-bold w-48 shadow-sm">
+                            ORIENTAÇÕES
+                          </div>
+                        </div>
+                        <p className="text-justify leading-relaxed">
+                          <span className="text-[#1e2a4d] font-bold">➥</span> Caso possua alguma dúvida sobre sua meta ou a companhia no geral, você pode responder esta Mensagem Privada com sua dúvida, bem como procurar algum superior na companhia para saná-la;
+                        </p>
+                        <p className="text-justify leading-relaxed">
+                          <span className="text-[#1e2a4d] font-bold">➥</span> Caso necessário, lembre-se de reler o script de formação referente ao seu cargo, de modo a lembrar-se de eventuais detalhes e procedimentos a serem realizados.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Card Footer */}
+                <div className="text-center py-2 text-[11px] text-[#f8f8ff] font-semibold">
+                  Reservam-se os direitos à Companhia dos Instrutores
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
 
-          {/* Rodapé e Créditos (Idêntico ao policiarcc.com) */}
-          <div className="text-center pt-4 border-t border-border/50 text-xs text-muted-foreground">
-            <p className="font-semibold text-foreground/90">Desenvolvido por yycecedilha</p>
-            <p className="text-[11px] text-muted-foreground/70 mt-0.5">
-              Setor de Segurança dos Instrutores • Fórum Policial RCC
-            </p>
-          </div>
+        {/* Rodapé do Card */}
+        <div className="px-4 sm:px-6 py-3 border-t border-border bg-secondary/10 flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground gap-2">
+          <span>Setor de Segurança dos Instrutores • Fórum Policial RCC</span>
+          <span className="text-[11px] text-muted-foreground/70">Padronização Oficial de BBCode</span>
         </div>
       </div>
     </div>
