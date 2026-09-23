@@ -54,7 +54,7 @@ const navSections: NavSection[] = [
       },
       { 
         icon: ClipboardList, 
-        label: "Relatório de Fiscalização", 
+        label: "Relatório de Avaliações", 
         href: "/relatorio-avaliacoes", 
         requiredRoles: ["Fiscalizador", "Diretor"],
         permissionKey: "Relatório de Fiscalização"
