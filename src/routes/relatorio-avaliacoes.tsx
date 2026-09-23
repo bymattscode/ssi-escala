@@ -46,6 +46,7 @@ import { FakeAccount, Member, Fiscalizacao } from "../lib/types";
 import { toast } from "sonner";
 import { formatBrasiliaDateTime, getBrasiliaIsoNow } from "../lib/dateUtils";
 import { fetchAllFromRemote, syncModule } from "../lib/syncManager";
+import { ConfirmModal } from "../components/ui/ux";
 
 // Opções das etapas de fiscalização do CFSd (conforme formulário oficial)
 const INICIO_AULA_OPTIONS = {
@@ -381,6 +382,11 @@ function RelatorioFiscalizacaoPage() {
   const [isSubmittingFisc, setIsSubmittingFisc] = useState(false);
   const [isSyncingWithSheets, setIsSyncingWithSheets] = useState(false);
 
+  // Estados para modal estilizado oficial de confirmação de exclusão
+  const [fakeToDelete, setFakeToDelete] = useState<FakeAccount | null>(null);
+  const [fiscToDelete, setFiscToDelete] = useState<Fiscalizacao | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Carregar dados locais do store
   const loadData = useCallback(async () => {
     try {
@@ -636,8 +642,8 @@ function RelatorioFiscalizacaoPage() {
     }
   };
 
-  // Excluir fiscalização
-  const handleDeleteFiscalizacao = async (item: Fiscalizacao) => {
+  // Abrir modal de confirmação para excluir fiscalização
+  const handleOpenDeleteFiscalizacao = (item: Fiscalizacao) => {
     const isOwner =
       item.fiscalizadorNick?.toLowerCase() === (user?.nick || "").toLowerCase() ||
       item.fiscalizadorId === user?.id;
@@ -647,9 +653,13 @@ function RelatorioFiscalizacaoPage() {
       return;
     }
 
-    if (!window.confirm(`Tem certeza de que deseja remover a fiscalização #${item.id} do instrutor ${item.instrutorNick}?`)) {
-      return;
-    }
+    setFiscToDelete(item);
+  };
+
+  const confirmDeleteFiscalizacao = async () => {
+    if (!fiscToDelete) return;
+    const item = fiscToDelete;
+    setIsDeleting(true);
 
     try {
       await deleteFiscalizacao(item.id);
@@ -668,6 +678,9 @@ function RelatorioFiscalizacaoPage() {
       syncModule("fiscalizacoes").catch(console.error);
     } catch (err) {
       toast.error("Erro ao excluir fiscalização.");
+    } finally {
+      setIsDeleting(false);
+      setFiscToDelete(null);
     }
   };
 
@@ -762,8 +775,8 @@ function RelatorioFiscalizacaoPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Excluir fake
-  const handleDeleteFake = async (fake: FakeAccount) => {
+  // Abrir modal de confirmação para excluir fake
+  const handleOpenDeleteFake = (fake: FakeAccount) => {
     const isOwner =
       fake.ownerNick?.toLowerCase() === (user?.nick || "").toLowerCase() ||
       fake.registeredByNick?.toLowerCase() === (user?.nick || "").toLowerCase();
@@ -773,9 +786,13 @@ function RelatorioFiscalizacaoPage() {
       return;
     }
 
-    if (!window.confirm(`Tem certeza de que deseja remover o registro da fake "${fake.fakeNick}"?`)) {
-      return;
-    }
+    setFakeToDelete(fake);
+  };
+
+  const confirmDeleteFake = async () => {
+    if (!fakeToDelete) return;
+    const fake = fakeToDelete;
+    setIsDeleting(true);
 
     try {
       await deleteFakeAccount(fake.id);
@@ -794,6 +811,9 @@ function RelatorioFiscalizacaoPage() {
       syncModule("fakes").catch(console.error);
     } catch (err) {
       toast.error("Erro ao excluir fake.");
+    } finally {
+      setIsDeleting(false);
+      setFakeToDelete(null);
     }
   };
 
@@ -1235,7 +1255,7 @@ function RelatorioFiscalizacaoPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDeleteFake(item)}
+                              onClick={() => handleOpenDeleteFake(item)}
                               className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                               title="Excluir registro"
                             >
@@ -1514,7 +1534,7 @@ function RelatorioFiscalizacaoPage() {
 
                               <button
                                 type="button"
-                                onClick={() => handleDeleteFiscalizacao(item)}
+                                onClick={() => handleOpenDeleteFiscalizacao(item)}
                                 className="p-1.5 rounded-lg text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                                 title="Excluir fiscalização"
                               >
@@ -2217,6 +2237,32 @@ function RelatorioFiscalizacaoPage() {
           </div>
         </div>
       )}
+
+      {/* Modal oficial de confirmação estilizado SSI para exclusão de fake */}
+      <ConfirmModal
+        isOpen={!!fakeToDelete}
+        title="Excluir Conta Fake?"
+        description={`Tem certeza de que deseja remover o registro da fake "${fakeToDelete?.fakeNick}" (Responsável: ${fakeToDelete?.ownerNick})? Esta ação será sincronizada automaticamente com a planilha.`}
+        confirmText="Excluir Registro"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteFake}
+        onClose={() => setFakeToDelete(null)}
+      />
+
+      {/* Modal oficial de confirmação estilizado SSI para exclusão de fiscalização */}
+      <ConfirmModal
+        isOpen={!!fiscToDelete}
+        title="Excluir Fiscalização?"
+        description={`Tem certeza de que deseja remover a fiscalização #${fiscToDelete?.id} do instrutor "${fiscToDelete?.instrutorNick}"? Esta ação será sincronizada automaticamente com a planilha.`}
+        confirmText="Excluir Fiscalização"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteFiscalizacao}
+        onClose={() => setFiscToDelete(null)}
+      />
     </div>
   );
 }

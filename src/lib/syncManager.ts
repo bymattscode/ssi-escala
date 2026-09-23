@@ -576,51 +576,67 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
   }
 
   if (module === "fakes") {
-    return (Array.isArray(data) ? data : []).map((item: any) => ({
-      id: item["ID"] && item["ID"] !== "-" ? item["ID"] : `FAKE-${Date.now().toString(36).toUpperCase()}`,
-      ownerNick: item["Responsável"] || item["Dono"] || "-",
-      fakeNick: item["Nick da Fake"] || item["Fake"] || "-",
-      registeredByNick: item["Cadastrado Por"] || undefined,
-      createdAt: item["Data de Criação"] || "-",
-      timestamp: item["Data de Criação"] ? (Date.parse(item["Data de Criação"]) || Date.now()) : Date.now(),
-      agreedTerms: item["Termo Aceito"] === "Sim" || item["Termo Aceito"] === true,
-      status: (item["Status"] === "Inativa" ? "Inativa" : "Ativa") as "Ativa" | "Inativa",
-      notes: item["Observações"] && item["Observações"] !== "-" ? item["Observações"] : undefined,
-      updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : Date.now()
-    }));
+    return (Array.isArray(data) ? data : [])
+      .filter((item: any) => {
+        if (!item) return false;
+        const id = String(item["ID"] || "").trim();
+        const fakeNick = String(item["Nick da Fake"] || item["Fake"] || "").trim();
+        const ownerNick = String(item["Responsável"] || item["Dono"] || "").trim();
+        return (id !== "" && id !== "-") || (fakeNick !== "" && fakeNick !== "-") || (ownerNick !== "" && ownerNick !== "-");
+      })
+      .map((item: any) => ({
+        id: item["ID"] && item["ID"] !== "-" ? item["ID"] : `FAKE-${Date.now().toString(36).toUpperCase()}`,
+        ownerNick: item["Responsável"] || item["Dono"] || "-",
+        fakeNick: item["Nick da Fake"] || item["Fake"] || "-",
+        registeredByNick: item["Cadastrado Por"] || undefined,
+        createdAt: item["Data de Criação"] || "-",
+        timestamp: item["Data de Criação"] ? (Date.parse(item["Data de Criação"]) || Date.now()) : Date.now(),
+        agreedTerms: item["Termo Aceito"] === "Sim" || item["Termo Aceito"] === true,
+        status: (item["Status"] === "Inativa" ? "Inativa" : "Ativa") as "Ativa" | "Inativa",
+        notes: item["Observações"] && item["Observações"] !== "-" ? item["Observações"] : undefined,
+        updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : Date.now()
+      }));
   }
 
   if (module === "fiscalizacoes") {
-    return (Array.isArray(data) ? data : []).map((item: any) => {
-      const inicio = parseChecklist(item["Início da Aula"]);
-      const durante = parseChecklist(item["Durante a Aula"]);
-      const teorico = parseChecklist(item["Teste Teórico"]);
-      const comandos = parseChecklist(item["Prática de Comandos"]);
-      const finalizacao = parseChecklist(item["Finalização"]);
+    return (Array.isArray(data) ? data : [])
+      .filter((item: any) => {
+        if (!item) return false;
+        const id = String(item["ID"] || "").trim();
+        const instrutor = String(item["Instrutor Avaliado"] || item["Instrutor"] || "").trim();
+        const fiscalizador = String(item["Fiscalizador"] || "").trim();
+        return (id !== "" && id !== "-") || (instrutor !== "" && instrutor !== "-") || (fiscalizador !== "" && fiscalizador !== "-");
+      })
+      .map((item: any) => {
+        const inicio = parseChecklist(item["Início da Aula"]);
+        const durante = parseChecklist(item["Durante a Aula"]);
+        const teorico = parseChecklist(item["Teste Teórico"]);
+        const comandos = parseChecklist(item["Prática de Comandos"]);
+        const finalizacao = parseChecklist(item["Finalização"]);
 
-      return {
-        id: item["ID"] && item["ID"] !== "-" ? item["ID"] : `FISC-${Date.now().toString(36).toUpperCase()}`,
-        startDate: item["Data / Início"] || item["Data"] || "-",
-        fiscalizadorNick: item["Fiscalizador"] || "-",
-        instrutorNick: item["Instrutor Avaliado"] || item["Instrutor"] || "-",
-        fakeNick: item["Fake Utilizada"] || item["Fake"] || "-",
-        inicioAula: inicio.items,
-        inicioAulaOutro: inicio.customItem,
-        duranteAula: durante.items,
-        duranteAulaOutro: durante.customItem,
-        testeTeorico: teorico.items,
-        testeTeoricoOutro: teorico.customItem,
-        comandos: comandos.items,
-        comandosOutro: comandos.customItem,
-        finalizacao: finalizacao.items,
-        finalizacaoOutro: finalizacao.customItem,
-        proofs: item["Provas / Prints"] && item["Provas / Prints"] !== "-" ? item["Provas / Prints"] : "",
-        comments: item["Comentários"] && item["Comentários"] !== "-" ? item["Comentários"] : undefined,
-        createdAt: item["Data de Registro"] || "-",
-        timestamp: Date.now(),
-        updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : Date.now()
-      };
-    });
+        return {
+          id: item["ID"] && item["ID"] !== "-" ? item["ID"] : `FISC-${Date.now().toString(36).toUpperCase()}`,
+          startDate: item["Data / Início"] || item["Data"] || "-",
+          fiscalizadorNick: item["Fiscalizador"] || "-",
+          instrutorNick: item["Instrutor Avaliado"] || item["Instrutor"] || "-",
+          fakeNick: item["Fake Utilizada"] || item["Fake"] || "-",
+          inicioAula: inicio.items,
+          inicioAulaOutro: inicio.customItem,
+          duranteAula: durante.items,
+          duranteAulaOutro: durante.customItem,
+          testeTeorico: teorico.items,
+          testeTeoricoOutro: teorico.customItem,
+          comandos: comandos.items,
+          comandosOutro: comandos.customItem,
+          finalizacao: finalizacao.items,
+          finalizacaoOutro: finalizacao.customItem,
+          proofs: item["Provas / Prints"] && item["Provas / Prints"] !== "-" ? item["Provas / Prints"] : "",
+          comments: item["Comentários"] && item["Comentários"] !== "-" ? item["Comentários"] : undefined,
+          createdAt: item["Data de Registro"] || "-",
+          timestamp: Date.now(),
+          updatedAt: item["Atualizado Em"] ? Number(item["Atualizado Em"]) : Date.now()
+        };
+      });
   }
   
   // Invert the map for reading
@@ -694,12 +710,26 @@ export const syncModule = async (moduleName: string): Promise<{ success: boolean
 
     const finalData = moduleName === "escalas" ? cleanEscalasData(localData) : localData;
 
+    const moduleHeaders = Object.values(headerMaps[moduleName as keyof typeof headerMaps] || {});
+    let translatedPayload = translateToPortuguese(finalData, moduleName as keyof typeof headerMaps);
+
+    // Se todos os registros foram excluídos (array vazio), envia uma linha com campos em branco
+    // para que o Google Apps Script limpe a aba e mantenha apenas os cabeçalhos formatados,
+    // sem deixar dados fantasmas na planilha.
+    if (!translatedPayload || translatedPayload.length === 0) {
+      const blankRow: Record<string, string> = {};
+      for (const h of moduleHeaders) {
+        blankRow[h] = "";
+      }
+      translatedPayload = [blankRow];
+    }
+
     // Push local state directly without slow readAll merges, ensuring instant real-time synchronization to Google Sheets
     const payload = {
       action: "sync" as const,
       module: moduleName,
-      payload: translateToPortuguese(finalData, moduleName as keyof typeof headerMaps),
-      headers: Object.values(headerMaps[moduleName as keyof typeof headerMaps] || {}),
+      payload: translatedPayload,
+      headers: moduleHeaders,
       deletedKeys: getDeletedKeys(),
       overwrite: true
     };
@@ -788,11 +818,21 @@ export const syncAll = async (options?: { silent?: boolean }): Promise<{ success
     let pushErrors: string[] = [];
 
     for (const mod of modulesToSync) {
+      const modHeaders = Object.values(headerMaps[mod.name as keyof typeof headerMaps] || {});
+      let modPayload = translateToPortuguese(mod.data, mod.name as keyof typeof headerMaps);
+      if (!modPayload || modPayload.length === 0) {
+        const blankRow: Record<string, string> = {};
+        for (const h of modHeaders) {
+          blankRow[h] = "";
+        }
+        modPayload = [blankRow];
+      }
+
       const pushResponse = await fetchGoogleSheets({
         action: "sync" as const,
         module: mod.name,
-        payload: translateToPortuguese(mod.data, mod.name as keyof typeof headerMaps),
-        headers: Object.values(headerMaps[mod.name as keyof typeof headerMaps] || {}),
+        payload: modPayload,
+        headers: modHeaders,
         deletedKeys: getDeletedKeys(),
         overwrite: true
       } as any);
