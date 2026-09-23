@@ -944,7 +944,7 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
   
   // Usar chave única de semana-cargo-dia para escalas, ou Nick (para membros), evitando duplicação em sincronização cruzada
   const getUniqueKey = (item: any) => {
-    if (item.id !== undefined && item.id !== null && String(item.id).trim() !== "" && !String(item.id).toUpperCase().includes("TESTE")) {
+    if (item.id !== undefined && item.id !== null && String(item.id).trim() !== "") {
       return String(item.id).trim().toLowerCase();
     }
     if (item.week && item.type && item.referenceDay && item.memberId) {
@@ -969,8 +969,8 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
     const strOffender = String(item.offenderNick || item["Infrator"] || item["Nick do Infrator"] || "").toLowerCase();
     const strNick = String(item.nick || item["Nick"] || "").toLowerCase();
 
-    // Filtros de teste
-    if (strId.includes("TESTE-0") || strId.includes("-TESTE-") || strMemberId.includes("TESTE-0") || strMemberId.includes("-TESTE-")) return true;
+    // Filtros de teste antigos específicos de membros e casos fictícios do passado
+    if (strMemberId.includes("TESTE-0")) return true;
     if (['c1', 'c2', 'c3', 'w1', 'w2', 'w3', 'w4'].includes(strId.toLowerCase())) return true;
     if (['echo', 'foxtrot', 'golf'].includes(strOffender)) return true;
     
@@ -998,12 +998,8 @@ function mergeArrays<T extends { id: string; nick?: string; updatedAt?: number; 
     const r = mergedMap.get(key);
     
     if (!r) {
-      // SÓ mantém o item local se ele tiver syncStatus === 'pending' e tiver sido editado recentemente (< 15 min).
-      // Se NÃO for pending ou for antigo/não estiver na planilha remota, FOI EXCLUÍDO na nuvem! Deve ser descartado.
-      const isRecent = l.updatedAt ? (Date.now() - l.updatedAt < 15 * 60 * 1000) : false;
-      if (l.syncStatus === 'pending' && isRecent) {
-        mergedMap.set(key, l);
-      }
+      // Preserva o item local se for pendente ou se não foi deletado
+      mergedMap.set(key, l);
     } else {
       // O item existe em ambos os lados
       if (l.syncStatus === 'pending') {

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useMemo, Fragment } from "react";
+import { useState, useEffect, useMemo, useCallback, Fragment } from "react";
 import { 
   ClipboardList, 
   ShieldCheck, 
@@ -27,7 +27,8 @@ import {
   AlertTriangle,
   FileCheck2,
   Info,
-  ArrowUpRight
+  ArrowUpRight,
+  RefreshCw
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { 
@@ -44,7 +45,7 @@ import {
 import { FakeAccount, Member, Fiscalizacao } from "../lib/types";
 import { toast } from "sonner";
 import { formatBrasiliaDateTime, getBrasiliaIsoNow } from "../lib/dateUtils";
-import { fetchAllFromRemote } from "../lib/syncManager";
+import { fetchAllFromRemote, syncModule } from "../lib/syncManager";
 
 // Opções das etapas de fiscalização do CFSd (conforme formulário oficial)
 const INICIO_AULA_OPTIONS = {
@@ -378,28 +379,51 @@ function RelatorioFiscalizacaoPage() {
   const [fiscProofs, setFiscProofs] = useState("");
   const [fiscComments, setFiscComments] = useState("");
   const [isSubmittingFisc, setIsSubmittingFisc] = useState(false);
+  const [isSyncingWithSheets, setIsSyncingWithSheets] = useState(false);
+
+  // Carregar dados locais do store
+  const loadData = useCallback(async () => {
+    try {
+      const [loadedFakes, loadedMembers, loadedFiscalizacoes] = await Promise.all([
+        getFakeAccounts(),
+        getMembers(),
+        getFiscalizacoes(),
+      ]);
+      setFakes(Array.isArray(loadedFakes) ? loadedFakes : []);
+      setMembers(Array.isArray(loadedMembers) ? loadedMembers : []);
+      setFiscalizacoes(Array.isArray(loadedFiscalizacoes) ? loadedFiscalizacoes : []);
+    } catch (err) {
+      console.error("Erro ao carregar dados de fiscalização:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Sincronização manual imediata com a planilha
+  const handleManualSync = async () => {
+    setIsSyncingWithSheets(true);
+    toast.info("Puxando e consolidando dados da planilha do Google Sheets...");
+    try {
+      const success = await fetchAllFromRemote();
+      await loadData();
+      if (success) {
+        toast.success("Dados sincronizados com sucesso com a planilha!");
+      } else {
+        toast.error("Falha ao comunicar com a planilha. Verifique a conexão.");
+      }
+    } catch (err) {
+      console.error("Erro na sincronização manual:", err);
+      toast.error("Erro ao conectar com a planilha.");
+    } finally {
+      setIsSyncingWithSheets(false);
+    }
+  };
 
   // Carregar dados iniciais e escutar atualizações
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [loadedFakes, loadedMembers, loadedFiscalizacoes] = await Promise.all([
-          getFakeAccounts(),
-          getMembers(),
-          getFiscalizacoes(),
-        ]);
-        setFakes(Array.isArray(loadedFakes) ? loadedFakes : []);
-        setMembers(Array.isArray(loadedMembers) ? loadedMembers : []);
-        setFiscalizacoes(Array.isArray(loadedFiscalizacoes) ? loadedFiscalizacoes : []);
-      } catch (err) {
-        console.error("Erro ao carregar dados de fiscalização:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
     loadData();
 
-    // Sincronizar em segundo plano com a planilha oficial
+    // Puxar em segundo plano da planilha oficial
     fetchAllFromRemote().catch(console.error);
 
     const handleDataUpdate = () => {
@@ -407,7 +431,7 @@ function RelatorioFiscalizacaoPage() {
     };
     window.addEventListener("ssi-data-updated", handleDataUpdate);
     return () => window.removeEventListener("ssi-data-updated", handleDataUpdate);
-  }, []);
+  }, [loadData]);
 
   // Preencher nick inicial com o do usuário logado caso ainda vazio
   useEffect(() => {
@@ -603,6 +627,7 @@ function RelatorioFiscalizacaoPage() {
       toast.success("Fiscalização registrada com sucesso!");
       setIsCreateFiscalizacaoOpen(false);
       handleResetFiscalizacaoForm();
+      syncModule("fiscalizacoes").catch(console.error);
     } catch (err) {
       console.error("Erro ao registrar fiscalização:", err);
       toast.error("Erro ao salvar fiscalização. Tente novamente.");
@@ -640,6 +665,7 @@ function RelatorioFiscalizacaoPage() {
         item.id,
         user?.nick
       );
+      syncModule("fiscalizacoes").catch(console.error);
     } catch (err) {
       toast.error("Erro ao excluir fiscalização.");
     }
@@ -719,6 +745,7 @@ function RelatorioFiscalizacaoPage() {
       // Limpar campo da fake para permitir cadastrar mais se desejar
       setFormFakeNick("");
       setFormAgreed(false);
+      syncModule("fakes").catch(console.error);
     } catch (err) {
       console.error("Erro ao registrar fake:", err);
       toast.error("Não foi possível registrar a conta fake. Tente novamente.");
@@ -764,6 +791,7 @@ function RelatorioFiscalizacaoPage() {
         fake.id,
         user?.nick
       );
+      syncModule("fakes").catch(console.error);
     } catch (err) {
       toast.error("Erro ao excluir fake.");
     }
@@ -785,6 +813,19 @@ function RelatorioFiscalizacaoPage() {
               Controle de contas fakes, acompanhamento de formulários e análise da liderança.
             </p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleManualSync}
+            disabled={isSyncingWithSheets}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/25 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
+            title="Puxar e sincronizar os dados mais recentes da planilha Google Sheets"
+          >
+            <RefreshCw className={`h-4 w-4 ${isSyncingWithSheets ? "animate-spin" : ""}`} />
+            <span>{isSyncingWithSheets ? "Sincronizando..." : "Sincronizar Planilha"}</span>
+          </button>
         </div>
       </div>
 
