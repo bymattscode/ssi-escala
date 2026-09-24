@@ -354,7 +354,7 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
             Central de Mensagens Privadas
           </h1>
           <p className="text-muted-foreground mt-1">
-            Gerador padronizado de BBCode para envio de Mensagens Privadas do Setor de Segurança dos Instrutores.
+            Gerador padronizado de BBCode para envio de Mensagens Privadas.
           </p>
         </div>
 
