@@ -11,18 +11,15 @@ import {
   ShieldAlert, 
   Send, 
   FileText,
-  User,
   Gavel,
   BookOpen
 } from "lucide-react";
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { cn } from "../lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
-import { getMembers } from "../lib/store";
-import { Member } from "@/lib/types";
 
 export const Route = createFileRoute("/mensagens-privadas")({
   component: MensagensPrivadasPage,
@@ -183,12 +180,10 @@ export function MensagensPrivadasPage() {
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState<"code" | "preview">("code");
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [members, setMembers] = useState<Member[]>([]);
 
   // Campos do formulário
   const [data, setData] = useState<string>(getTodayFormatted());
   const [provas, setProvas] = useState<string>("");
-  const [username, setUsername] = useState<string>("{USERNAME}");
   
   // Campos específicos de Punição
   const [descricao, setDescricao] = useState<string>("");
@@ -200,10 +195,6 @@ export function MensagensPrivadasPage() {
   // Campos específicos de Notificação de Orientação
   const [descOrientacao, setDescOrientacao] = useState<string>("");
   const [oriOrientacao, setOriOrientacao] = useState<string>("");
-
-  useEffect(() => {
-    getMembers().then((res) => setMembers(res || [])).catch(console.error);
-  }, []);
 
   const handleSetToday = () => {
     const today = getTodayFormatted();
@@ -245,7 +236,6 @@ export function MensagensPrivadasPage() {
 
   const handleClear = () => {
     setProvas("");
-    setUsername("{USERNAME}");
     setDescricao("");
     setOrientacoes("");
     setTipoPunicao("");
@@ -257,10 +247,10 @@ export function MensagensPrivadasPage() {
     toast.info("Campos limpos com sucesso.");
   };
 
-  // Geradores de BBCode fieis aos modelos originais
+  // Geradores de BBCode fieis aos modelos oficiais da RCC
   const generatedBBCode = useMemo(() => {
     const dateStr = data.trim() || getTodayFormatted();
-    const userStr = username.trim() || "{USERNAME}";
+    const userStr = "{USERNAME}";
 
     if (activeTab === "convocacao") {
       const linkStr = provas.trim() || "INSERIR LINK";
@@ -338,7 +328,7 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
 
 [color=#1e2a4d]➥[/color] Caso necessário, lembre-se de reler o script de formação referente ao seu cargo, de modo a lembrar-se de eventuais detalhes e procedimentos a serem realizados.[/justify][/td][/tr][/table][/center][/td][/tr][/table][/center][/font]
 [font=Poppins][size=12][color=#f8f8ff][b]Reservam-se os direitos à Companhia dos Instrutores[/b][/color][/size][/font][/td][/tr][/table][/center]`;
-  }, [activeTab, data, provas, username, descricao, orientacoes, tipoPunicao, crime, secao, descOrientacao, oriOrientacao]);
+  }, [activeTab, data, provas, descricao, orientacoes, tipoPunicao, crime, secao, descOrientacao, oriOrientacao]);
 
   const handleCopy = useCallback(() => {
     if (!navigator.clipboard) {
@@ -390,7 +380,7 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
         </div>
       </div>
 
-      {/* Navegação por Abas Limpas (Padrão idêntico a Relatório de Avaliações) */}
+      {/* Navegação por Abas Limpas */}
       <div className="flex items-center gap-2 border-b border-border pb-2">
         <button
           type="button"
@@ -432,53 +422,6 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
         </button>
       </div>
 
-      {/* Cards de Métricas Rápidas (Padrão Visual SSI) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground">Modelo Selecionado</p>
-            {activeTab === "convocacao" && <Send className="h-4 w-4 text-primary" />}
-            {activeTab === "punicao" && <ShieldAlert className="h-4 w-4 text-orange-500" />}
-            {activeTab === "orientacao" && <FileText className="h-4 w-4 text-blue-500" />}
-          </div>
-          <h3 className="text-base sm:text-lg font-bold text-foreground mt-2 truncate">
-            {activeTab === "convocacao" && "Convocação"}
-            {activeTab === "punicao" && "Punição (CPI)"}
-            {activeTab === "orientacao" && "Orientação"}
-          </h3>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground">Destinatário</p>
-            <User className="h-4 w-4 text-primary" />
-          </div>
-          <h3 className="text-base sm:text-lg font-bold text-primary mt-2 truncate font-mono">
-            {username || "{USERNAME}"}
-          </h3>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground">Data do Fato</p>
-            <Calendar className="h-4 w-4 text-primary" />
-          </div>
-          <h3 className="text-base sm:text-lg font-bold text-foreground mt-2 truncate font-mono">
-            {data || getTodayFormatted()}
-          </h3>
-        </div>
-
-        <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground">Tamanho do Código</p>
-            <Code2 className="h-4 w-4 text-emerald-500" />
-          </div>
-          <h3 className="text-base sm:text-lg font-bold text-foreground mt-2 truncate font-mono">
-            {generatedBBCode.length} <span className="text-xs font-normal text-muted-foreground">chars</span>
-          </h3>
-        </div>
-      </div>
-
       {/* Card Principal do Formulário */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
         {/* Cabeçalho do Card */}
@@ -502,121 +445,76 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
               </p>
             </div>
           </div>
-
-          <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-secondary border border-border text-muted-foreground w-fit">
-            Fórum RCC • Companhia dos Instrutores
-          </span>
         </div>
 
         {/* Corpo do Formulário */}
         <div className="p-4 sm:p-6 space-y-5">
-          {/* Linha 1: Destinatário e Data */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Militar Notificado */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5 text-primary" />
-                  <span>Militar Notificado (Nickname):</span>
-                </label>
-                {username !== "{USERNAME}" && (
-                  <button
-                    type="button"
-                    onClick={() => setUsername("{USERNAME}")}
-                    className="text-[11px] text-primary hover:underline cursor-pointer"
-                  >
-                    Restaurar {`{USERNAME}`}
-                  </button>
-                )}
-              </div>
+          {/* Data do Fato */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-primary" />
+              <span>Data (DD MMM AAAA):</span>
+            </label>
+            <div className="flex gap-2">
               <input
                 type="text"
-                list="pm-members-list"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="{USERNAME} ou digite o nick do policial"
-                className="w-full bg-background border border-border rounded-md px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm font-mono"
+                value={data}
+                onChange={(e) => setData(e.target.value)}
+                placeholder="Ex: 23 Set 2026"
+                className="flex-1 bg-background border border-border rounded-md px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm font-mono"
               />
-              <datalist id="pm-members-list">
-                <option value="{USERNAME}">Variável Padrão ({`{USERNAME}`})</option>
-                {members.map((m) => (
-                  <option key={m.id} value={m.nick}>
-                    {m.nick} - {m.role}
-                  </option>
-                ))}
-              </datalist>
-              <p className="text-[11px] text-muted-foreground">
-                Mantenha <code className="text-primary font-mono">{`{USERNAME}`}</code> para o fórum preencher automaticamente ou insira o nick exato.
-              </p>
-            </div>
 
-            {/* Data do Fato */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-primary" />
-                <span>Data do Fato (DD MMM AAAA):</span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={data}
-                  onChange={(e) => setData(e.target.value)}
-                  placeholder="Ex: 23 Set 2026"
-                  className="flex-1 bg-background border border-border rounded-md px-3.5 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors shadow-sm font-mono"
-                />
-
-                {/* Popover com Calendário */}
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <PopoverTrigger asChild>
+              {/* Popover com Calendário */}
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="px-3 py-2 bg-background hover:bg-secondary/50 border border-border rounded-md text-sm font-medium text-foreground flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                    title="Abrir calendário para escolher data"
+                  >
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <span className="hidden sm:inline">Calendário</span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-3 border-border bg-card shadow-2xl rounded-xl" align="end">
+                  <CalendarPicker
+                    mode="single"
+                    selected={parseDateFromInput(data)}
+                    onSelect={handleDateSelect}
+                    locale={ptBR}
+                    initialFocus
+                    className="rounded-lg bg-transparent text-foreground"
+                  />
+                  <div className="pt-2 mt-2 border-t border-border flex items-center justify-between gap-2">
                     <button
                       type="button"
-                      className="px-3 py-2 bg-background hover:bg-secondary/50 border border-border rounded-md text-sm font-medium text-foreground flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
-                      title="Abrir calendário para escolher data"
+                      onClick={() => {
+                        handleSetToday();
+                        setIsCalendarOpen(false);
+                      }}
+                      className="text-xs font-medium text-primary hover:underline px-2 py-1 rounded hover:bg-primary/10 transition-colors cursor-pointer"
                     >
-                      <Calendar className="h-4 w-4 text-primary" />
-                      <span className="hidden sm:inline">Calendário</span>
+                      Definir Hoje ({getTodayFormatted()})
                     </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-3 border-border bg-card shadow-2xl rounded-xl" align="end">
-                    <CalendarPicker
-                      mode="single"
-                      selected={parseDateFromInput(data)}
-                      onSelect={handleDateSelect}
-                      locale={ptBR}
-                      initialFocus
-                      className="rounded-lg bg-transparent text-foreground"
-                    />
-                    <div className="pt-2 mt-2 border-t border-border flex items-center justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleSetToday();
-                          setIsCalendarOpen(false);
-                        }}
-                        className="text-xs font-medium text-primary hover:underline px-2 py-1 rounded hover:bg-primary/10 transition-colors cursor-pointer"
-                      >
-                        Definir Hoje ({getTodayFormatted()})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setIsCalendarOpen(false)}
-                        className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-secondary transition-colors cursor-pointer"
-                      >
-                        Fechar
-                      </button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                    <button
+                      type="button"
+                      onClick={() => setIsCalendarOpen(false)}
+                      className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-secondary transition-colors cursor-pointer"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </PopoverContent>
+              </Popover>
 
-                <button
-                  type="button"
-                  onClick={handleSetToday}
-                  className="px-3 py-2 bg-background hover:bg-secondary/50 border border-border rounded-md text-sm font-medium text-muted-foreground hover:text-foreground shadow-sm transition-colors cursor-pointer"
-                  title="Preencher rapidamente com a data de hoje"
-                >
-                  Hoje
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleSetToday}
+                className="px-3 py-2 bg-background hover:bg-secondary/50 border border-border rounded-md text-sm font-medium text-muted-foreground hover:text-foreground shadow-sm transition-colors cursor-pointer"
+                title="Preencher rapidamente com a data de hoje"
+              >
+                Hoje
+              </button>
             </div>
           </div>
 
@@ -624,7 +522,7 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Provas da Infração (Link de imagem ou print):
+                Provas da Infração (Link):
               </label>
               {provas.startsWith("http") && (
                 <a
@@ -918,7 +816,7 @@ Por meio desta Mensagem Privada, informa-se que você está sendo orientado em r
 
                   {/* Greeting */}
                   <p className="text-sm text-slate-900 font-semibold mb-3">
-                    Saudações, <span className="text-[#1e2a4d] font-bold">{activeTab === "orientacao" ? "instrutor " : ""}{username || "{USERNAME}"}</span>!
+                    Saudações, <span className="text-[#1e2a4d] font-bold">{activeTab === "orientacao" ? "instrutor " : ""}{"{USERNAME}"}</span>!
                   </p>
 
                   {/* Intro paragraph */}
