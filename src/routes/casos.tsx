@@ -313,8 +313,11 @@ function CasosPage() {
     <div className="flex flex-col gap-6 w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Gestão de Casos</h1>
-          <p className="text-muted-foreground mt-1">Abertura e resolução de infrações da equipe.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-2.5">
+            <AlertTriangle className="h-8 w-8 text-primary" />
+            Gestão de Casos
+          </h1>
+          <p className="text-muted-foreground mt-1">Abertura e resolução de casos.</p>
         </div>
         <button 
           onClick={() => setIsCreateOpen(true)}
