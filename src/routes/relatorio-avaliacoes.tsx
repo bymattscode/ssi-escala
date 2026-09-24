@@ -742,7 +742,7 @@ function RelatorioAvaliacoesPage() {
             Relatório de Avaliações
           </h1>
           <p className="text-muted-foreground mt-1">
-            Controle de contas fakes e registro de avaliações de instrução da equipe.
+            Controle de contas fakes e registro de avaliações de CFSd.
           </p>
         </div>
 
