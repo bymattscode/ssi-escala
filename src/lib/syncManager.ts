@@ -252,6 +252,7 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
       "Data de Promoção": item.promotionDate ? formatBrasiliaDate(item.promotionDate) : "-",
       "Início da Licença": item.leaveStartDate ? formatBrasiliaDate(item.leaveStartDate) : "-",
       "Fim da Licença": item.leaveEndDate ? formatBrasiliaDate(item.leaveEndDate) : "-",
+      "URL do Avatar": item.avatarUrl || "-",
       "Grupo": item.group || "SSI",
       "Permissões": Array.isArray(item.permissions) ? item.permissions.join(", ") : (item.permissions || "Gestão de Casos, Registro de Punições"),
       "Código de Acesso": item.accessCode || "-"
@@ -959,6 +960,9 @@ export const fetchAllFromRemote = async (): Promise<boolean> => {
 };
 
 export const backupToRemote = async (): Promise<boolean> => {
+  // 1. Sincroniza todas as abas (Membros, Escalas, Casos, etc.) diretamente com a planilha
+  const syncRes = await syncAll({ silent: true });
+
   const members = await getMembers();
   const schedules = await getSchedules();
   const cases = await getCases();
@@ -979,11 +983,11 @@ export const backupToRemote = async (): Promise<boolean> => {
   };
   
   const response = await fetchGoogleSheets(payload);
-  if (response.success) {
-    await addSyncLog({ type: "success", message: "Backup completo estruturado com sucesso na planilha 'logs'." });
+  if (response.success || syncRes.success) {
+    await addSyncLog({ type: "success", message: "Backup completo e sincronização de todas as abas concluídos com sucesso na planilha." });
     return true;
   } else {
-    await addSyncLog({ type: "error", message: `Erro ao fazer backup: ${response.error}` });
+    await addSyncLog({ type: "error", message: `Erro ao fazer backup: ${response.error || syncRes.error}` });
     return false;
   }
 };

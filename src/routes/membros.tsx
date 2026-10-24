@@ -4,7 +4,7 @@ import { Search, UserPlus, Filter, History, Edit, PowerOff, Power, Crown, Star, 
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getMembers, updateMemberStatus, updateMember, deleteMember, addMember, addAuditLog } from "../lib/store";
-import { fetchAllFromRemote } from "../lib/syncManager";
+import { fetchAllFromRemote, syncModule } from "../lib/syncManager";
 import { toast } from "sonner";
 import { EmptyState, SkeletonCard, ConfirmModal, FormField } from "../components/ui/ux";
 import { formatBrasiliaDate } from "../lib/dateUtils";
@@ -251,6 +251,7 @@ function MembrosPage() {
   const handleReactivate = async (m: Member) => {
     if (!isAdmin) return;
     await updateMember(m.id, { status: "Ativo", leaveStartDate: undefined, leaveEndDate: undefined });
+    syncModule("membros").catch(console.error);
     await addAuditLog(currentUserId, role, "Retorno de Licença", "Membros", `O membro ${m.nick} retornou da licença.`, m.id, currentUserNick);
     toast.success("Membro reativado com sucesso!");
     fetchMembers();
@@ -302,6 +303,7 @@ function MembrosPage() {
       permissions: editPermissions,
       accessCode: editAccessCode.trim() || undefined
     });
+    syncModule("membros").catch(console.error);
     await addAuditLog(currentUserId, role, "Edição de Membro", "Membros", `Os dados de ${editMember.nick} foram atualizados.`, editMember.id, currentUserNick);
     toast.success("Membro atualizado com sucesso!");
     setEditMember(null);
@@ -336,10 +338,12 @@ function MembrosPage() {
         leaveStartDate: leaveStart,
         leaveEndDate: leaveEnd
       });
+      syncModule("membros").catch(console.error);
       await addAuditLog(currentUserId, role, "Membro em Licença", "Membros", `O membro ${deactivateMember.nick} entrou em licença de ${leaveStart} até ${leaveEnd}.`, deactivateMember.id, currentUserNick);
       toast.success("Status atualizado: Membro colocado em licença com sucesso!");
     } else {
       await deleteMember(deactivateMember.id);
+      syncModule("membros").catch(console.error);
       await addAuditLog(currentUserId, role, "Desligamento de Membro", "Membros", `O membro ${deactivateMember.nick} foi desligado do setor.`, deactivateMember.id, currentUserNick);
       toast.success("Membro desligado do setor e removido da listagem ativa.");
     }
