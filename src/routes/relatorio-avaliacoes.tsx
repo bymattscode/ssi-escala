@@ -804,54 +804,28 @@ function RelatorioAvaliacoesPage() {
       {/* ========================================================================= */}
       {activeTab === "fakes" && (
         <div className="flex flex-col gap-6 w-full animate-in fade-in duration-300">
-          {/* Métricas e Botões de Ação */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-            <div className="grid grid-cols-2 gap-4 flex-1">
-              <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-muted-foreground">Total de Fakes</p>
-                  <Shield className="h-4 w-4 text-primary" />
-                </div>
-                <h3 className="text-2xl font-bold text-foreground mt-2">{fakesMetrics.total}</h3>
+          {/* Métricas de Fakes */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground">Total de Fakes</p>
+                <Shield className="h-4 w-4 text-primary" />
               </div>
-
-              <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-muted-foreground">Minhas Fakes</p>
-                  <User className="h-4 w-4 text-primary" />
-                </div>
-                <h3 className="text-2xl font-bold text-primary mt-2">{fakesMetrics.myFakes}</h3>
-              </div>
+              <h3 className="text-2xl font-bold text-foreground mt-2">{fakesMetrics.total}</h3>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              {/* Botão de Registro Externo no CSI */}
-              <a
-                href={CSI_FORM_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 px-4 py-2.5 rounded-md font-medium text-sm transition-all w-full sm:w-auto shadow-sm"
-                title="Cadastrar fake na planilha oficial do CSI (Formulário Externo)"
-              >
-                <ExternalLink className="h-4 w-4 text-amber-400" />
-                <span>Registrar Fake no CSI</span>
-              </a>
-
-              {/* Botão para Abrir Modal de Criação de Fake no SSI */}
-              <button
-                type="button"
-                onClick={() => setIsCreateFakeOpen(true)}
-                className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2.5 rounded-md font-medium text-sm transition-all w-full sm:w-auto shadow-sm cursor-pointer"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Registrar Fake (SSI)</span>
-              </button>
+            <div className="bg-card border border-border rounded-xl p-4 flex flex-col justify-between shadow-sm">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground">Minhas Fakes</p>
+                <User className="h-4 w-4 text-primary" />
+              </div>
+              <h3 className="text-2xl font-bold text-primary mt-2">{fakesMetrics.myFakes}</h3>
             </div>
           </div>
 
           {/* Tabela de Fakes Registradas */}
-          <div className="bg-card border border-border rounded-xl shadow-sm flex flex-col overflow-hidden mt-2">
-            <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-border gap-4 bg-secondary/10">
+          <div className="bg-card border border-border rounded-xl shadow-sm flex flex-col overflow-hidden">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between p-4 border-b border-border gap-4 bg-secondary/10">
               <div>
                 <h3 className="text-base font-bold text-foreground">Histórico de Fakes Registradas</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -859,7 +833,7 @@ function RelatorioAvaliacoesPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
                 <div className="flex items-center bg-background border border-border rounded-md px-3 py-1.5 focus-within:border-primary/50 transition-colors flex-1 sm:w-64 shadow-sm">
                   <Search className="h-4 w-4 text-muted-foreground mr-2" />
                   <input
@@ -869,6 +843,30 @@ function RelatorioAvaliacoesPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="bg-transparent border-none outline-none text-sm text-foreground w-full placeholder:text-muted-foreground"
                   />
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  {/* Botão de Registro Externo no CSI */}
+                  <a
+                    href={CSI_FORM_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 px-3.5 py-1.5 rounded-md font-medium text-sm transition-all shadow-sm shrink-0"
+                    title="Cadastrar fake na planilha oficial do CSI (Formulário Externo)"
+                  >
+                    <ExternalLink className="h-4 w-4 text-amber-400" />
+                    <span>Registrar Fake no CSI</span>
+                  </a>
+
+                  {/* Botão para Abrir Modal de Criação de Fake no SSI */}
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateFakeOpen(true)}
+                    className="flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-3.5 py-1.5 rounded-md font-medium text-sm transition-all shadow-sm cursor-pointer shrink-0"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Registrar Fake (SSI)</span>
+                  </button>
                 </div>
               </div>
             </div>
