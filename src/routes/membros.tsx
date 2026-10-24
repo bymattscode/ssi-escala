@@ -127,11 +127,13 @@ function MemberCard({ member, isAdmin, onEdit, onDeactivate, onReactivate, onRev
             <span className="text-sm text-foreground font-medium">{formatCleanDate(member.promotionDate)}</span>
           </div>
         )}
-        {member.status === "Licença" && member.leaveStartDate && member.leaveEndDate && (
-          <div className="flex flex-col col-span-2 mt-1 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">
-            <span className="text-[10px] uppercase tracking-wider text-yellow-600 font-bold">Em Licença</span>
-            <span className="text-sm text-yellow-600 truncate">
-              {formatCleanDate(member.leaveStartDate)} até {formatCleanDate(member.leaveEndDate)}
+        {member.status === "Licença" && (
+          <div className="flex flex-col col-span-2 mt-1 bg-amber-500/10 p-2 rounded border border-amber-500/25">
+            <span className="text-[10px] uppercase tracking-wider text-amber-500 font-bold">Em Licença</span>
+            <span className="text-sm text-amber-400 font-medium truncate">
+              {member.leaveStartDate && member.leaveEndDate 
+                ? `${formatCleanDate(member.leaveStartDate)} até ${formatCleanDate(member.leaveEndDate)}`
+                : "Período ativo no sistema"}
             </span>
           </div>
         )}
@@ -204,6 +206,9 @@ function MembrosPage() {
 
   const [editMember, setEditMember] = useState<Member | null>(null);
   const [editRole, setEditRole] = useState<Role>("Fiscalizador");
+  const [editStatus, setEditStatus] = useState<"Ativo" | "Inativo" | "Licença">("Ativo");
+  const [editLeaveStart, setEditLeaveStart] = useState("");
+  const [editLeaveEnd, setEditLeaveEnd] = useState("");
   const [editEntryDate, setEditEntryDate] = useState("");
   const [editPromotionDate, setEditPromotionDate] = useState("");
   const [editGroup, setEditGroup] = useState<UserGroup>("SSI");
@@ -226,6 +231,9 @@ function MembrosPage() {
   const handleEdit = (m: Member) => {
     setEditMember(m);
     setEditRole(m.role);
+    setEditStatus(m.status || "Ativo");
+    setEditLeaveStart(m.leaveStartDate || "");
+    setEditLeaveEnd(m.leaveEndDate || "");
     setEditEntryDate(m.entryDate || "");
     setEditPromotionDate(m.promotionDate || "");
     setEditGroup(m.group || "SSI");
@@ -242,7 +250,7 @@ function MembrosPage() {
 
   const handleReactivate = async (m: Member) => {
     if (!isAdmin) return;
-    await updateMemberStatus(m.id, "Ativo");
+    await updateMember(m.id, { status: "Ativo", leaveStartDate: undefined, leaveEndDate: undefined });
     await addAuditLog(currentUserId, role, "Retorno de Licença", "Membros", `O membro ${m.nick} retornou da licença.`, m.id, currentUserNick);
     toast.success("Membro reativado com sucesso!");
     fetchMembers();
@@ -271,9 +279,23 @@ function MembrosPage() {
         return;
       }
     }
+
+    if (editStatus === "Licença") {
+      if (!editLeaveStart || !editLeaveEnd) {
+        toast.error("Obrigatório: Preencha a data de início e fim da licença.");
+        return;
+      }
+      if (new Date(editLeaveStart) > new Date(editLeaveEnd)) {
+        toast.error("Datas inválidas: A data de término da licença não pode ser anterior à data de início.");
+        return;
+      }
+    }
     
     await updateMember(editMember.id, { 
       role: editRole,
+      status: editStatus,
+      leaveStartDate: editStatus === "Licença" ? editLeaveStart : undefined,
+      leaveEndDate: editStatus === "Licença" ? editLeaveEnd : undefined,
       entryDate: editEntryDate || editMember.entryDate,
       promotionDate: editPromotionDate || undefined,
       group: editGroup,
@@ -551,6 +573,42 @@ function MembrosPage() {
                   <option value="Convidado">Convidado (GATE, CSI...)</option>
                 </select>
               </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-foreground">Status do Membro</label>
+                <select 
+                  value={editStatus} 
+                  onChange={e => setEditStatus(e.target.value as "Ativo" | "Inativo" | "Licença")}
+                  className="bg-background border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary/50"
+                >
+                  <option value="Ativo">Ativo</option>
+                  <option value="Licença">Licença</option>
+                  <option value="Inativo">Inativo</option>
+                </select>
+              </div>
+
+              {editStatus === "Licença" && (
+                <div className="grid grid-cols-2 gap-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-md">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-amber-500">Início da Licença</label>
+                    <input 
+                      type="date"
+                      value={editLeaveStart}
+                      onChange={e => setEditLeaveStart(e.target.value)}
+                      className="bg-background border border-border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-primary/50"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-amber-500">Fim da Licença</label>
+                    <input 
+                      type="date"
+                      value={editLeaveEnd}
+                      onChange={e => setEditLeaveEnd(e.target.value)}
+                      className="bg-background border border-border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-primary/50"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-foreground">Data de Entrada</label>

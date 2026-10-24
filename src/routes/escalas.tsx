@@ -13,7 +13,7 @@ import { Schedule, Member } from "../lib/types";
 import { generateWeeklySchedule } from "../lib/scheduler";
 import { toast } from "sonner";
 import { EmptyState, SkeletonTable, ConfirmModal } from "../components/ui/ux";
-import { formatBrasiliaDateTime, getScheduleDeadlineText } from "../lib/dateUtils";
+import { formatBrasiliaDateTime, getScheduleDeadlineText, getScheduleFormattedDate } from "../lib/dateUtils";
 
 export const Route = createFileRoute("/escalas")({
   component: EscalasPage,
@@ -83,19 +83,19 @@ function EscalaTable({
   onRegisterFunction: (schedule: Schedule) => void
 }) {
   return (
-    <div className="w-full">
-      <table className="w-full text-sm text-left">
-        <thead className="text-xs text-muted-foreground uppercase bg-secondary/30 border-b border-border">
+    <div className="w-full overflow-x-auto rounded-xl border border-border shadow-sm">
+      <table className="w-full text-sm text-left border-collapse">
+        <thead className="text-xs text-muted-foreground uppercase bg-secondary/40 border-b border-border">
           <tr>
-            <th className="px-4 py-4 font-medium">Membro</th>
-            <th className="px-4 py-4 font-medium">Cargo</th>
-            <th className="px-4 py-4 font-medium">Dia Ref.</th>
-            <th className="px-4 py-4 font-medium">Prazo</th>
-            <th className="px-4 py-4 font-medium">Status</th>
-            <th className="px-4 py-4 font-medium text-right">Ações</th>
+            <th className="px-4 py-3.5 font-semibold">Membro</th>
+            <th className="px-4 py-3.5 font-semibold">Cargo</th>
+            <th className="px-4 py-3.5 font-semibold">Dia Ref. / Data</th>
+            <th className="px-4 py-3.5 font-semibold">Prazo</th>
+            <th className="px-4 py-3.5 font-semibold">Status</th>
+            <th className="px-4 py-3.5 font-semibold text-right">Ações</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-border">
           {schedules.map((schedule) => {
             const member = getMemberDetails(schedule.memberId, members);
             const roleMembers = members.filter(m => m.status === "Ativo");
@@ -139,7 +139,15 @@ function EscalaTable({
                   </div>
                 </td>
                 <td className="px-4 py-4 text-muted-foreground whitespace-nowrap">{schedule.type}</td>
-                <td className="px-4 py-4 text-foreground font-medium whitespace-nowrap">{schedule.referenceDay}</td>
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <span className="text-foreground font-semibold">{schedule.referenceDay}</span>
+                    <span className="text-xs text-primary/80 flex items-center gap-1 font-mono mt-0.5">
+                      <CalendarIcon className="h-3 w-3 shrink-0" />
+                      {getScheduleFormattedDate(schedule)}
+                    </span>
+                  </div>
+                </td>
                 <td className="px-4 py-4 text-muted-foreground whitespace-nowrap">
                   {(() => {
                     const deadlineText = schedule.deadline && !schedule.deadline.includes("Avaliadores") && !schedule.deadline.includes("Capacitadores") && !schedule.deadline.includes("feira") && schedule.deadline.includes("(")
@@ -425,15 +433,44 @@ function EscalasPage() {
     return member?.nick.toLowerCase().includes(searchQuery.toLowerCase());
   });
   
-  const fiscalizadoresSchedules = filteredSchedules.filter(s => 
+  const dayOrderMap: Record<string, number> = {
+    "Domingo": 0,
+    "Segunda": 1, "Segunda-feira": 1,
+    "Terça": 2, "Terça-feira": 2,
+    "Quarta": 3, "Quarta-feira": 3,
+    "Quinta": 4, "Quinta-feira": 4,
+    "Sexta": 5, "Sexta-feira": 5,
+    "Sábado": 6,
+    "Avaliadores": 7,
+    "Capacitadores": 8
+  };
+
+  const sortSchedulesByDate = (list: Schedule[]) => {
+    return [...list].sort((a, b) => {
+      if (a.scheduleDate && b.scheduleDate && a.scheduleDate !== b.scheduleDate) {
+        return a.scheduleDate.localeCompare(b.scheduleDate);
+      }
+      const orderA = dayOrderMap[String(a.referenceDay || "").trim()] ?? 99;
+      const orderB = dayOrderMap[String(b.referenceDay || "").trim()] ?? 99;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      if (a.deadlineDate && b.deadlineDate && a.deadlineDate !== b.deadlineDate) {
+        return a.deadlineDate.localeCompare(b.deadlineDate);
+      }
+      return 0;
+    });
+  };
+
+  const fiscalizadoresSchedules = sortSchedulesByDate(filteredSchedules.filter(s => 
     s.type === "Fiscalizador" || 
     s.type === "Fiscalização dos Avaliadores" || 
     s.type === "Fiscalização dos Capacitadores" || 
     s.type === "Fiscalização de Avaliadores" || 
     s.type === "Fiscalização de Capacitadores" || 
     (!s.type && s.id.includes("FIS"))
-  );
-  const diretoresSchedules = filteredSchedules.filter(s => s.type === "Diretor");
+  ));
+  const diretoresSchedules = sortSchedulesByDate(filteredSchedules.filter(s => s.type === "Diretor"));
   
   const pendentes = filteredSchedules.filter(s => s.status === "Pendente").length;
   const concluidos = filteredSchedules.filter(s => s.status === "Concluído").length;

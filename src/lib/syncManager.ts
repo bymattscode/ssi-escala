@@ -60,17 +60,20 @@ const headerMaps = {
 };
 
 const cleanTimestampFromDate = (val: any, fieldName: string): any => {
-  if (val === undefined || val === null) return val;
-  const lowerField = fieldName.toLowerCase();
-  const isDateField = lowerField.includes("date") || lowerField.includes("data") || lowerField === "date";
-  
-  if (typeof val === "string") {
-    if ((isDateField || val.endsWith("Z") || val.includes("T00:") || val.includes("T03:")) && val.includes("T")) {
-      return val.split("T")[0];
-    }
-  } else if (val instanceof Date || (typeof val === "object" && typeof val.toISOString === "function")) {
+  if (val === undefined || val === null || val === "" || val === "-") return undefined;
+  if (val instanceof Date || (typeof val === "object" && typeof val.toISOString === "function")) {
     return val.toISOString().split("T")[0];
   }
+  const str = String(val).trim();
+  if (str.includes("T")) {
+    return str.split("T")[0];
+  }
+  // Se for DD/MM/YYYY, converter para YYYY-MM-DD para uso em inputs e compatibilidade
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
+    const parts = str.split(" ")[0].split("/");
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return str;
 };
 
 const formatChecklist = (items?: string[], customItem?: string): string => {
@@ -132,6 +135,9 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
     const sortedSchedules = [...listToTranslate].sort((a, b) => {
       if (a.week !== b.week) {
         return String(b.week || "").localeCompare(String(a.week || ""));
+      }
+      if (a.scheduleDate && b.scheduleDate && a.scheduleDate !== b.scheduleDate) {
+        return a.scheduleDate.localeCompare(b.scheduleDate);
       }
       const orderA = dayOrderMap[String(a.referenceDay || "").trim()] ?? 99;
       const orderB = dayOrderMap[String(b.referenceDay || "").trim()] ?? 99;
@@ -244,6 +250,8 @@ const translateToPortuguese = (data: any[], module: keyof typeof headerMaps) => 
       "Status": item.status || "Ativo",
       "Data de Entrada": item.entryDate ? formatBrasiliaDate(item.entryDate) : "-",
       "Data de Promoção": item.promotionDate ? formatBrasiliaDate(item.promotionDate) : "-",
+      "Início da Licença": item.leaveStartDate ? formatBrasiliaDate(item.leaveStartDate) : "-",
+      "Fim da Licença": item.leaveEndDate ? formatBrasiliaDate(item.leaveEndDate) : "-",
       "Grupo": item.group || "SSI",
       "Permissões": Array.isArray(item.permissions) ? item.permissions.join(", ") : (item.permissions || "Gestão de Casos, Registro de Punições"),
       "Código de Acesso": item.accessCode || "-"
@@ -461,13 +469,31 @@ const translateToEnglish = (data: any[], module: keyof typeof headerMaps) => {
           perms = perms.split(",").map((s: string) => s.trim()).filter(Boolean);
         }
       }
+
+      const rawStatus = String(item["Status"] || "").trim();
+      let status: "Ativo" | "Inativo" | "Licença" = "Ativo";
+      if (rawStatus.toLowerCase().includes("licen")) {
+        status = "Licença";
+      } else if (rawStatus.toLowerCase() === "inativo") {
+        status = "Inativo";
+      }
+
+      const leaveStart = cleanTimestampFromDate(item["Início da Licença"] || item["leaveStartDate"], "leaveStartDate");
+      const leaveEnd = cleanTimestampFromDate(item["Fim da Licença"] || item["leaveEndDate"], "leaveEndDate");
+
+      if (leaveStart && leaveEnd && status !== "Inativo") {
+        status = "Licença";
+      }
+
       return {
         id: item["ID"] || `SSI-MEM-${Math.random().toString(36).substring(2,8).toUpperCase()}`,
         nick: item["Nick"] || "Desconhecido",
         role: item["Cargo"] || "Fiscalizador",
-        status: item["Status"] || "Ativo",
+        status: status,
         entryDate: cleanTimestampFromDate(item["Data de Entrada"], "entryDate") || "-",
         promotionDate: cleanTimestampFromDate(item["Data de Promoção"], "promotionDate") || "-",
+        leaveStartDate: leaveStart || undefined,
+        leaveEndDate: leaveEnd || undefined,
         group: item["Grupo"] || "SSI",
         permissions: perms || ["Gestão de Casos", "Registro de Punições"],
         accessCode: item["Código de Acesso"] && item["Código de Acesso"] !== "-" ? item["Código de Acesso"] : undefined,

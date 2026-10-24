@@ -262,3 +262,50 @@ export function calculateScheduleDeadlineDate(referenceDay: string, scheduleDate
   const deadlineDay = new Date(sunday.getTime() + (offset + 2) * 24 * 3600 * 1000);
   return new Date(Date.UTC(deadlineDay.getUTCFullYear(), deadlineDay.getUTCMonth(), deadlineDay.getUTCDate(), 23 + 3, 59, 59, 999)).toISOString();
 }
+
+/**
+ * Retorna a data formatada (DD/MM/YYYY) para a escala, calculando via scheduleDate,
+ * deadlineDate ou semana + dia de referência se necessário.
+ */
+export function getScheduleFormattedDate(schedule?: { scheduleDate?: string; deadlineDate?: string; week?: string; referenceDay?: string }): string {
+  if (!schedule) return "-";
+  if (schedule.scheduleDate) {
+    return formatBrasiliaDate(schedule.scheduleDate);
+  }
+  if (schedule.deadlineDate) {
+    const d = new Date(schedule.deadlineDate);
+    if (!isNaN(d.getTime())) {
+      d.setDate(d.getDate() - 2);
+      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+    }
+  }
+  if (schedule.week && schedule.week.includes("-W")) {
+    const [yrStr, wkStr] = schedule.week.split("-W");
+    const yr = parseInt(yrStr, 10);
+    const wk = parseInt(wkStr, 10);
+    if (!isNaN(yr) && !isNaN(wk)) {
+      const jan4 = new Date(yr, 0, 4);
+      const jan4DayOfWeek = (jan4.getDay() + 6) % 7;
+      const firstMonday = new Date(yr, 0, 4 - jan4DayOfWeek);
+      const targetWeekStart = new Date(firstMonday.getTime() + (wk - 1) * 7 * 24 * 60 * 60 * 1000);
+      
+      const offsetMap: Record<string, number> = {
+        "Domingo": -1,
+        "Segunda": 0, "Segunda-feira": 0,
+        "Terça": 1, "Terça-feira": 1,
+        "Quarta": 2, "Quarta-feira": 2,
+        "Quinta": 3, "Quinta-feira": 3,
+        "Sexta": 4, "Sexta-feira": 4,
+        "Sábado": 5,
+        "Avaliadores": 1,
+        "Capacitadores": 1
+      };
+      const offset = offsetMap[String(schedule.referenceDay || "").trim()] ?? 0;
+      const calcDate = new Date(targetWeekStart.getTime() + offset * 24 * 60 * 60 * 1000);
+      if (!isNaN(calcDate.getTime())) {
+        return `${pad(calcDate.getDate())}/${pad(calcDate.getMonth() + 1)}/${calcDate.getFullYear()}`;
+      }
+    }
+  }
+  return "-";
+}
