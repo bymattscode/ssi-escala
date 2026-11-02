@@ -89,6 +89,7 @@ function CasosPage() {
   const { user, role, userName } = useAuth();
   const isFiscalizador = role === "Fiscalizador";
   const isPresidencia = role === "Ministério" || role === "Presidente" || role === "Vice-Presidente";
+  const canResolveCase = role === "Diretor" || role === "Presidente" || role === "Vice-Presidente" || role === "Ministério";
   
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -209,6 +210,10 @@ function CasosPage() {
 
   const handleResolve = async () => {
     if (!resolveCase) return;
+    if (!canResolveCase) {
+      toast.error("Permissão negada. Apenas Diretores e Presidência podem julgar ou resolver casos.");
+      return;
+    }
     setShowConfirmResolve(false);
     
     const resolverIdValue = user?.id || userName || "Desconhecido";
@@ -291,6 +296,10 @@ function CasosPage() {
 
   const handleDeleteCase = async () => {
     if (!caseToDelete) return;
+    if (!isPresidencia) {
+      toast.error("Permissão negada. Apenas a Presidência pode excluir casos.");
+      return;
+    }
     const actorId = user?.id || userName || "Desconhecido";
     const actorNick = userName || user?.nick || "Desconhecido";
     await deleteCase(caseToDelete.id);
@@ -400,7 +409,7 @@ function CasosPage() {
                        >
                          <FileText className="h-4 w-4" />
                        </button>
-                        {(c.status === "Aberto" && !isFiscalizador) && (
+                        {(c.status === "Aberto" && canResolveCase) && (
                           <button 
                             onClick={() => setResolveCase(c)}
                             className="p-1.5 text-muted-foreground hover:text-green-500 bg-background rounded-md border border-border hover:border-green-500/30 transition-colors" 

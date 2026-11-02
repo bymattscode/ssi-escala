@@ -5,12 +5,15 @@ import { toast } from "sonner";
 import { getConfig, updateConfig, addSyncLog, SyncLog, getPendingCount, wipeAllData } from "../lib/store";
 import { syncModule, syncAll, fetchAllFromRemote, backupToRemote } from "../lib/syncManager";
 import { ConfirmModal, EmptyState } from "../components/ui/ux";
+import { useAuth } from "../contexts/AuthContext";
 
 export const Route = createFileRoute("/configuracoes")({
   component: ConfiguracoesPage,
 });
 
 function ConfiguracoesPage() {
+  const { user, role } = useAuth();
+  const canManageConfig = role === "Ministério" || role === "Presidente" || role === "Vice-Presidente" || (user?.permissions as string[])?.includes("all") || user?.permissions?.includes("Configurações");
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncingModule, setSyncingModule] = useState<string | null>(null);
   const [config, setConfig] = useState({
@@ -117,6 +120,10 @@ function ConfiguracoesPage() {
   };
 
   const handleConnectGoogle = async () => {
+    if (!canManageConfig) {
+      toast.error("Permissão negada. Apenas a Presidência pode alterar parâmetros de conexão.");
+      return;
+    }
     if (!sheetUrlInput || !sheetUrlInput.trim()) {
       toast.error("Obrigatório: Insira a URL do Web App do Google Apps Script.");
       return;
@@ -135,6 +142,10 @@ function ConfiguracoesPage() {
   };
 
   const handleDisconnectGoogle = async () => {
+    if (!canManageConfig) {
+      toast.error("Permissão negada. Apenas a Presidência pode desconectar a planilha.");
+      return;
+    }
     await updateConfig({ googleConnected: false, sheetUrl: "" });
     await addSyncLog({ type: "warning", message: "Conexão com Google Sheets removida." });
     await loadConfig();
@@ -143,6 +154,10 @@ function ConfiguracoesPage() {
   };
 
   const handleWipeData = () => {
+    if (!canManageConfig) {
+      toast.error("Permissão negada. Apenas a Presidência pode redefinir o sistema.");
+      return;
+    }
     wipeAllData();
     setShowConfirmWipe(false);
   };

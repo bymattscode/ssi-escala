@@ -264,7 +264,8 @@ function MembrosPage() {
 
   const confirmRevokeAccess = async () => {
     if (!revokeTarget || !isAdmin) return;
-    await updateMember(revokeTarget.id, { accessCode: "" });
+    await updateMember(revokeTarget.id, { accessCode: "-" });
+    syncModule("membros").catch(console.error);
     await addAuditLog(currentUserId, role, "Revogação de Acesso", "Membros", `O código de acesso de ${revokeTarget.nick} foi revogado.`, revokeTarget.id, currentUserNick);
     toast.success("Código de acesso revogado com sucesso!");
     setRevokeTarget(null);

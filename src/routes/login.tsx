@@ -201,14 +201,13 @@ function Login() {
 
       const cleanMotto = (habboData && typeof habboData.motto === 'string' ? habboData.motto : "").trim().toUpperCase();
       const cleanExpected = mottoCode.trim().toUpperCase();
-      const isMottoValid = cleanMotto === cleanExpected || cleanMotto.includes("SSI") || cleanMotto.includes(cleanExpected);
+      const isMottoValid = Boolean(cleanExpected && cleanMotto && (cleanMotto === cleanExpected || cleanMotto.includes(cleanExpected)));
 
       const members = await getMembers();
       const foundUser = resolveUser(members, nick);
-      const isAuthorizedMember = !!foundUser || Object.keys(CORE_ADMINS).includes(nick.trim().toLowerCase());
 
-      // GARANTIA DEFINITIVA: Se o leitor do Habbo reconheceu a missão OU se o usuário é um membro ATIVO cadastrado na planilha, o acesso é autenticado!
-      if (isMottoValid || isAuthorizedMember) {
+      // Validação estrita: O usuário deve ser autorizado E comprovar a posse da conta alterando a missão no Habbo
+      if (isMottoValid && foundUser) {
         const newCode = `SSI-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         setGeneratedAccessCode(newCode);
         
@@ -227,7 +226,7 @@ function Login() {
         toast.success(`Identidade autenticada e código exclusivo gerado para ${nick}!`, { duration: 3000 });
         setStep("show_new_code");
       } else {
-        toast.error("A missão não foi reconhecida ou usuário inativo.");
+        toast.error(`A missão do Habbo não corresponde ao código gerado (${mottoCode}). Altere sua missão no jogo e tente novamente.`);
       }
     } catch (error: any) {
       console.error("Erro no fluxo de validação:", error);

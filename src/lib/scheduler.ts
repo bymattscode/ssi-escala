@@ -2,7 +2,7 @@ import { addDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Member, Schedule, Role } from "./types";
 import { addSchedules, deleteSchedulesForWeekAndType } from "./store";
-import { getScheduleDeadlineText } from "./dateUtils";
+import { getScheduleDeadlineText, calculateScheduleDeadlineDate } from "./dateUtils";
 
 const DAYS_OF_WEEK = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
@@ -29,9 +29,8 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
 
   for (let i = 0; i < 7; i++) {
     const currentDay = addDays(startDate, i);
-    const deadlineDay = addDays(currentDay, 2);
-    // Definir para 23:59:59
-    deadlineDay.setHours(23, 59, 59, 999);
+    const scheduleDateStr = format(currentDay, "yyyy-MM-dd");
+    const deadlineIso = calculateScheduleDeadlineDate(DAYS_OF_WEEK[i], scheduleDateStr, weekId);
     
     // Escolhe o membro
     const member = activeMembers[memberIndex % activeMembers.length];
@@ -44,9 +43,9 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
       week: weekId,
       memberId: member.id,
       referenceDay: DAYS_OF_WEEK[i],
-      scheduleDate: format(currentDay, "yyyy-MM-dd"),
+      scheduleDate: scheduleDateStr,
       deadline: deadlineFormatted,
-      deadlineDate: deadlineDay.toISOString(),
+      deadlineDate: deadlineIso,
       status: "Pendente",
       responsibleId,
       type: type as any
@@ -56,8 +55,9 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
   }
 
   if (type === "Fiscalizador") {
-    const tuesday = addDays(startDate, 2);
-    tuesday.setHours(23, 59, 59, 999);
+    const startDateStr = format(startDate, "yyyy-MM-dd");
+    const avalDeadlineIso = calculateScheduleDeadlineDate("Avaliadores", startDateStr, weekId);
+    const capDeadlineIso = calculateScheduleDeadlineDate("Capacitadores", startDateStr, weekId);
 
     const memberAval = activeMembers[memberIndex % activeMembers.length];
     memberIndex++;
@@ -69,9 +69,9 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
       week: weekId,
       memberId: memberAval.id,
       referenceDay: "Avaliadores",
-      scheduleDate: format(startDate, "yyyy-MM-dd"),
+      scheduleDate: startDateStr,
       deadline: "Terça (23:59)",
-      deadlineDate: tuesday.toISOString(),
+      deadlineDate: avalDeadlineIso,
       status: "Pendente",
       responsibleId,
       type: "Fiscalização dos Avaliadores" as any
@@ -82,9 +82,9 @@ export const generateWeeklySchedule = async (startDate: Date, members: Member[],
       week: weekId,
       memberId: memberCap.id,
       referenceDay: "Capacitadores",
-      scheduleDate: format(startDate, "yyyy-MM-dd"),
+      scheduleDate: startDateStr,
       deadline: "Terça (23:59)",
-      deadlineDate: tuesday.toISOString(),
+      deadlineDate: capDeadlineIso,
       status: "Pendente",
       responsibleId,
       type: "Fiscalização dos Capacitadores" as any

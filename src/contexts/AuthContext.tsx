@@ -132,8 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const setRole = (newRole: Role) => {
-    if (user) {
-      // Permitir que presidentes troquem de cargo para teste (temporário)
+    if (user && (user.role === "Presidente" || user.role === "Vice-Presidente" || user.role === "Ministério")) {
       setUser({ ...user, role: newRole });
     }
   };

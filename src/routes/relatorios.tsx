@@ -300,7 +300,7 @@ function RelatoriosPage() {
                             </div>
                             <div className="flex flex-col min-w-0">
                               <span className="font-semibold text-foreground text-sm leading-tight">{String(displayName)}</span>
-                              {log.userRole && log.userRole !== "-" && displayName !== "Sistema" && (
+                              {log.userRole && (log.userRole as string) !== "-" && displayName !== "Sistema" && (
                                 <span className="text-[10.5px] text-muted-foreground/80 leading-tight">{log.userRole}</span>
                               )}
                             </div>

@@ -68,6 +68,8 @@ function EscalaTable({
   members, 
   onStatusUpdate,
   isAdmin,
+  currentUserId,
+  currentUserNick,
   onMemberChange,
   onJustify,
   onView,
@@ -77,6 +79,8 @@ function EscalaTable({
   members: Member[], 
   onStatusUpdate: (id: string, currentStatus: string) => void,
   isAdmin: boolean,
+  currentUserId: string,
+  currentUserNick: string,
   onMemberChange: (scheduleId: string, newMemberId: string) => void,
   onJustify: (schedule: Schedule) => void,
   onView: (schedule: Schedule) => void,
@@ -99,6 +103,11 @@ function EscalaTable({
           {schedules.map((schedule) => {
             const member = getMemberDetails(schedule.memberId, members);
             const roleMembers = members.filter(m => m.status === "Ativo");
+            const isOwner = Boolean(
+              (member && (member.id === currentUserId || member.nick.toLowerCase() === currentUserNick.toLowerCase())) ||
+              (schedule.memberId && schedule.memberId === currentUserId)
+            );
+            const canAct = isAdmin || isOwner;
             return (
               <tr key={schedule.id} className="border-b border-border hover:bg-secondary/20 transition-colors">
                 <td className="px-4 py-4 font-medium text-foreground">
@@ -168,7 +177,7 @@ function EscalaTable({
                 <td className="px-4 py-4">
                   <div className="flex items-center justify-end gap-2">
                   
-                  {schedule.status === "Atrasado" && (
+                  {schedule.status === "Atrasado" && canAct && (
                     <button 
                       onClick={() => onJustify(schedule)}
                       className="text-xs bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 px-2 py-1 rounded-md border border-yellow-500/20 transition-colors font-medium"
@@ -178,7 +187,7 @@ function EscalaTable({
                   )}
                   
                   
-                  {schedule.status !== "Não Justificado" && schedule.status !== "Concluído" && schedule.status !== "Justificado" && (
+                  {schedule.status !== "Não Justificado" && schedule.status !== "Concluído" && schedule.status !== "Justificado" && canAct && (
                     <button 
                       onClick={() => onRegisterFunction(schedule)}
                       className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-2 py-1 rounded-md border border-primary/20 transition-colors font-medium flex items-center gap-1 ml-2 whitespace-nowrap"
@@ -579,6 +588,8 @@ function EscalasPage() {
                members={members} 
                onStatusUpdate={handleStatusUpdate} 
                isAdmin={isAdmin} 
+               currentUserId={currentUserId}
+               currentUserNick={currentUserNick}
                onMemberChange={handleMemberChange} 
                onJustify={setJustifyingSchedule}
                onView={setViewSchedule}
@@ -594,6 +605,8 @@ function EscalasPage() {
                members={members} 
                onStatusUpdate={handleStatusUpdate} 
                isAdmin={isAdmin} 
+               currentUserId={currentUserId}
+               currentUserNick={currentUserNick}
                onMemberChange={handleMemberChange} 
                onJustify={setJustifyingSchedule}
                onView={setViewSchedule}

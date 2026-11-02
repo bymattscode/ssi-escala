@@ -1,4 +1,4 @@
-import { Member, Schedule, Case, Warning, AuditLog, AuditAction, AuditModule, Role, AuthorizedUser, FakeAccount, Fiscalizacao } from './types';
+import { Member, Schedule, Case, Warning, AuditLog, AuditAction, AuditModule, Role, AuthorizedUser, FakeAccount, Fiscalizacao, ModulePermission } from './types';
 import { mockMembers, mockSchedules, mockCases, mockWarnings } from './mockData';
 import { getScheduleDeadlineText, calculateScheduleDeadlineDate } from './dateUtils';
 
@@ -361,7 +361,7 @@ export const getMembers = async (): Promise<Member[]> => {
       entryDate: cleanEntry,
       promotionDate: cleanPromo,
       group: m.group || "SSI",
-      permissions: Array.isArray(m.permissions) ? m.permissions : (typeof m.permissions === "string" ? (m.permissions as string).split(",").map((s: string) => s.trim()).filter(Boolean) : (
+      permissions: Array.isArray(m.permissions) ? (m.permissions as ModulePermission[]) : (typeof m.permissions === "string" ? ((m.permissions as string).split(",").map((s: string) => s.trim()).filter(Boolean) as ModulePermission[]) : (
         m.role === "Ministério" || m.role === "Presidente" || m.role === "Vice-Presidente" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições", "Relatórios e Auditoria", "Configurações"] :
         m.role === "Diretor" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos", "Registro de Punições"] :
         m.role === "Fiscalizador" ? ["Dashboard", "Escala Semanal", "Listagem de Membros", "Gestão de Casos"] :
@@ -375,11 +375,11 @@ export const getMembers = async (): Promise<Member[]> => {
     if (!existing) {
       seenMap.set(targetNick, cleanedMember);
     } else {
-      // Se houver duplicata, manter a versão que possui código de acesso ou status mais completo
-      if ((!existing.accessCode && cleanedMember.accessCode) || (existing.syncStatus !== 'synced' && cleanedMember.syncStatus === 'synced')) {
+      // Se houver duplicata, dar preferência ao registro mais recente
+      if ((cleanedMember.updatedAt || 0) > (existing.updatedAt || 0)) {
         seenMap.set(targetNick, { ...existing, ...cleanedMember });
-      } else if (cleanedMember.accessCode && !existing.accessCode) {
-        existing.accessCode = cleanedMember.accessCode;
+      } else if (existing.syncStatus !== 'synced' && cleanedMember.syncStatus === 'synced') {
+        seenMap.set(targetNick, { ...existing, ...cleanedMember });
       }
     }
   }

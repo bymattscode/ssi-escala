@@ -275,8 +275,9 @@ export function getScheduleFormattedDate(schedule?: { scheduleDate?: string; dea
   if (schedule.deadlineDate) {
     const d = new Date(schedule.deadlineDate);
     if (!isNaN(d.getTime())) {
-      d.setDate(d.getDate() - 2);
-      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+      const b = new Date(d.getTime() - 3 * 3600 * 1000);
+      b.setUTCDate(b.getUTCDate() - 2);
+      return `${pad(b.getUTCDate())}/${pad(b.getUTCMonth() + 1)}/${b.getUTCFullYear()}`;
     }
   }
   if (schedule.week && schedule.week.includes("-W")) {
@@ -284,9 +285,9 @@ export function getScheduleFormattedDate(schedule?: { scheduleDate?: string; dea
     const yr = parseInt(yrStr, 10);
     const wk = parseInt(wkStr, 10);
     if (!isNaN(yr) && !isNaN(wk)) {
-      const jan4 = new Date(yr, 0, 4);
-      const jan4DayOfWeek = (jan4.getDay() + 6) % 7;
-      const firstMonday = new Date(yr, 0, 4 - jan4DayOfWeek);
+      const jan4 = new Date(Date.UTC(yr, 0, 4));
+      const jan4DayOfWeek = (jan4.getUTCDay() + 6) % 7;
+      const firstMonday = new Date(Date.UTC(yr, 0, 4 - jan4DayOfWeek));
       const targetWeekStart = new Date(firstMonday.getTime() + (wk - 1) * 7 * 24 * 60 * 60 * 1000);
       
       const offsetMap: Record<string, number> = {
@@ -303,7 +304,7 @@ export function getScheduleFormattedDate(schedule?: { scheduleDate?: string; dea
       const offset = offsetMap[String(schedule.referenceDay || "").trim()] ?? 0;
       const calcDate = new Date(targetWeekStart.getTime() + offset * 24 * 60 * 60 * 1000);
       if (!isNaN(calcDate.getTime())) {
-        return `${pad(calcDate.getDate())}/${pad(calcDate.getMonth() + 1)}/${calcDate.getFullYear()}`;
+        return `${pad(calcDate.getUTCDate())}/${pad(calcDate.getUTCMonth() + 1)}/${calcDate.getUTCFullYear()}`;
       }
     }
   }
